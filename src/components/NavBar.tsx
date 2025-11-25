@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Menu, X, LogOut, Calendar, Settings } from 'lucide-react'
 
 interface NavbarProps {
@@ -16,7 +15,6 @@ export default function Navbar({ user }: NavbarProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
     const handleLogout = () => {
-        // Implementar logout depois
         window.location.href = '/api/auth/signout'
     }
 
@@ -24,16 +22,16 @@ export default function Navbar({ user }: NavbarProps) {
         <nav className="bg-black shadow-lg sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
-                    {/* Logo */}
+                    {/* Logo Tipográfica */}
                     <Link href="/" className="flex-shrink-0">
-                        <Image
-                            src="/assets/images/logo.png"
-                            alt="Henrique Bilro Cabeleireiros"
-                            width={250}
-                            height={60}
-                            priority
-                            className="h-16 w-auto"
-                        />
+                        <div className="flex flex-col">
+                            <span className="text-3xl md:text-4xl font-bold tracking-wider text-yellow-500 font-playfair">
+                                HENRIQUE BILRO
+                            </span>
+                            <span className="text-xs md:text-sm tracking-[0.3em] text-gray-400 mt-1 font-lato">
+                                CABELEIREIROS
+                            </span>
+                        </div>
                     </Link>
 
                     {/* Desktop Menu */}
