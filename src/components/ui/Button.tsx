@@ -16,13 +16,13 @@ export default function Button({
     disabled,
     ...props
 }: ButtonProps) {
-    const baseStyles = 'rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
+    const baseStyles = 'rounded-md font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
 
     const variants = {
-        primary: 'bg-yellow-600 text-white hover:bg-yellow-700 active:bg-yellow-800',
-        secondary: 'bg-gray-800 text-white hover:bg-gray-900 active:bg-black',
+        primary: 'bg-gradient-to-r from-[#C9A65C] to-[#A68B4E] text-white hover:shadow-lg active:shadow-md',
+        secondary: 'bg-[#2C2C2C] text-white hover:bg-[#3D3D3D] active:bg-black',
         danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
-        outline: 'border-2 border-yellow-600 text-yellow-600 hover:bg-yellow-50 active:bg-yellow-100',
+        outline: 'border-2 border-[#C9A65C] text-[#C9A65C] hover:bg-[#C9A65C] hover:text-white active:bg-[#A68B4E]',
     }
 
     const sizes = {

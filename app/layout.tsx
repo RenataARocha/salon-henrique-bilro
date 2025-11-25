@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Playfair_Display, Lato } from 'next/font/google'
+import { Playfair_Display, Inter } from 'next/font/google'
 import './globals.css'
 
 const playfair = Playfair_Display({
@@ -8,16 +8,15 @@ const playfair = Playfair_Display({
   display: 'swap',
 })
 
-const lato = Lato({
-  weight: ['400', '700'],
+const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-lato',
+  variable: '--font-inter',
   display: 'swap',
 })
 
 export const metadata: Metadata = {
   title: 'Henrique Bilro Cabeleireiros',
-  description: 'Sistema de agendamento online',
+  description: 'Sistema de agendamento online - Transforme seu visual',
 }
 
 export default function RootLayout({
@@ -26,7 +25,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt-BR" className={`${playfair.variable} ${lato.variable}`}>
+    <html lang="pt-BR" className={`${playfair.variable} ${inter.variable}`}>
+      {/*                         ^ CORRIGIDO: Adicionei {} */}
       <body className="antialiased">{children}</body>
     </html>
   )

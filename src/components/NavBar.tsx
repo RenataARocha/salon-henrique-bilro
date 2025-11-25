@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
+import { useState, useEffect } from 'react'
 import { Menu, X, LogOut, Calendar, Settings } from 'lucide-react'
+import Logo from './Logo'
 
 interface NavbarProps {
     user?: {
@@ -13,160 +13,116 @@ interface NavbarProps {
 
 export default function Navbar({ user }: NavbarProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+    const [scrolled, setScrolled] = useState(false)
+
+    useEffect(() => {
+        const handleScroll = () => {
+            setScrolled(window.scrollY > 20)
+        }
+        window.addEventListener('scroll', handleScroll)
+        return () => window.removeEventListener('scroll', handleScroll)
+    }, [])
 
     const handleLogout = () => {
         window.location.href = '/api/auth/signout'
     }
 
     return (
-        <nav className="bg-black shadow-lg sticky top-0 z-50">
+        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-lg' : 'bg-white/70 backdrop-blur-sm'}`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
-                    {/* Logo Tipográfica */}
-                    <Link href="/" className="flex-shrink-0">
-                        <div className="flex flex-col">
-                            <span className="text-3xl md:text-4xl font-bold tracking-wider text-yellow-500 font-playfair">
-                                HENRIQUE BILRO
-                            </span>
-                            <span className="text-xs md:text-sm tracking-[0.3em] text-gray-400 mt-1 font-lato">
-                                CABELEIREIROS
-                            </span>
-                        </div>
-                    </Link>
+                    <Logo variant="header" />
 
-                    {/* Desktop Menu */}
                     <div className="hidden md:flex items-center space-x-8">
+                        <a href="/#sobre" className="text-[#2C2C2C] hover:text-[#C9A65C] transition-colors text-sm font-medium">
+                            Sobre
+                        </a>
+                        <a href="/#servicos" className="text-[#2C2C2C] hover:text-[#C9A65C] transition-colors text-sm font-medium">
+                            Serviços
+                        </a>
+                        <a href="/#localizacao" className="text-[#2C2C2C] hover:text-[#C9A65C] transition-colors text-sm font-medium">
+                            Localização
+                        </a>
+
                         {!user ? (
                             <>
-                                <Link
-                                    href="/#servicos"
-                                    className="text-gray-300 hover:text-yellow-500 transition-colors text-sm font-medium"
-                                >
-                                    Serviços
-                                </Link>
-                                <Link
-                                    href="/login"
-                                    className="text-gray-300 hover:text-yellow-500 transition-colors text-sm font-medium"
-                                >
-                                    Entrar
-                                </Link>
-                                <Link
-                                    href="/register"
-                                    className="bg-yellow-600 text-white px-6 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm font-semibold"
-                                >
+                                <a href="/login" className="text-[#2C2C2C] hover:text-[#C9A65C] transition-colors text-sm font-medium">
+                                    Login
+                                </a>
+                                <a href="/register" className="bg-gradient-to-r from-[#C9A65C] to-[#A68B4E] text-white px-6 py-2.5 rounded-md hover:shadow-lg transition-all text-sm font-semibold">
                                     Cadastrar
-                                </Link>
+                                </a>
                             </>
                         ) : (
                             <>
-                                <Link
-                                    href="/agendar"
-                                    className="text-gray-300 hover:text-yellow-500 transition-colors text-sm font-medium flex items-center gap-2"
-                                >
-                                    <Calendar size={18} />
+                                <a href="/agendar" className="text-[#2C2C2C] hover:text-[#C9A65C] transition-colors text-sm font-medium flex items-center gap-2">
+                                    <Calendar size={16} />
                                     Agendar
-                                </Link>
-                                <Link
-                                    href="/agendamentos"
-                                    className="text-gray-300 hover:text-yellow-500 transition-colors text-sm font-medium"
-                                >
-                                    Meus Agendamentos
-                                </Link>
+                                </a>
+                                <a href="/agendamentos" className="text-[#2C2C2C] hover:text-[#C9A65C] transition-colors text-sm font-medium">
+                                    Agendamentos
+                                </a>
                                 {user.role === 'ADMIN' && (
-                                    <Link
-                                        href="/admin"
-                                        className="text-gray-300 hover:text-yellow-500 transition-colors text-sm font-medium flex items-center gap-2"
-                                    >
-                                        <Settings size={18} />
-                                        Administração
-                                    </Link>
+                                    <a href="/admin" className="text-[#2C2C2C] hover:text-[#C9A65C] transition-colors text-sm font-medium flex items-center gap-2">
+                                        <Settings size={16} />
+                                        Admin
+                                    </a>
                                 )}
-                                <div className="flex items-center gap-4">
-                                    <span className="text-gray-400 text-sm">
-                                        Olá, <span className="text-yellow-500 font-semibold">{user.name}</span>
+                                <div className="flex items-center gap-3 pl-4 border-l border-gray-300">
+                                    <span className="text-[#2C2C2C] text-sm">
+                                        <span className="text-[#C9A65C] font-semibold">{user.name}</span>
                                     </span>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="text-gray-300 hover:text-red-500 transition-colors"
-                                        aria-label="Sair"
-                                    >
-                                        <LogOut size={20} />
+                                    <button onClick={handleLogout} className="text-[#2C2C2C] hover:text-red-500 transition-colors" aria-label="Sair">
+                                        <LogOut size={18} />
                                     </button>
                                 </div>
                             </>
                         )}
                     </div>
 
-                    {/* Mobile menu button */}
-                    <button
-                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden text-gray-300 hover:text-yellow-500"
-                        aria-label="Menu"
-                        aria-expanded={mobileMenuOpen}
-                    >
-                        {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+                    <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-[#2C2C2C] hover:text-[#C9A65C]" aria-label="Menu">
+                        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                 </div>
 
-                {/* Mobile Menu */}
                 {mobileMenuOpen && (
-                    <div className="md:hidden pb-4 space-y-3" role="navigation">
+                    <div className="md:hidden pb-4 space-y-3 border-t border-gray-200 mt-4 pt-4">
+                        <a href="/#sobre" className="block text-[#2C2C2C] hover:text-[#C9A65C] py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                            Sobre
+                        </a>
+                        <a href="/#servicos" className="block text-[#2C2C2C] hover:text-[#C9A65C] py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                            Serviços
+                        </a>
+                        <a href="/#localizacao" className="block text-[#2C2C2C] hover:text-[#C9A65C] py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                            Localização
+                        </a>
+
                         {!user ? (
                             <>
-                                <Link
-                                    href="/#servicos"
-                                    className="block text-gray-300 hover:text-yellow-500 py-2 transition-colors"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    Serviços
-                                </Link>
-                                <Link
-                                    href="/login"
-                                    className="block text-gray-300 hover:text-yellow-500 py-2 transition-colors"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    Entrar
-                                </Link>
-                                <Link
-                                    href="/register"
-                                    className="block bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-center"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
+                                <a href="/login" className="block text-[#2C2C2C] hover:text-[#C9A65C] py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                    Login
+                                </a>
+                                <a href="/register" className="block bg-gradient-to-r from-[#C9A65C] to-[#A68B4E] text-white px-4 py-2 rounded-md text-center text-sm font-semibold" onClick={() => setMobileMenuOpen(false)}>
                                     Cadastrar
-                                </Link>
+                                </a>
                             </>
                         ) : (
                             <>
-                                <div className="text-gray-400 text-sm py-2">
-                                    Olá, <span className="text-yellow-500 font-semibold">{user.name}</span>
+                                <div className="text-[#2C2C2C] text-sm py-2">
+                                    Olá, <span className="text-[#C9A65C] font-semibold">{user.name}</span>
                                 </div>
-                                <Link
-                                    href="/agendar"
-                                    className="block text-gray-300 hover:text-yellow-500 py-2 transition-colors"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
+                                <a href="/agendar" className="block text-[#2C2C2C] hover:text-[#C9A65C] py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                                     Agendar
-                                </Link>
-                                <Link
-                                    href="/agendamentos"
-                                    className="block text-gray-300 hover:text-yellow-500 py-2 transition-colors"
-                                    onClick={() => setMobileMenuOpen(false)}
-                                >
-                                    Meus Agendamentos
-                                </Link>
+                                </a>
+                                <a href="/agendamentos" className="block text-[#2C2C2C] hover:text-[#C9A65C] py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                    Agendamentos
+                                </a>
                                 {user.role === 'ADMIN' && (
-                                    <Link
-                                        href="/admin"
-                                        className="block text-gray-300 hover:text-yellow-500 py-2 transition-colors"
-                                        onClick={() => setMobileMenuOpen(false)}
-                                    >
-                                        Administração
-                                    </Link>
+                                    <a href="/admin" className="block text-[#2C2C2C] hover:text-[#C9A65C] py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                        Admin
+                                    </a>
                                 )}
-                                <button
-                                    onClick={handleLogout}
-                                    className="block text-red-500 hover:text-red-600 py-2 transition-colors w-full text-left"
-                                >
+                                <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="block text-red-500 py-2 w-full text-left text-sm">
                                     Sair
                                 </button>
                             </>
