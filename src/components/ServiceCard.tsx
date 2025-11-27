@@ -63,7 +63,7 @@ export default function ServiceCard({
                             <button
                                 key={index}
                                 onClick={() => setCurrentImageIndex(index)}
-                                className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex ? 'bg-[#C9A65C] w-8' : 'bg-white/50 hover:bg-white/80'}`}
+                                className={`w-2 h-2 rounded-full transition-all ${index === currentImageIndex ? 'bg-gold w-8' : 'bg-white/50 hover:bg-white/80'}`}
                                 aria-label={`Ver imagem ${index + 1}`}
                             />
                         ))}
@@ -74,17 +74,17 @@ export default function ServiceCard({
             </div>
 
             <div className="p-6">
-                <h3 className="text-2xl font-bold mb-2 text-[#2C2C2C]">{name}</h3>
+                <h3 className="text-2xl font-bold mb-2 text-charcoal">{name}</h3>
                 <p className="text-gray-600 mb-4 min-h-[48px]">{description}</p>
 
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-2 text-gray-700">
-                        <Clock size={20} className="text-[#C9A65C]" />
+                        <Clock size={20} className="text-gold" />
                         <span className="font-medium">{duration} min</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <DollarSign size={20} className="text-[#C9A65C]" />
-                        <span className="text-3xl font-bold text-[#C9A65C]">
+                        <DollarSign size={20} className="text-gold" />
+                        <span className="text-3xl font-bold text-gold">
                             {price.toLocaleString('pt-BR', {
                                 style: 'currency',
                                 currency: 'BRL'
@@ -96,7 +96,7 @@ export default function ServiceCard({
                 {onBook && (
                     <button
                         onClick={onBook}
-                        className="w-full bg-gradient-to-r from-[#C9A65C] to-[#A68B4E] text-white py-3 rounded-md font-semibold hover:shadow-lg transition-all duration-200"
+                        className="w-full bg-gradient-gold text-white py-3 rounded-md font-semibold hover:shadow-lg transition-all duration-200"
                     >
                         Agendar Agora
                     </button>

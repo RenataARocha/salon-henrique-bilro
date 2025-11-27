@@ -19,10 +19,10 @@ export default function Button({
     const baseStyles = 'rounded-md font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed'
 
     const variants = {
-        primary: 'bg-gradient-to-r from-[#C9A65C] to-[#A68B4E] text-white hover:shadow-lg active:shadow-md',
-        secondary: 'bg-[#2C2C2C] text-white hover:bg-[#3D3D3D] active:bg-black',
+        primary: 'bg-gradient-gold text-white hover:shadow-lg active:shadow-md',
+        secondary: 'bg-charcoal text-white hover:bg-charcoal-light active:bg-black',
         danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
-        outline: 'border-2 border-[#C9A65C] text-[#C9A65C] hover:bg-[#C9A65C] hover:text-white active:bg-[#A68B4E]',
+        outline: 'border-2 border-gold text-gold hover-bg-gold hover:text-white',
     }
 
     const sizes = {

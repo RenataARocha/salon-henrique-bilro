@@ -30,3 +30,83 @@ h2,
 h3 {
   font-family: var(--font-family-display);
 }
+
+/* Classes customizadas para cores */
+@layer utilities {
+
+  /* Cores de texto */
+  .text-charcoal {
+    color: var(--color-charcoal);
+  }
+
+  .text-gold {
+    color: var(--color-gold);
+  }
+
+  .text-gold-light {
+    color: var(--color-gold-light);
+  }
+
+  .text-gold-dark {
+    color: var(--color-gold-dark);
+  }
+
+  .text-beige {
+    color: var(--color-beige);
+  }
+
+  /* Backgrounds */
+  .bg-charcoal {
+    background-color: var(--color-charcoal);
+  }
+
+  .bg-charcoal-light {
+    background-color: var(--color-charcoal-light);
+  }
+
+  .bg-gold {
+    background-color: var(--color-gold);
+  }
+
+  .bg-beige {
+    background-color: var(--color-beige);
+  }
+
+  /* Bordas */
+  .border-gold {
+    border-color: var(--color-gold);
+  }
+
+  .border-charcoal {
+    border-color: var(--color-charcoal);
+  }
+
+  /* Gradientes */
+  .bg-gradient-gold {
+    background: linear-gradient(to right, var(--color-gold), var(--color-gold-dark));
+  }
+
+  .bg-gradient-charcoal {
+    background: linear-gradient(to bottom right, var(--color-charcoal), var(--color-charcoal-light), var(--color-charcoal));
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(to right, var(--color-gold-light), var(--color-gold), var(--color-gold-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Hover states */
+  .hover-gold:hover {
+    color: var(--color-gold);
+  }
+
+  .hover-charcoal:hover {
+    color: var(--color-charcoal);
+  }
+
+  .hover-bg-gold:hover {
+    background-color: var(--color-gold);
+  }
+}
