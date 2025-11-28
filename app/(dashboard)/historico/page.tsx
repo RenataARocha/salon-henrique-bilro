@@ -2,7 +2,6 @@
 
 import { Clock, Calendar, CheckCircle, XCircle } from 'lucide-react'
 
-// Simulação de dados (virá do banco depois)
 const historyData = [
     {
         id: 1,
@@ -32,9 +31,9 @@ const historyData = [
 
 export default function HistoricoPage() {
     return (
-        <div className="min-h-screen bg-[#F5F1E8] py-8 px-4">
+        <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-4xl mx-auto">
-                <h1 className="text-3xl font-bold text-[#2C2C2C] mb-8">
+                <h1 className="text-3xl font-bold text-charcoal mb-8">
                     Meu Histórico
                 </h1>
 
@@ -43,7 +42,7 @@ export default function HistoricoPage() {
                         <div key={item.id} className="bg-white rounded-xl shadow p-6">
                             <div className="flex items-start justify-between mb-4">
                                 <div>
-                                    <h3 className="text-xl font-bold text-[#2C2C2C] mb-1">
+                                    <h3 className="text-xl font-bold text-charcoal mb-1">
                                         {item.serviceName}
                                     </h3>
                                     <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -75,13 +74,13 @@ export default function HistoricoPage() {
                                             </span>
                                         )}
                                     </span>
-                                    <span className="text-xl font-bold text-[#C9A65C]">
+                                    <span className="text-xl font-bold text-gold">
                                         R$ {item.price.toFixed(2)}
                                     </span>
                                 </div>
                             </div>
 
-                            <button className="text-sm text-[#C9A65C] hover:text-[#A68B4E] font-semibold">
+                            <button className="text-sm text-gold hover:text-gold-dark font-semibold">
                                 Agendar novamente →
                             </button>
                         </div>
