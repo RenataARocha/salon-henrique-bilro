@@ -34,6 +34,9 @@ export default function Navbar({ user }: NavbarProps) {
                     <Logo variant="header" />
 
                     <div className="hidden md:flex items-center space-x-8">
+                        <a href="/#home" className="text-white hover-gold transition-colors text-sm font-medium">
+                            Home
+                        </a>
                         <a href="/#sobre" className="text-white hover-gold transition-colors text-sm font-medium">
                             Sobre
                         </a>
@@ -42,6 +45,9 @@ export default function Navbar({ user }: NavbarProps) {
                         </a>
                         <a href="/#localizacao" className="text-white hover-gold transition-colors text-sm font-medium">
                             Localização
+                        </a>
+                        <a href="/#agendar" className="text-white hover-gold transition-colors text-sm font-medium">
+                            Agendar
                         </a>
 
                         {!user ? (
