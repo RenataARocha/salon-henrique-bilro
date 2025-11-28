@@ -27,12 +27,12 @@ export default function AgendaAdminPage() {
     ]
 
     return (
-        <div className="min-h-screen bg-[#F5F1E8] py-8 px-4">
+        <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-4xl mx-auto">
                 <div className="bg-white rounded-xl shadow-lg p-8">
                     <div className="flex items-center gap-3 mb-6">
-                        <CalendarIcon size={32} className="text-[#C9A65C]" />
-                        <h1 className="text-3xl font-bold text-[#2C2C2C]">
+                        <CalendarIcon size={32} className="text-gold" />
+                        <h1 className="text-3xl font-bold text-charcoal">
                             Gerenciar Agenda
                         </h1>
                     </div>
@@ -71,7 +71,7 @@ export default function AgendaAdminPage() {
                                                 )}
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-bold text-[#2C2C2C]">
+                                                <h3 className="text-lg font-bold text-charcoal">
                                                     {month.label}
                                                 </h3>
                                                 <p className={`text-sm ${isOpen ? 'text-green-700' : 'text-gray-600'
