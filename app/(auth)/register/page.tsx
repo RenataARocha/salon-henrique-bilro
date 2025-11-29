@@ -1,16 +1,23 @@
+// ==========================================
+// app/(auth)/register/page.tsx - COM DATA DE NASCIMENTO
+// ==========================================
+
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Logo from '@/components/Logo'
 
 export default function RegisterPage() {
+    const router = useRouter()
     const [formData, setFormData] = useState({
         name: '',
         email: '',
         phone: '',
+        birthDate: '', // <- NOVO
         password: '',
         confirmPassword: ''
     })
@@ -32,19 +39,46 @@ export default function RegisterPage() {
             return
         }
 
+        // Validar idade (opcional - mínimo 18 anos)
+        if (formData.birthDate) {
+            const birthDate = new Date(formData.birthDate)
+            const today = new Date()
+            const age = today.getFullYear() - birthDate.getFullYear()
+
+            if (age < 16) {
+                setError('Você deve ter pelo menos 16 anos para se cadastrar')
+                return
+            }
+        }
+
         setLoading(true)
 
         try {
-            // TODO: Implementar registro
-            console.log('Cadastro:', formData)
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    birthDate: formData.birthDate || null,
+                    password: formData.password
+                })
+            })
 
-            // Simulação
-            await new Promise(resolve => setTimeout(resolve, 1500))
+            const data = await response.json()
 
-            alert('Conta criada com sucesso! Faça login para continuar.')
-            window.location.href = '/login'
+            if (data.success) {
+                alert('✅ Conta criada com sucesso! Faça login para continuar.')
+                router.push('/login')
+            } else {
+                setError(data.error || 'Erro ao criar conta. Tente novamente.')
+            }
         } catch (err) {
             setError('Erro ao criar conta. Tente novamente.')
+            console.error('Erro:', err)
         } finally {
             setLoading(false)
         }
@@ -53,7 +87,6 @@ export default function RegisterPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
             <div className="max-w-md w-full">
-                {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-6">
                         <Logo variant="header" />
@@ -66,9 +99,8 @@ export default function RegisterPage() {
                     </p>
                 </div>
 
-                {/* Formulário */}
                 <div className="bg-white rounded-xl shadow-2xl p-8">
-                    <div className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm" role="alert">
                                 {error}
@@ -102,7 +134,17 @@ export default function RegisterPage() {
                             placeholder="(00) 00000-0000"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            helperText="Opcional - para lembretes de agendamento"
+                            helperText="Opcional - para lembretes"
+                        />
+
+                        {/* NOVO CAMPO - DATA DE NASCIMENTO */}
+                        <Input
+                            id="birthDate"
+                            type="date"
+                            label="Data de Nascimento"
+                            value={formData.birthDate}
+                            onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                            helperText="Para oferecermos descontos especiais no seu aniversário! 🎂"
                         />
 
                         <Input
@@ -144,7 +186,7 @@ export default function RegisterPage() {
                         </div>
 
                         <Button
-                            onClick={handleSubmit}
+                            type="submit"
                             variant="primary"
                             size="lg"
                             loading={loading}
@@ -152,7 +194,7 @@ export default function RegisterPage() {
                         >
                             Cadastrar
                         </Button>
-                    </div>
+                    </form>
 
                     <div className="mt-6 text-center">
                         <p className="text-sm text-gray-600">
@@ -164,7 +206,6 @@ export default function RegisterPage() {
                     </div>
                 </div>
 
-                {/* Link para voltar */}
                 <div className="text-center mt-6">
                     <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
                         ← Voltar para o início

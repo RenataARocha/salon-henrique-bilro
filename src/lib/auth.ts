@@ -1,4 +1,4 @@
-// src/lib/auth.ts
+// src/lib/auth.ts - VERSÃO CORRIGIDA
 
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
@@ -50,11 +50,12 @@ export const authOptions: NextAuthOptions = {
     ],
     session: {
         strategy: 'jwt',
-        maxAge: 30 * 24 * 60 * 60, // 30 dias
+        maxAge: 7 * 24 * 60 * 60, // 7 dias (reduzido para mais segurança)
     },
     pages: {
         signIn: '/login',
         error: '/login',
+        // NÃO redirecionar automaticamente
     },
     callbacks: {
         async jwt({ token, user }) {
@@ -70,6 +71,15 @@ export const authOptions: NextAuthOptions = {
                 session.user.id = token.id as string
             }
             return session
+        },
+        // Callback para controlar redirecionamento
+        async redirect({ url, baseUrl }) {
+            // Se a URL é relativa, permite
+            if (url.startsWith('/')) return `${baseUrl}${url}`
+            // Se a URL é do mesmo site, permite
+            else if (new URL(url).origin === baseUrl) return url
+            // Caso contrário, redireciona para home
+            return baseUrl
         }
     },
     secret: process.env.NEXTAUTH_SECRET,

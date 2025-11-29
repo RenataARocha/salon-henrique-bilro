@@ -1,12 +1,17 @@
+// app/(auth)/login/page.tsx - CÓDIGO CORRETO COM NEXTAUTH
+
 'use client'
 
 import { useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Logo from '@/components/Logo'
 
 export default function LoginPage() {
+    const router = useRouter()
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -20,16 +25,21 @@ export default function LoginPage() {
         setLoading(true)
 
         try {
-            // TODO: Implementar autenticação com NextAuth
-            console.log('Login:', formData)
+            const result = await signIn('credentials', {
+                email: formData.email,
+                password: formData.password,
+                redirect: false
+            })
 
-            // Simulação (remover depois)
-            await new Promise(resolve => setTimeout(resolve, 1500))
-
-            // Redirecionar após login
-            window.location.href = '/agendar'
+            if (result?.error) {
+                setError('Email ou senha incorretos')
+            } else if (result?.ok) {
+                router.push('/agendar')
+                router.refresh()
+            }
         } catch (err) {
-            setError('Email ou senha incorretos')
+            console.error('Erro no login:', err)
+            setError('Erro ao fazer login. Tente novamente.')
         } finally {
             setLoading(false)
         }
@@ -38,7 +48,6 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
             <div className="max-w-md w-full">
-                {/* Logo */}
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-6">
                         <Logo variant="header" />
@@ -51,9 +60,8 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                {/* Formulário */}
                 <div className="bg-white rounded-xl shadow-2xl p-8">
-                    <div className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm" role="alert">
                                 {error}
@@ -94,7 +102,7 @@ export default function LoginPage() {
                         </div>
 
                         <Button
-                            onClick={handleSubmit}
+                            type="submit"
                             variant="primary"
                             size="lg"
                             loading={loading}
@@ -102,7 +110,7 @@ export default function LoginPage() {
                         >
                             Entrar
                         </Button>
-                    </div>
+                    </form>
 
                     <div className="mt-6 text-center">
                         <p className="text-sm text-gray-600">
@@ -113,7 +121,6 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    {/* Dados de teste */}
                     <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                         <p className="text-xs text-gray-600 font-semibold mb-2">🔐 Dados para teste:</p>
                         <div className="space-y-1">
@@ -127,7 +134,6 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Link para voltar */}
                 <div className="text-center mt-6">
                     <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
                         ← Voltar para o início
