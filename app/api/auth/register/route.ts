@@ -1,4 +1,6 @@
-// app/api/auth/register/route.ts
+// ==========================================
+// app/api/auth/register/route.ts - ATUALIZADO
+// ==========================================
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -7,7 +9,7 @@ import bcrypt from 'bcryptjs'
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { name, email, password, phone } = body
+        const { name, email, password, phone, birthDate } = body
 
         // Validações
         if (!name || !email || !password) {
@@ -46,6 +48,7 @@ export async function POST(request: Request) {
                 email,
                 password: hashedPassword,
                 phone: phone || null,
+                birthDate: birthDate ? new Date(birthDate) : null, // <- NOVO
                 role: 'CLIENT'
             },
             select: {
