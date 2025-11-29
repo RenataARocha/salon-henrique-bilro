@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Clock, DollarSign } from 'lucide-react'
+import SmartBookingButton from './SmartBookingButton'
 
 interface ServiceCardProps {
     name: string
@@ -10,7 +11,6 @@ interface ServiceCardProps {
     price: number
     duration: number
     images: string[]
-    onBook?: () => void
 }
 
 export default function ServiceCard({
@@ -18,8 +18,7 @@ export default function ServiceCard({
     description,
     price,
     duration,
-    images,
-    onBook
+    images
 }: ServiceCardProps) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
@@ -93,14 +92,12 @@ export default function ServiceCard({
                     </div>
                 </div>
 
-                {onBook && (
-                    <button
-                        onClick={onBook}
-                        className="w-full bg-gradient-gold text-white py-3 rounded-md font-semibold hover:shadow-lg transition-all duration-200"
-                    >
-                        Agendar Agora
-                    </button>
-                )}
+                <SmartBookingButton
+                    variant="button"
+                    className="w-full bg-gradient-gold text-white py-3 rounded-md font-semibold hover:shadow-lg transition-all duration-200"
+                >
+                    Agendar Agora
+                </SmartBookingButton>
             </div>
         </article>
     )

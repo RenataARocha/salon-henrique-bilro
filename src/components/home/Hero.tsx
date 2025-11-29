@@ -1,4 +1,6 @@
-import Link from 'next/link'
+'use client'
+
+import SmartBookingButton from '@/components/SmartBookingButton'
 
 export default function Hero() {
     return (
@@ -11,9 +13,12 @@ export default function Hero() {
                     Agende seu horário online de forma rápida e prática no melhor salão da cidade
                 </p>
                 <div className="flex gap-4 justify-center flex-wrap">
-                    <Link href="/register" className="bg-gradient-gold text-white px-10 py-4 rounded-md hover:shadow-2xl transition-all text-lg font-semibold">
+                    <SmartBookingButton
+                        variant="link"
+                        className="bg-gradient-gold text-white px-10 py-4 rounded-md hover:shadow-2xl transition-all text-lg font-semibold"
+                    >
                         Agendar Agora
-                    </Link>
+                    </SmartBookingButton>
                     <a href="#servicos" className="bg-transparent border-2 border-gold text-gold px-10 py-4 rounded-md hover-bg-gold hover:text-white transition-all text-lg font-semibold">
                         Ver Serviços
                     </a>

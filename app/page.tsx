@@ -7,12 +7,9 @@ import About from '@/components/home/About'
 import Location from '@/components/home/Location'
 import ServiceCard from '@/components/ServiceCard'
 import CTA from '@/components/home/CTA'
+import SmartBookingButton from '@/components/SmartBookingButton'
 
 export default function Home() {
-  const handleBooking = () => {
-    window.location.href = '/register'
-  }
-
   return (
     <>
       <Navbar />
@@ -44,7 +41,6 @@ export default function Home() {
                 price={580}
                 duration={180}
                 images={['https://images.unsplash.com/photo-1560869713-7d0a29430803?w=600']}
-                onBook={handleBooking}
               />
 
               <ServiceCard
@@ -53,7 +49,6 @@ export default function Home() {
                 price={480}
                 duration={150}
                 images={['https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600']}
-                onBook={handleBooking}
               />
 
               <ServiceCard
@@ -62,17 +57,16 @@ export default function Home() {
                 price={120}
                 duration={60}
                 images={['https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=600']}
-                onBook={handleBooking}
               />
             </div>
 
             <div className="text-center mt-12">
-              <a
-                href="/register"
+              <SmartBookingButton
+                variant="link"
                 className="inline-block bg-gradient-gold text-white px-8 py-3 rounded-md hover:shadow-lg transition-all font-semibold"
               >
                 Ver Todos os Serviços
-              </a>
+              </SmartBookingButton>
             </div>
           </div>
         </section>
