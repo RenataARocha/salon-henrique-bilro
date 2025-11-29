@@ -85,7 +85,8 @@ async function main() {
     const timeSlots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00']
     const availableSlots = []
 
-    for (let day = 1; day <= 6; day++) {
+    // Atualizar esta parte do seed:
+    for (let day = 2; day <= 6; day++) {
         for (const time of timeSlots) {
             availableSlots.push({
                 dayOfWeek: day,
