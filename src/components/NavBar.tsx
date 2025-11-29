@@ -1,17 +1,14 @@
+// src/components/NavBar.tsx - VERSÃO CORRIGIDA
+
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession, signOut } from 'next-auth/react'
 import { Menu, X, LogOut, Calendar, Settings } from 'lucide-react'
 import Logo from './Logo'
 
-interface NavbarProps {
-    user?: {
-        name: string
-        role: string
-    } | null
-}
-
-export default function Navbar({ user }: NavbarProps) {
+export default function Navbar() {
+    const { data: session } = useSession()
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
     const [scrolled, setScrolled] = useState(false)
 
@@ -24,15 +21,18 @@ export default function Navbar({ user }: NavbarProps) {
     }, [])
 
     const handleLogout = () => {
-        window.location.href = '/api/auth/signout'
+        signOut({ callbackUrl: '/' })
     }
 
+    const user = session?.user
+
     return (
-        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-black/20 backdrop-blur-md shadow-lg' : 'bg-black/70 backdrop-blur-sm'}`}>
+        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-charcoal/95 backdrop-blur-md shadow-lg' : 'bg-charcoal/90 backdrop-blur-sm'}`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
                     <Logo variant="header" />
 
+                    {/* Desktop Menu */}
                     <div className="hidden md:flex items-center space-x-8">
                         <a href="/#home" className="text-white hover-gold transition-colors text-sm font-medium">
                             Home
@@ -46,9 +46,6 @@ export default function Navbar({ user }: NavbarProps) {
                         <a href="/#localizacao" className="text-white hover-gold transition-colors text-sm font-medium">
                             Localização
                         </a>
-                        <a href="/#agendar" className="text-white hover-gold transition-colors text-sm font-medium">
-                            Agendar
-                        </a>
 
                         {!user ? (
                             <>
@@ -61,24 +58,27 @@ export default function Navbar({ user }: NavbarProps) {
                             </>
                         ) : (
                             <>
-                                <a href="/agendar" className="text-charcoal hover-gold transition-colors text-sm font-medium flex items-center gap-2">
+                                <a href="/agendar" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
                                     <Calendar size={16} />
                                     Agendar
                                 </a>
-                                <a href="/agendamentos" className="text-charcoal hover-gold transition-colors text-sm font-medium">
-                                    Agendamentos
-                                </a>
+
                                 {user.role === 'ADMIN' && (
-                                    <a href="/admin" className="text-charcoal hover-gold transition-colors text-sm font-medium flex items-center gap-2">
+                                    <a href="/admin" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
                                         <Settings size={16} />
                                         Admin
                                     </a>
                                 )}
-                                <div className="flex items-center gap-3 pl-4 border-l border-gray-300">
-                                    <span className="text-charcoal text-sm">
-                                        <span className="text-gold font-semibold">{user.name}</span>
+                                <div className="flex items-center gap-3 pl-4 border-l border-gray-500">
+                                    <span className="text-white text-sm">
+                                        Olá, <span className="text-gold font-semibold">{user.name}</span>
                                     </span>
-                                    <button onClick={handleLogout} className="text-charcoal hover:text-red-500 transition-colors" aria-label="Sair">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="text-white hover:text-red-400 transition-colors"
+                                        aria-label="Sair"
+                                        title="Sair"
+                                    >
                                         <LogOut size={18} />
                                     </button>
                                 </div>
@@ -86,26 +86,35 @@ export default function Navbar({ user }: NavbarProps) {
                         )}
                     </div>
 
-                    <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-charcoal hover-gold" aria-label="Menu">
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        className="md:hidden text-white hover-gold"
+                        aria-label="Menu"
+                    >
                         {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                 </div>
 
+                {/* Mobile Menu */}
                 {mobileMenuOpen && (
-                    <div className="md:hidden pb-4 space-y-3 border-t border-gray-200 mt-4 pt-4">
-                        <a href="/#sobre" className="block text-charcoal hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                    <div className="md:hidden pb-4 space-y-3 border-t border-gray-700 mt-4 pt-4">
+                        <a href="/#home" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                            Home
+                        </a>
+                        <a href="/#sobre" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                             Sobre
                         </a>
-                        <a href="/#servicos" className="block text-charcoal hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                        <a href="/#servicos" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                             Serviços
                         </a>
-                        <a href="/#localizacao" className="block text-charcoal hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                        <a href="/#localizacao" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                             Localização
                         </a>
 
                         {!user ? (
                             <>
-                                <a href="/login" className="block text-charcoal hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                <a href="/login" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                                     Login
                                 </a>
                                 <a href="/register" className="block bg-gradient-gold text-white px-4 py-2 rounded-md text-center text-sm font-semibold" onClick={() => setMobileMenuOpen(false)}>
@@ -114,21 +123,27 @@ export default function Navbar({ user }: NavbarProps) {
                             </>
                         ) : (
                             <>
-                                <div className="text-charcoal text-sm py-2">
+                                <div className="text-white text-sm py-2">
                                     Olá, <span className="text-gold font-semibold">{user.name}</span>
                                 </div>
-                                <a href="/agendar" className="block text-charcoal hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                <a href="/agendar" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                                     Agendar
                                 </a>
-                                <a href="/agendamentos" className="block text-charcoal hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                <a href="/agendamentos" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                                     Agendamentos
                                 </a>
                                 {user.role === 'ADMIN' && (
-                                    <a href="/admin" className="block text-charcoal hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                    <a href="/admin" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                                         Admin
                                     </a>
                                 )}
-                                <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="block text-red-500 py-2 w-full text-left text-sm">
+                                <button
+                                    onClick={() => {
+                                        handleLogout()
+                                        setMobileMenuOpen(false)
+                                    }}
+                                    className="block text-red-400 py-2 w-full text-left text-sm"
+                                >
                                     Sair
                                 </button>
                             </>
