@@ -1,5 +1,3 @@
-// app/(auth)/login/page.tsx - CÓDIGO CORRETO COM NEXTAUTH
-
 'use client'
 
 import { useState } from 'react'
@@ -9,9 +7,11 @@ import Link from 'next/link'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Logo from '@/components/Logo'
+import { useToast } from '@/components/ui/ToastContainer' // <- IMPORTAR
 
 export default function LoginPage() {
     const router = useRouter()
+    const { showToast } = useToast() // <- USAR
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -33,13 +33,16 @@ export default function LoginPage() {
 
             if (result?.error) {
                 setError('Email ou senha incorretos')
+                showToast('Email ou senha incorretos', 'error') // <- EM VEZ DE ALERT
             } else if (result?.ok) {
+                showToast('Login realizado com sucesso!', 'success') // <- EM VEZ DE ALERT
                 router.push('/agendar')
                 router.refresh()
             }
         } catch (err) {
             console.error('Erro no login:', err)
             setError('Erro ao fazer login. Tente novamente.')
+            showToast('Erro ao fazer login. Tente novamente.', 'error')
         } finally {
             setLoading(false)
         }
