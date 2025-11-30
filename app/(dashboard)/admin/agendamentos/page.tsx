@@ -8,6 +8,8 @@ interface Appointment {
     time: string
     status: string
     notes?: string
+    justification?: string  // <- NOVO
+    justifiedAt?: string     // <- NOVO
     user: {
         name: string
         email: string
@@ -81,6 +83,10 @@ export default function AdminAgendamentosPage() {
                 return 'bg-orange-100 text-orange-700'
             case 'CANCELLED':
                 return 'bg-red-100 text-red-700'
+            case 'COMPLETED':
+                return 'bg-blue-100 text-blue-700'
+            case 'NO_SHOW':
+                return 'bg-gray-100 text-gray-700'
             default:
                 return 'bg-gray-100 text-gray-700'
         }
@@ -94,6 +100,10 @@ export default function AdminAgendamentosPage() {
                 return 'Pendente'
             case 'CANCELLED':
                 return 'Cancelado'
+            case 'COMPLETED':
+                return 'Concluído'
+            case 'NO_SHOW':
+                return 'Não Compareceu'
             default:
                 return status
         }
@@ -125,20 +135,21 @@ export default function AdminAgendamentosPage() {
                 </div>
             </div>
 
-            {/* Filtros */}
             <div className="flex gap-3 flex-wrap">
                 {[
                     { value: 'all', label: 'Todos', icon: '📋' },
                     { value: 'PENDING', label: 'Pendentes', icon: '⏳' },
                     { value: 'CONFIRMED', label: 'Confirmados', icon: '✅' },
+                    { value: 'COMPLETED', label: 'Concluídos', icon: '🎉' },
+                    { value: 'NO_SHOW', label: 'Não Compareceu', icon: '🚫' },
                     { value: 'CANCELLED', label: 'Cancelados', icon: '❌' }
                 ].map((filter) => (
                     <button
                         key={filter.value}
                         onClick={() => setFilterStatus(filter.value)}
                         className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
-                                ? 'bg-gradient-gold text-white shadow-lg'
-                                : 'bg-white text-charcoal hover:shadow-md'
+                            ? 'bg-gradient-gold text-white shadow-lg'
+                            : 'bg-white text-charcoal hover:shadow-md'
                             }`}
                     >
                         {filter.icon} {filter.label}
@@ -146,7 +157,6 @@ export default function AdminAgendamentosPage() {
                 ))}
             </div>
 
-            {/* Lista de agendamentos */}
             {filteredAppointments.length > 0 ? (
                 <div className="grid gap-4">
                     {filteredAppointments.map((appointment) => (
@@ -164,6 +174,11 @@ export default function AdminAgendamentosPage() {
                                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(appointment.status)}`}>
                                             {getStatusLabel(appointment.status)}
                                         </span>
+                                        {appointment.justification && (
+                                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                                                📝 Com Justificativa
+                                            </span>
+                                        )}
                                     </div>
 
                                     <div className="grid md:grid-cols-3 gap-4 text-sm">
@@ -217,7 +232,6 @@ export default function AdminAgendamentosPage() {
                 </div>
             )}
 
-            {/* Modal de detalhes */}
             {selectedAppointment && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -232,7 +246,6 @@ export default function AdminAgendamentosPage() {
                         </div>
 
                         <div className="space-y-6">
-                            {/* Cliente */}
                             <div className="bg-beige rounded-lg p-4">
                                 <h3 className="font-bold text-charcoal mb-3 text-lg">👤 Cliente</h3>
                                 <div className="space-y-2">
@@ -242,7 +255,6 @@ export default function AdminAgendamentosPage() {
                                 </div>
                             </div>
 
-                            {/* Serviço */}
                             <div className="bg-beige rounded-lg p-4">
                                 <h3 className="font-bold text-charcoal mb-3 text-lg">💇‍♀️ Serviço</h3>
                                 <div className="space-y-2">
@@ -252,7 +264,6 @@ export default function AdminAgendamentosPage() {
                                 </div>
                             </div>
 
-                            {/* Agendamento */}
                             <div className="bg-beige rounded-lg p-4">
                                 <h3 className="font-bold text-charcoal mb-3 text-lg">📅 Agendamento</h3>
                                 <div className="space-y-2">
@@ -275,7 +286,33 @@ export default function AdminAgendamentosPage() {
                                 </div>
                             </div>
 
-                            {/* Ações rápidas */}
+                            {/* JUSTIFICATIVA */}
+                            {selectedAppointment.justification && (
+                                <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                                    <h3 className="font-bold text-charcoal mb-3 text-lg flex items-center gap-2">
+                                        📝 Justificativa de Falta
+                                    </h3>
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-gray-600">
+                                            <strong>Enviada em:</strong>{' '}
+                                            {selectedAppointment.justifiedAt
+                                                ? new Date(selectedAppointment.justifiedAt).toLocaleDateString('pt-BR', {
+                                                    day: '2-digit',
+                                                    month: 'long',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })
+                                                : 'Data não disponível'
+                                            }
+                                        </p>
+                                        <div className="bg-white p-4 rounded border-l-4 border-blue-500">
+                                            <p className="text-gray-800">{selectedAppointment.justification}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
                                 <h3 className="font-bold text-charcoal mb-3">🚀 Ações Rápidas</h3>
                                 <div className="flex gap-2">
@@ -296,10 +333,9 @@ export default function AdminAgendamentosPage() {
                                 </div>
                             </div>
 
-                            {/* Mudar status */}
                             <div>
                                 <h3 className="font-bold text-charcoal mb-3">Alterar Status</h3>
-                                <div className="grid grid-cols-3 gap-3">
+                                <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => handleUpdateStatus(selectedAppointment.id, 'PENDING')}
                                         disabled={selectedAppointment.status === 'PENDING'}
@@ -315,9 +351,23 @@ export default function AdminAgendamentosPage() {
                                         ✅ Confirmar
                                     </button>
                                     <button
+                                        onClick={() => handleUpdateStatus(selectedAppointment.id, 'COMPLETED')}
+                                        disabled={selectedAppointment.status === 'COMPLETED'}
+                                        className="bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        🎉 Concluído
+                                    </button>
+                                    <button
+                                        onClick={() => handleUpdateStatus(selectedAppointment.id, 'NO_SHOW')}
+                                        disabled={selectedAppointment.status === 'NO_SHOW'}
+                                        className="bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        🚫 Não Compareceu
+                                    </button>
+                                    <button
                                         onClick={() => handleUpdateStatus(selectedAppointment.id, 'CANCELLED')}
                                         disabled={selectedAppointment.status === 'CANCELLED'}
-                                        className="bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
                                     >
                                         ❌ Cancelar
                                     </button>

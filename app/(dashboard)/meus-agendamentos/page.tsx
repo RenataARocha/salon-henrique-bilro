@@ -1,15 +1,14 @@
-// ==========================================
-// app/(dashboard)/meus-agendamentos/page.tsx
-// ==========================================
+// app/(dashboard)/meus-agendamentos/page.tsx - COM JUSTIFICATIVA
 
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Ban, Trash2 } from 'lucide-react'
+import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, Ban, Trash2, FileText } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import Button from '@/components/ui/Button'
+import JustificationModal from '@/components/JustificationModal'
 import { useToast } from '@/components/ui/ToastContainer'
 
 interface Appointment {
@@ -18,6 +17,8 @@ interface Appointment {
     time: string
     status: string
     notes?: string
+    justification?: string
+    justifiedAt?: string
     service: {
         name: string
         price: number
@@ -32,6 +33,7 @@ export default function MeusAgendamentosPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
     const [filterStatus, setFilterStatus] = useState<string>('upcoming')
+    const [justifyingAppointment, setJustifyingAppointment] = useState<Appointment | null>(null)
 
     useEffect(() => {
         if (sessionStatus === 'unauthenticated') {
@@ -143,10 +145,8 @@ export default function MeusAgendamentosPage() {
 
             switch (filterStatus) {
                 case 'upcoming':
-                    // Próximos (pendentes ou confirmados e data futura)
                     return (apt.status === 'PENDING' || apt.status === 'CONFIRMED') && aptDate >= now
                 case 'past':
-                    // Passados (todos com data passada)
                     return aptDate < now
                 case 'completed':
                     return apt.status === 'COMPLETED'
@@ -209,7 +209,6 @@ export default function MeusAgendamentosPage() {
                         </Button>
                     </div>
 
-                    {/* Alerta de próximos agendamentos */}
                     {upcomingCount > 0 && (
                         <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-3">
                             <AlertCircle className="text-blue-600 mt-0.5" size={20} />
@@ -224,7 +223,6 @@ export default function MeusAgendamentosPage() {
                         </div>
                     )}
 
-                    {/* Filtros */}
                     <div className="flex gap-3 flex-wrap mb-6">
                         {[
                             { value: 'upcoming', label: 'Próximos', icon: '📅', count: upcomingCount },
@@ -251,7 +249,6 @@ export default function MeusAgendamentosPage() {
                         ))}
                     </div>
 
-                    {/* Lista de agendamentos */}
                     {filteredAppointments.length > 0 ? (
                         <div className="space-y-4">
                             {filteredAppointments.map(appointment => {
@@ -260,6 +257,7 @@ export default function MeusAgendamentosPage() {
                                 const aptDate = new Date(appointment.date + 'T' + appointment.time)
                                 const isPast = aptDate < new Date()
                                 const canCancel = !isPast && (appointment.status === 'PENDING' || appointment.status === 'CONFIRMED')
+                                const canJustify = appointment.status === 'NO_SHOW' && !appointment.justification
 
                                 return (
                                     <div
@@ -302,15 +300,40 @@ export default function MeusAgendamentosPage() {
                                                     </p>
                                                 )}
 
-                                                {canCancel && (
-                                                    <button
-                                                        onClick={() => handleCancelAppointment(appointment.id)}
-                                                        className="text-sm text-red-600 hover:text-red-700 font-semibold flex items-center gap-1"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                        Cancelar Agendamento
-                                                    </button>
+                                                {/* JUSTIFICATIVA */}
+                                                {appointment.justification && (
+                                                    <div className="bg-blue-50 border-l-4 border-blue-500 p-3 mb-3">
+                                                        <p className="text-xs text-blue-600 font-semibold mb-1">
+                                                            ✅ Justificativa enviada em {new Date(appointment.justifiedAt!).toLocaleDateString('pt-BR')}
+                                                        </p>
+                                                        <p className="text-sm text-blue-800">
+                                                            {appointment.justification}
+                                                        </p>
+                                                    </div>
                                                 )}
+
+                                                <div className="flex gap-2 flex-wrap">
+                                                    {canCancel && (
+                                                        <button
+                                                            onClick={() => handleCancelAppointment(appointment.id)}
+                                                            className="text-sm text-red-600 hover:text-red-700 font-semibold flex items-center gap-1"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                            Cancelar
+                                                        </button>
+                                                    )}
+
+                                                    {/* BOTÃO JUSTIFICAR */}
+                                                    {canJustify && (
+                                                        <button
+                                                            onClick={() => setJustifyingAppointment(appointment)}
+                                                            className="text-sm text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+                                                        >
+                                                            <FileText size={14} />
+                                                            Justificar Falta
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
 
                                             <div className="text-right">
@@ -342,6 +365,18 @@ export default function MeusAgendamentosPage() {
                     )}
                 </div>
             </div>
+
+            {/* MODAL DE JUSTIFICATIVA */}
+            {justifyingAppointment && (
+                <JustificationModal
+                    appointmentId={justifyingAppointment.id}
+                    serviceName={justifyingAppointment.service.name}
+                    date={justifyingAppointment.date}
+                    time={justifyingAppointment.time}
+                    onClose={() => setJustifyingAppointment(null)}
+                    onSuccess={fetchAppointments}
+                />
+            )}
         </>
     )
 }
