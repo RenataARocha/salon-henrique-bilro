@@ -1,7 +1,8 @@
-// app/api/auth/forgot-password/route.ts
+// app/api/auth/forgot-password/route.ts - COM RESEND
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendPasswordResetEmail } from '@/lib/email'
 import crypto from 'crypto'
 
 export async function POST(request: Request) {
@@ -59,49 +60,42 @@ export async function POST(request: Request) {
         // URL de reset
         const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
 
-        // TODO: Enviar email real (por enquanto, apenas loga)
-        console.log('='.repeat(60))
-        console.log('🔐 RESET DE SENHA')
-        console.log('='.repeat(60))
-        console.log(`Email: ${user.email}`)
-        console.log(`Nome: ${user.name}`)
-        console.log(`Link: ${resetUrl}`)
-        console.log(`Token: ${token}`)
-        console.log(`Expira em: 1 hora`)
-        console.log('='.repeat(60))
-
-        // AQUI você integraria com serviço de email:
-        // - Resend
-        // - SendGrid
-        // - AWS SES
-        // - Nodemailer
-
-        /*
-        Exemplo com Resend:
-        
-        await resend.emails.send({
-            from: 'Henrique Bilro <noreply@henriquebilro.com>',
+        // Enviar email
+        const emailResult = await sendPasswordResetEmail({
             to: user.email,
-            subject: 'Redefinir sua senha',
-            html: `
-                <h1>Olá, ${user.name}!</h1>
-                <p>Recebemos uma solicitação para redefinir sua senha.</p>
-                <p>Clique no link abaixo para criar uma nova senha:</p>
-                <a href="${resetUrl}">${resetUrl}</a>
-                <p>Este link expira em 1 hora.</p>
-                <p>Se você não solicitou isso, ignore este email.</p>
-            `
+            name: user.name,
+            resetUrl
         })
-        */
+
+        if (!emailResult.success) {
+            console.error('Falha ao enviar email, mas não revelar ao usuário')
+            // Mesmo com falha no email, retornar sucesso por segurança
+        }
+
+        // Log no console (desenvolvimento)
+        if (process.env.NODE_ENV === 'development') {
+            console.log('='.repeat(60))
+            console.log('🔐 RESET DE SENHA (DEV MODE)')
+            console.log('='.repeat(60))
+            console.log(`Email: ${user.email}`)
+            console.log(`Nome: ${user.name}`)
+            console.log(`Link: ${resetUrl}`)
+            console.log(`Token: ${token}`)
+            console.log(`Email enviado: ${emailResult.success ? '✅ Sim' : '❌ Não'}`)
+            console.log('='.repeat(60))
+        }
 
         return NextResponse.json({
             success: true,
             message: 'Se o email existir, você receberá instruções para redefinir sua senha.',
             // REMOVER ISSO EM PRODUÇÃO (apenas para desenvolvimento):
-            devOnly: {
-                resetUrl,
-                token
-            }
+            ...(process.env.NODE_ENV === 'development' && {
+                devOnly: {
+                    resetUrl,
+                    token,
+                    emailSent: emailResult.success
+                }
+            })
         })
 
     } catch (error) {
