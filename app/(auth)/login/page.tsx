@@ -1,3 +1,5 @@
+// app/(auth)/login/page.tsx - COM LINK FUNCIONAL
+
 'use client'
 
 import { useState } from 'react'
@@ -7,11 +9,11 @@ import Link from 'next/link'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Logo from '@/components/Logo'
-import { useToast } from '@/components/ui/ToastContainer' // <- IMPORTAR
+import { useToast } from '@/components/ui/ToastContainer'
 
 export default function LoginPage() {
     const router = useRouter()
-    const { showToast } = useToast() // <- USAR
+    const { showToast } = useToast()
     const [formData, setFormData] = useState({
         email: '',
         password: ''
@@ -33,9 +35,9 @@ export default function LoginPage() {
 
             if (result?.error) {
                 setError('Email ou senha incorretos')
-                showToast('Email ou senha incorretos', 'error') // <- EM VEZ DE ALERT
+                showToast('Email ou senha incorretos', 'error')
             } else if (result?.ok) {
-                showToast('Login realizado com sucesso!', 'success') // <- EM VEZ DE ALERT
+                showToast('Login realizado com sucesso!', 'success')
                 router.push('/agendar')
                 router.refresh()
             }
@@ -99,9 +101,12 @@ export default function LoginPage() {
                                 />
                                 <span className="ml-2 text-sm text-gray-600">Lembrar-me</span>
                             </label>
-                            <a href="#" className="text-sm text-gold hover:text-gold-dark">
+                            <Link
+                                href="/forgot-password"
+                                className="text-sm text-gold hover:text-gold-dark font-semibold transition-colors"
+                            >
                                 Esqueceu a senha?
-                            </a>
+                            </Link>
                         </div>
 
                         <Button

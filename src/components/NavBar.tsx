@@ -1,10 +1,8 @@
-// src/components/NavBar.tsx - VERSÃO CORRIGIDA
-
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
-import { Menu, X, LogOut, Calendar, Settings } from 'lucide-react'
+import { Menu, X, LogOut, Calendar, Settings, List } from 'lucide-react'
 import Logo from './Logo'
 
 export default function Navbar() {
@@ -62,7 +60,13 @@ export default function Navbar() {
                                     <Calendar size={16} />
                                     Agendar
                                 </a>
-
+                                <a href="/meus-agendamentos" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
+                                    <List size={16} />
+                                    Meus Agendamentos
+                                </a>
+                                <a href="/historico" className="text-white hover-gold transition-colors text-sm font-medium">
+                                    Histórico
+                                </a>
                                 {user.role === 'ADMIN' && (
                                     <a href="/admin" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
                                         <Settings size={16} />
@@ -71,7 +75,7 @@ export default function Navbar() {
                                 )}
                                 <div className="flex items-center gap-3 pl-4 border-l border-gray-500">
                                     <span className="text-white text-sm">
-                                        Olá, <span className="text-gold font-semibold">{user.name}</span>
+                                        Olá, <span className="text-gold font-semibold">{user.name?.split(' ')[0]}</span>
                                     </span>
                                     <button
                                         onClick={handleLogout}
@@ -123,17 +127,23 @@ export default function Navbar() {
                             </>
                         ) : (
                             <>
-                                <div className="text-white text-sm py-2">
-                                    Olá, <span className="text-gold font-semibold">{user.name}</span>
+                                <div className="text-white text-sm py-2 border-b border-gray-700">
+                                    Olá, <span className="text-gold font-semibold">{user.name?.split(' ')[0]}</span>
                                 </div>
-                                <a href="/agendar" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                <a href="/agendar" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                                    <Calendar size={16} />
                                     Agendar
                                 </a>
-                                <a href="/agendamentos" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
-                                    Agendamentos
+                                <a href="/meus-agendamentos" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                                    <List size={16} />
+                                    Meus Agendamentos
+                                </a>
+                                <a href="/historico" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                    Histórico
                                 </a>
                                 {user.role === 'ADMIN' && (
-                                    <a href="/admin" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                    <a href="/admin" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                                        <Settings size={16} />
                                         Admin
                                     </a>
                                 )}
@@ -142,8 +152,9 @@ export default function Navbar() {
                                         handleLogout()
                                         setMobileMenuOpen(false)
                                     }}
-                                    className="block text-red-400 py-2 w-full text-left text-sm"
+                                    className="block text-red-400 py-2 w-full text-left text-sm flex items-center gap-2"
                                 >
+                                    <LogOut size={16} />
                                     Sair
                                 </button>
                             </>
