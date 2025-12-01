@@ -20,9 +20,25 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  appointments Appointment[]
+  appointments   Appointment[]
+  passwordResets PasswordReset[] // <- NOVO RELACIONAMENTO
 
   @@map("users")
+}
+
+// NOVO MODEL PARA PASSWORD RESET
+model PasswordReset {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("password_resets")
 }
 
 model Service {
@@ -44,10 +60,10 @@ model Appointment {
   id            String    @id @default(cuid())
   date          DateTime
   time          String
-  status        String    @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED, NO_SHOW
+  status        String    @default("PENDING")
   notes         String?
-  justification String? // <- NOVO CAMPO para justificar falta
-  justifiedAt   DateTime? // <- NOVO CAMPO para data da justificativa
+  justification String?
+  justifiedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
