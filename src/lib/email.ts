@@ -3,7 +3,6 @@
 import { Resend } from 'resend'
 import { passwordResetEmailTemplate, passwordResetTextTemplate } from './email-templates'
 
-// Inicializar Resend
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 interface SendPasswordResetEmailParams {
@@ -18,51 +17,36 @@ export async function sendPasswordResetEmail({
     resetUrl
 }: SendPasswordResetEmailParams) {
     try {
-        // Email HTML
-        const html = passwordResetEmailTemplate(name, resetUrl)
+        console.log('='.repeat(60))
+        console.log('📧 DEBUG - Envio de Email')
+        console.log('='.repeat(60))
+        console.log('Para:', to)
+        console.log('API Key existe?', !!process.env.RESEND_API_KEY)
+        console.log('API Key (primeiros 10 chars):', process.env.RESEND_API_KEY?.substring(0, 10))
 
-        // Email texto puro (fallback)
+        const html = passwordResetEmailTemplate(name, resetUrl)
         const text = passwordResetTextTemplate(name, resetUrl)
 
-        // Enviar email
         const data = await resend.emails.send({
-            from: 'Henrique Bilro <noreply@henriquebilro.com>',
+            from: 'Henrique Bilro <onboarding@resend.dev>',
             to: to,
             subject: 'Redefinir sua senha - Henrique Bilro Cabeleireiros',
             html: html,
             text: text,
-            // Tags para rastreamento (opcional)
-            tags: [
-                {
-                    name: 'category',
-                    value: 'password_reset'
-                }
-            ]
+            tags: [{ name: 'category', value: 'password_reset' }]
         })
 
-        console.log('✅ Email enviado com sucesso:', data.id)
+        console.log('✅ Resposta Resend:', JSON.stringify(data, null, 2))
+        console.log('='.repeat(60))
         return { success: true, data }
 
-    } catch (error) {
-        console.error('❌ Erro ao enviar email:', error)
+    } catch (error: any) {
+        console.error('='.repeat(60))
+        console.error('❌ ERRO COMPLETO:')
+        console.error('Mensagem:', error.message)
+        console.error('Status:', error.statusCode)
+        console.error('Erro completo:', JSON.stringify(error, null, 2))
+        console.error('='.repeat(60))
         return { success: false, error }
     }
-}
-
-// Outras funções de email que você pode adicionar depois:
-
-export async function sendWelcomeEmail(to: string, name: string) {
-    // TODO: Email de boas-vindas
-}
-
-export async function sendAppointmentConfirmation(to: string, appointmentDetails: any) {
-    // TODO: Email de confirmação de agendamento
-}
-
-export async function sendAppointmentReminder(to: string, appointmentDetails: any) {
-    // TODO: Email de lembrete 24h antes
-}
-
-export async function sendAppointmentCancellation(to: string, appointmentDetails: any) {
-    // TODO: Email de cancelamento
 }
