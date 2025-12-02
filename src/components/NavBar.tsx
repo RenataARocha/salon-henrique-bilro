@@ -60,12 +60,9 @@ export default function Navbar() {
                                     <Calendar size={16} />
                                     Agendar
                                 </a>
-                                <a href="/meus-agendamentos" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
+                                <a href="/historico" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
                                     <List size={16} />
                                     Meus Agendamentos
-                                </a>
-                                <a href="/historico" className="text-white hover-gold transition-colors text-sm font-medium">
-                                    Histórico
                                 </a>
                                 {user.role === 'ADMIN' && (
                                     <a href="/admin" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
