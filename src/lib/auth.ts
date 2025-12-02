@@ -1,13 +1,14 @@
-// src/lib/auth.ts - VERSÃO CORRIGIDA
+// src/lib/auth.ts - VERSÃO CORRIGIDA SEM ADAPTER
 
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
-    adapter: PrismaAdapter(prisma),
+    // ❌ REMOVER: adapter: PrismaAdapter(prisma),
+    // O CredentialsProvider NÃO funciona com adapters!
+
     providers: [
         CredentialsProvider({
             name: 'credentials',
@@ -49,13 +50,12 @@ export const authOptions: NextAuthOptions = {
         })
     ],
     session: {
-        strategy: 'jwt',
-        maxAge: 7 * 24 * 60 * 60, // 7 dias (reduzido para mais segurança)
+        strategy: 'jwt', // OBRIGATÓRIO com CredentialsProvider
+        maxAge: 7 * 24 * 60 * 60, // 7 dias
     },
     pages: {
         signIn: '/login',
         error: '/login',
-        // NÃO redirecionar automaticamente
     },
     callbacks: {
         async jwt({ token, user }) {
@@ -72,13 +72,9 @@ export const authOptions: NextAuthOptions = {
             }
             return session
         },
-        // Callback para controlar redirecionamento
         async redirect({ url, baseUrl }) {
-            // Se a URL é relativa, permite
             if (url.startsWith('/')) return `${baseUrl}${url}`
-            // Se a URL é do mesmo site, permite
             else if (new URL(url).origin === baseUrl) return url
-            // Caso contrário, redireciona para home
             return baseUrl
         }
     },

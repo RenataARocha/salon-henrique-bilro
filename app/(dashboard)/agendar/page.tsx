@@ -103,7 +103,7 @@ export default function AgendarPage() {
 
             if (data.success) {
                 alert('🎉 Agendamento realizado com sucesso!\n\nVocê receberá uma confirmação no WhatsApp 24h antes.')
-                router.push('/dashboard')
+                router.push('/meus-agendamentos')
             } else {
                 alert(data.error || 'Erro ao criar agendamento')
             }
@@ -178,8 +178,8 @@ export default function AgendarPage() {
                                             key={service.id}
                                             onClick={() => setSelectedService(service)}
                                             className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${selectedService?.id === service.id
-                                                    ? 'border-gold bg-gold bg-opacity-10'
-                                                    : 'border-gray-200 hover:border-gold hover:shadow-lg'
+                                                ? 'border-gold bg-gold bg-opacity-10'
+                                                : 'border-gray-200 hover:border-gold hover:shadow-lg'
                                                 }`}
                                         >
                                             <h3 className="text-xl font-bold text-charcoal mb-2">{service.name}</h3>
@@ -252,8 +252,8 @@ export default function AgendarPage() {
                                                         key={time}
                                                         onClick={() => setSelectedTime(time)}
                                                         className={`p-3 rounded-lg font-semibold transition-all ${selectedTime === time
-                                                                ? 'bg-gradient-gold text-white'
-                                                                : 'bg-gray-100 text-charcoal hover:bg-gray-200'
+                                                            ? 'bg-gradient-gold text-white'
+                                                            : 'bg-gray-100 text-charcoal hover:bg-gray-200'
                                                             }`}
                                                     >
                                                         {time}

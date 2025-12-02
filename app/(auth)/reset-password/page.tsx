@@ -12,9 +12,12 @@ import Logo from '@/components/Logo'
 import { useToast } from '@/components/ui/ToastContainer'
 import { validatePassword } from '@/lib/validation'
 
-export default function ResetPasswordPage() {
+// ============================================
+// COMPONENTE INTERNO (com todo o código atual)
+// ============================================
+function ResetPasswordContent() {
     const router = useRouter()
-    const searchParams = useSearchParams()
+    const searchParams = useSearchParams() // Agora pode usar aqui!
     const { showToast } = useToast()
     const token = searchParams.get('token')
 
@@ -60,13 +63,11 @@ export default function ResetPasswordPage() {
 
         const newErrors: Record<string, string> = {}
 
-        // Validar senha
         const passwordValidation = validatePassword(password)
         if (!passwordValidation.valid) {
             newErrors.password = passwordValidation.message || 'Senha inválida'
         }
 
-        // Confirmar senha
         if (password !== confirmPassword) {
             newErrors.confirmPassword = 'As senhas não coincidem'
         }
@@ -98,7 +99,6 @@ export default function ResetPasswordPage() {
                 setSuccess(true)
                 showToast('Senha redefinida com sucesso!', 'success')
 
-                // Redirecionar para login após 3 segundos
                 setTimeout(() => {
                     router.push('/login')
                 }, 3000)
@@ -253,5 +253,23 @@ export default function ResetPasswordPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+// ============================================
+// COMPONENTE PRINCIPAL (wrapper com Suspense)
+// ============================================
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
+                    <p className="text-white">Carregando...</p>
+                </div>
+            </div>
+        }>
+            <ResetPasswordContent />
+        </Suspense>
     )
 }

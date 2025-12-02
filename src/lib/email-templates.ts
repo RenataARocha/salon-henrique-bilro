@@ -16,16 +16,14 @@ export const passwordResetEmailTemplate = (name: string, resetUrl: string) => {
                 <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                     
                     <!-- Header -->
-                    <tr>
-                        <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #2C2C2C 0%, #3D3D3D 100%); border-radius: 8px 8px 0 0;">
-                            <div style="background-color: #C9A65C; width: 60px; height: 60px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
-                                <span style="color: white; font-size: 28px; font-weight: bold;">HB</span>
-                            </div>
-                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">
-                                Henrique Bilro Cabeleireiros
-                            </h1>
-                        </td>
-                    </tr>
+                    <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #2C2C2C 0%, #3D3D3D 100%); border-radius: 8px 8px 0 0;">
+    <div style="background-color: #C9A65C; width: 60px; height: 60px; border-radius: 8px; margin: 0 auto 16px auto; display: table;">
+        <span style="color: white; font-size: 28px; font-weight: bold; display: table-cell; vertical-align: middle; text-align: center; width: 60px; height: 60px;">HB</span>
+    </div>
+    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 600;">
+        Henrique Bilro Cabeleireiros
+    </h1>
+</td>
                     
                     <!-- Content -->
                     <tr>
@@ -86,8 +84,8 @@ export const passwordResetEmailTemplate = (name: string, resetUrl: string) => {
     </table>
 </body>
 </html>
-    `.trim()
-}
+    `.trim();
+};
 
 export const passwordResetTextTemplate = (name: string, resetUrl: string) => {
     return `
@@ -108,5 +106,5 @@ São Gonçalo do Amarante/RN
 (84) 99999-9999
 
 © ${new Date().getFullYear()} Henrique Bilro Cabeleireiros. Todos os direitos reservados.
-    `.trim()
-}
+    `.trim();
+};
