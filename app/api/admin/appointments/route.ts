@@ -10,7 +10,6 @@ export async function GET(request: Request) {
     try {
         const session = await getServerSession(authOptions)
 
-        // Verificar se está autenticado e é admin
         if (!session?.user || session.user.role !== 'ADMIN') {
             return NextResponse.json(
                 { success: false, error: 'Sem permissão' },
@@ -47,9 +46,10 @@ export async function GET(request: Request) {
                     }
                 }
             },
-            orderBy: {
-                date: 'desc'
-            }
+            orderBy: [
+                { date: 'asc' },
+                { time: 'asc' }
+            ]
         })
 
         return NextResponse.json({ success: true, data: appointments })
@@ -68,7 +68,6 @@ export async function PATCH(request: Request) {
     try {
         const session = await getServerSession(authOptions)
 
-        // Verificar se está autenticado e é admin
         if (!session?.user || session.user.role !== 'ADMIN') {
             return NextResponse.json(
                 { success: false, error: 'Sem permissão' },
@@ -86,8 +85,8 @@ export async function PATCH(request: Request) {
             )
         }
 
-        // Validar status
-        const validStatuses = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED']
+        // Validar status (adicionei NO_SHOW que estava faltando)
+        const validStatuses = ['PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW']
         if (!validStatuses.includes(status)) {
             return NextResponse.json(
                 { success: false, error: 'Status inválido' },
@@ -95,7 +94,6 @@ export async function PATCH(request: Request) {
             )
         }
 
-        // Verificar se o agendamento existe
         const appointment = await prisma.appointment.findUnique({
             where: { id }
         })
@@ -107,7 +105,6 @@ export async function PATCH(request: Request) {
             )
         }
 
-        // Atualizar status
         const updatedAppointment = await prisma.appointment.update({
             where: { id },
             data: { status },

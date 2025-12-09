@@ -2,13 +2,13 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendPasswordResetEmail } from '@/lib/email'
+import { ADMIN_CREDENTIALS } from '@/lib/admin-auth'
 import crypto from 'crypto'
+import { sendPasswordResetEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
     try {
-        const body = await request.json()
-        const { email } = body
+        const { email } = await request.json()
 
         if (!email) {
             return NextResponse.json(
@@ -16,6 +16,18 @@ export async function POST(request: Request) {
                 { status: 400 }
             )
         }
+
+        // ⛔ BLOQUEAR SE FOR EMAIL DO ADMIN
+        if (email === ADMIN_CREDENTIALS.email) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Recuperação de senha não disponível para administradores. Entre em contato com o suporte.'
+                },
+                { status: 403 }
+            )
+        }
+
 
         // Buscar usuário
         const user = await prisma.user.findUnique({

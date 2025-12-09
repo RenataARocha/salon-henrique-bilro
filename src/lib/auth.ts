@@ -1,14 +1,12 @@
-// src/lib/auth.ts - VERSÃO CORRIGIDA SEM ADAPTER
+// src/lib/auth.ts
 
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
+import { verifyAdminCredentials } from './admin-credentials'
 
 export const authOptions: NextAuthOptions = {
-    // ❌ REMOVER: adapter: PrismaAdapter(prisma),
-    // O CredentialsProvider NÃO funciona com adapters!
-
     providers: [
         CredentialsProvider({
             name: 'credentials',
@@ -21,6 +19,17 @@ export const authOptions: NextAuthOptions = {
                     throw new Error('Email e senha são obrigatórios')
                 }
 
+                // 1. VERIFICAR SE É ADMIN (credenciais do arquivo)
+                if (await verifyAdminCredentials(credentials.email, credentials.password)) {
+                    return {
+                        id: 'admin-rosie',
+                        email: credentials.email,
+                        name: 'Rosie',
+                        role: 'ADMIN'
+                    }
+                }
+
+                // 2. VERIFICAR USUÁRIOS NORMAIS NO BANCO
                 const user = await prisma.user.findUnique({
                     where: {
                         email: credentials.email
@@ -50,8 +59,8 @@ export const authOptions: NextAuthOptions = {
         })
     ],
     session: {
-        strategy: 'jwt', // OBRIGATÓRIO com CredentialsProvider
-        maxAge: 7 * 24 * 60 * 60, // 7 dias
+        strategy: 'jwt',
+        maxAge: 7 * 24 * 60 * 60,
     },
     pages: {
         signIn: '/login',

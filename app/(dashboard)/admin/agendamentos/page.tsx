@@ -1,6 +1,9 @@
+// app/(dashboard)/admin/agendamentos/page.tsx
+
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Filter } from 'lucide-react'
 
 interface Appointment {
     id: string
@@ -8,8 +11,8 @@ interface Appointment {
     time: string
     status: string
     notes?: string
-    justification?: string  // <- NOVO
-    justifiedAt?: string     // <- NOVO
+    justification?: string
+    justifiedAt?: string
     user: {
         name: string
         email: string
@@ -26,20 +29,17 @@ export default function AdminAgendamentosPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
     const [filterStatus, setFilterStatus] = useState<string>('all')
+    const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month' | 'all'>('all')
     const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
 
     useEffect(() => {
         fetchAppointments()
-    }, [filterStatus])
+    }, [])
 
     const fetchAppointments = async () => {
         try {
             setLoading(true)
-            const url = filterStatus === 'all'
-                ? '/api/admin/appointments'
-                : `/api/admin/appointments?status=${filterStatus}`
-
-            const res = await fetch(url)
+            const res = await fetch('/api/admin/appointments')
             const data = await res.json()
 
             if (data.success) {
@@ -75,315 +75,271 @@ export default function AdminAgendamentosPage() {
         }
     }
 
+    // Logo no início da função getFilteredAppointments:
+    console.log('Total appointments:', appointments.length)
+    console.log('Filter period:', filterPeriod)
+    console.log('Filter status:', filterStatus)
+
+    const getFilteredAppointments = () => {
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        today.setHours(0, 0, 0, 0)
+
+        const weekStart = new Date(today)
+        weekStart.setDate(today.getDate() - today.getDay())
+
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekStart.getDate() + 6)
+        weekEnd.setHours(23, 59, 59, 999)
+
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+        monthStart.setHours(0, 0, 0, 0)
+
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        monthEnd.setHours(23, 59, 59, 999)
+
+        return appointments
+            .filter(apt => {
+                // Filtro de status
+                if (filterStatus !== 'all' && apt.status !== filterStatus) return false
+
+                // Se o filtro de período é "all", não filtrar por data
+                if (filterPeriod === 'all') return true
+
+                // Parse da data do agendamento
+                const aptDate = new Date(apt.date)
+
+                switch (filterPeriod) {
+                    case 'today':
+                        return aptDate.toDateString() === today.toDateString()
+                    case 'week':
+                        return aptDate >= weekStart && aptDate <= weekEnd
+                    case 'month':
+                        return aptDate >= monthStart && aptDate <= monthEnd
+                    default:
+                        return true
+                }
+            })
+            .sort((a, b) => {
+                const dateA = new Date(a.date + 'T' + a.time)
+                const dateB = new Date(b.date + 'T' + b.time)
+                return dateA.getTime() - dateB.getTime()
+            })
+    }
+
     const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'CONFIRMED':
-                return 'bg-green-100 text-green-700'
-            case 'PENDING':
-                return 'bg-orange-100 text-orange-700'
-            case 'CANCELLED':
-                return 'bg-red-100 text-red-700'
-            case 'COMPLETED':
-                return 'bg-blue-100 text-blue-700'
-            case 'NO_SHOW':
-                return 'bg-gray-100 text-gray-700'
-            default:
-                return 'bg-gray-100 text-gray-700'
+        const colors = {
+            CONFIRMED: 'bg-green-100 text-green-700',
+            PENDING: 'bg-orange-100 text-orange-700',
+            CANCELLED: 'bg-red-100 text-red-700',
+            COMPLETED: 'bg-blue-100 text-blue-700',
+            NO_SHOW: 'bg-gray-100 text-gray-700'
         }
+        return colors[status] || 'bg-gray-100 text-gray-700'
     }
 
     const getStatusLabel = (status: string) => {
-        switch (status) {
-            case 'CONFIRMED':
-                return 'Confirmado'
-            case 'PENDING':
-                return 'Pendente'
-            case 'CANCELLED':
-                return 'Cancelado'
-            case 'COMPLETED':
-                return 'Concluído'
-            case 'NO_SHOW':
-                return 'Não Compareceu'
-            default:
-                return status
+        const labels = {
+            CONFIRMED: 'Confirmado',
+            PENDING: 'Pendente',
+            CANCELLED: 'Cancelado',
+            COMPLETED: 'Concluído',
+            NO_SHOW: 'Não Compareceu'
         }
+        return labels[status] || status
     }
 
-    const filteredAppointments = appointments.sort((a, b) => {
-        const dateA = new Date(a.date + ' ' + a.time)
-        const dateB = new Date(b.date + ' ' + b.time)
-        return dateA.getTime() - dateB.getTime()
-    })
+    const filteredAppointments = getFilteredAppointments()
+
+    const stats = {
+        total: filteredAppointments.length,
+        pending: filteredAppointments.filter(a => a.status === 'PENDING').length,
+        confirmed: filteredAppointments.filter(a => a.status === 'CONFIRMED').length,
+        revenue: filteredAppointments
+            .filter(a => a.status === 'COMPLETED')
+            .reduce((sum, a) => sum + a.service.price, 0)
+    }
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-                    <p className="text-gray-600">Carregando...</p>
+            <div className="min-h-screen bg-beige py-8 px-4">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-center justify-center py-20">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
+                            <p className="text-gray-600">Carregando...</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="space-y-8">
-            <div className="flex justify-between items-center">
+        <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="max-w-7xl mx-auto space-y-8">
                 <div>
                     <h1 className="text-4xl font-bold text-charcoal mb-2">Agendamentos</h1>
                     <p className="text-gray-600">Gerencie todos os agendamentos do salão</p>
                 </div>
-            </div>
 
-            <div className="flex gap-3 flex-wrap">
-                {[
-                    { value: 'all', label: 'Todos', icon: '📋' },
-                    { value: 'PENDING', label: 'Pendentes', icon: '⏳' },
-                    { value: 'CONFIRMED', label: 'Confirmados', icon: '✅' },
-                    { value: 'COMPLETED', label: 'Concluídos', icon: '🎉' },
-                    { value: 'NO_SHOW', label: 'Não Compareceu', icon: '🚫' },
-                    { value: 'CANCELLED', label: 'Cancelados', icon: '❌' }
-                ].map((filter) => (
-                    <button
-                        key={filter.value}
-                        onClick={() => setFilterStatus(filter.value)}
-                        className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
-                            ? 'bg-gradient-gold text-white shadow-lg'
-                            : 'bg-white text-charcoal hover:shadow-md'
-                            }`}
-                    >
-                        {filter.icon} {filter.label}
-                    </button>
-                ))}
-            </div>
+                {/* Estatísticas */}
+                <div className="grid md:grid-cols-4 gap-6">
+                    <div className="bg-white rounded-xl p-6 shadow">
+                        <p className="text-gray-600 text-sm mb-1">Total</p>
+                        <p className="text-3xl font-bold text-charcoal">{stats.total}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow">
+                        <p className="text-gray-600 text-sm mb-1">Pendentes</p>
+                        <p className="text-3xl font-bold text-orange-600">{stats.pending}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow">
+                        <p className="text-gray-600 text-sm mb-1">Confirmados</p>
+                        <p className="text-3xl font-bold text-green-600">{stats.confirmed}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow">
+                        <p className="text-gray-600 text-sm mb-1">Receita</p>
+                        <p className="text-3xl font-bold text-gold">R$ {stats.revenue.toFixed(2)}</p>
+                    </div>
+                </div>
 
-            {filteredAppointments.length > 0 ? (
-                <div className="grid gap-4">
-                    {filteredAppointments.map((appointment) => (
-                        <div
-                            key={appointment.id}
-                            className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
-                            onClick={() => setSelectedAppointment(appointment)}
+                {/* Filtros de Período */}
+                <div className="bg-white rounded-xl p-6 shadow">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Filter size={20} className="text-gold" />
+                        <h3 className="font-bold text-charcoal">Período</h3>
+                    </div>
+                    <div className="flex gap-3 flex-wrap">
+                        {[
+                            { value: 'today', label: 'Hoje', icon: '📅' },
+                            { value: 'week', label: 'Esta Semana', icon: '📆' },
+                            { value: 'month', label: 'Este Mês', icon: '🗓️' },
+                            { value: 'all', label: 'Todos', icon: '📋' }
+                        ].map((filter) => (
+                            <button
+                                key={filter.value}
+                                onClick={() => setFilterPeriod(filter.value as any)}
+                                className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterPeriod === filter.value
+                                    ? 'bg-gradient-gold text-white shadow-lg'
+                                    : 'bg-beige text-charcoal hover:shadow-md'
+                                    }`}
+                            >
+                                {filter.icon} {filter.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Filtros de Status */}
+                <div className="flex gap-3 flex-wrap">
+                    {[
+                        { value: 'all', label: 'Todos', icon: '📋' },
+                        { value: 'PENDING', label: 'Pendentes', icon: '⏳' },
+                        { value: 'CONFIRMED', label: 'Confirmados', icon: '✅' },
+                        { value: 'COMPLETED', label: 'Concluídos', icon: '🎉' },
+                        { value: 'NO_SHOW', label: 'Não Compareceu', icon: '🚫' },
+                        { value: 'CANCELLED', label: 'Cancelados', icon: '❌' }
+                    ].map((filter) => (
+                        <button
+                            key={filter.value}
+                            onClick={() => setFilterStatus(filter.value)}
+                            className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
+                                ? 'bg-gradient-gold text-white shadow-lg'
+                                : 'bg-white text-charcoal hover:shadow-md'
+                                }`}
                         >
-                            <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <h3 className="text-xl font-bold text-charcoal">
-                                            {appointment.user.name}
-                                        </h3>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(appointment.status)}`}>
-                                            {getStatusLabel(appointment.status)}
-                                        </span>
-                                        {appointment.justification && (
-                                            <span className="px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                                                📝 Com Justificativa
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                        <div>
-                                            <p className="text-gray-500 mb-1">Serviço</p>
-                                            <p className="font-semibold text-charcoal">{appointment.service.name}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500 mb-1">Data e Hora</p>
-                                            <p className="font-semibold text-charcoal">
-                                                {new Date(appointment.date).toLocaleDateString('pt-BR')} às {appointment.time}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-500 mb-1">Contato</p>
-                                            <p className="font-semibold text-charcoal">{appointment.user.phone}</p>
-                                        </div>
-                                    </div>
-
-                                    {appointment.notes && (
-                                        <div className="mt-3 pt-3 border-t border-gray-200">
-                                            <p className="text-sm text-gray-600">
-                                                <strong>Obs:</strong> {appointment.notes}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="text-right">
-                                    <p className="text-2xl font-bold text-gold">
-                                        R$ {appointment.service.price.toFixed(2)}
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                        {appointment.service.duration} min
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                            {filter.icon} {filter.label}
+                        </button>
                     ))}
                 </div>
-            ) : (
-                <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                    <p className="text-6xl mb-4">📭</p>
-                    <h3 className="text-2xl font-bold text-charcoal mb-2">Nenhum agendamento</h3>
-                    <p className="text-gray-600">
-                        {filterStatus === 'all'
-                            ? 'Não há agendamentos no momento'
-                            : `Não há agendamentos com status "${getStatusLabel(filterStatus)}"`
-                        }
-                    </p>
-                </div>
-            )}
 
-            {selectedAppointment && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-start mb-6">
-                            <h2 className="text-3xl font-bold text-charcoal">Detalhes do Agendamento</h2>
-                            <button
-                                onClick={() => setSelectedAppointment(null)}
-                                className="text-gray-400 hover:text-gray-600 text-2xl"
+                {/* Lista */}
+                {filteredAppointments.length > 0 ? (
+                    <div className="grid gap-4">
+                        {filteredAppointments.map((apt) => (
+                            <div
+                                key={apt.id}
+                                className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
+                                onClick={() => setSelectedAppointment(apt)}
                             >
-                                ×
-                            </button>
-                        </div>
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <h3 className="text-xl font-bold text-charcoal">{apt.user.name}</h3>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
+                                                {getStatusLabel(apt.status)}
+                                            </span>
+                                        </div>
+                                        <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                            <div>
+                                                <p className="text-gray-500 mb-1">Serviço</p>
+                                                <p className="font-semibold text-charcoal">{apt.service.name}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 mb-1">Data e Hora</p>
+                                                <p className="font-semibold text-charcoal">
+                                                    {new Date(apt.date).toLocaleDateString('pt-BR')} às {apt.time}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 mb-1">Contato</p>
+                                                <p className="font-semibold text-charcoal">{apt.user.phone}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-2xl font-bold text-gold">R$ {apt.service.price.toFixed(2)}</p>
+                                        <p className="text-sm text-gray-500">{apt.service.duration} min</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                        <p className="text-6xl mb-4">📭</p>
+                        <h3 className="text-2xl font-bold text-charcoal mb-2">Nenhum agendamento</h3>
+                        <p className="text-gray-600">Não há agendamentos para o filtro selecionado</p>
+                    </div>
+                )}
 
-                        <div className="space-y-6">
-                            <div className="bg-beige rounded-lg p-4">
-                                <h3 className="font-bold text-charcoal mb-3 text-lg">👤 Cliente</h3>
-                                <div className="space-y-2">
+                {/* Modal */}
+                {selectedAppointment && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedAppointment(null)}>
+                        <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => setSelectedAppointment(null)} className="float-right text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                            <h2 className="text-3xl font-bold text-charcoal mb-6">Detalhes</h2>
+
+                            <div className="space-y-4">
+                                <div className="bg-beige rounded-lg p-4">
+                                    <h3 className="font-bold mb-2">👤 Cliente</h3>
                                     <p><strong>Nome:</strong> {selectedAppointment.user.name}</p>
                                     <p><strong>Email:</strong> {selectedAppointment.user.email}</p>
                                     <p><strong>Telefone:</strong> {selectedAppointment.user.phone}</p>
                                 </div>
-                            </div>
 
-                            <div className="bg-beige rounded-lg p-4">
-                                <h3 className="font-bold text-charcoal mb-3 text-lg">💇‍♀️ Serviço</h3>
-                                <div className="space-y-2">
-                                    <p><strong>Serviço:</strong> {selectedAppointment.service.name}</p>
-                                    <p><strong>Valor:</strong> R$ {selectedAppointment.service.price.toFixed(2)}</p>
-                                    <p><strong>Duração:</strong> {selectedAppointment.service.duration} minutos</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-beige rounded-lg p-4">
-                                <h3 className="font-bold text-charcoal mb-3 text-lg">📅 Agendamento</h3>
-                                <div className="space-y-2">
-                                    <p><strong>Data:</strong> {new Date(selectedAppointment.date).toLocaleDateString('pt-BR', {
-                                        weekday: 'long',
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    })}</p>
-                                    <p><strong>Horário:</strong> {selectedAppointment.time}</p>
-                                    <p>
-                                        <strong>Status:</strong>{' '}
-                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedAppointment.status)}`}>
-                                            {getStatusLabel(selectedAppointment.status)}
-                                        </span>
-                                    </p>
-                                    {selectedAppointment.notes && (
-                                        <p><strong>Observações:</strong> {selectedAppointment.notes}</p>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* JUSTIFICATIVA */}
-                            {selectedAppointment.justification && (
-                                <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
-                                    <h3 className="font-bold text-charcoal mb-3 text-lg flex items-center gap-2">
-                                        📝 Justificativa de Falta
-                                    </h3>
-                                    <div className="space-y-2">
-                                        <p className="text-sm text-gray-600">
-                                            <strong>Enviada em:</strong>{' '}
-                                            {selectedAppointment.justifiedAt
-                                                ? new Date(selectedAppointment.justifiedAt).toLocaleDateString('pt-BR', {
-                                                    day: '2-digit',
-                                                    month: 'long',
-                                                    year: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })
-                                                : 'Data não disponível'
-                                            }
-                                        </p>
-                                        <div className="bg-white p-4 rounded border-l-4 border-blue-500">
-                                            <p className="text-gray-800">{selectedAppointment.justification}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                                <h3 className="font-bold text-charcoal mb-3">🚀 Ações Rápidas</h3>
-                                <div className="flex gap-2">
-                                    <a
-                                        href={`https://wa.me/55${selectedAppointment.user.phone.replace(/\D/g, '')}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="flex-1 bg-green-500 text-white py-2 rounded-lg font-semibold hover:bg-green-600 transition-all text-center"
-                                    >
-                                        💬 WhatsApp
-                                    </a>
-                                    <a
-                                        href={`mailto:${selectedAppointment.user.email}`}
-                                        className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all text-center"
-                                    >
-                                        ✉️ Email
-                                    </a>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h3 className="font-bold text-charcoal mb-3">Alterar Status</h3>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <button
-                                        onClick={() => handleUpdateStatus(selectedAppointment.id, 'PENDING')}
-                                        disabled={selectedAppointment.status === 'PENDING'}
-                                        className="bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        ⏳ Pendente
-                                    </button>
-                                    <button
-                                        onClick={() => handleUpdateStatus(selectedAppointment.id, 'CONFIRMED')}
-                                        disabled={selectedAppointment.status === 'CONFIRMED'}
-                                        className="bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        ✅ Confirmar
-                                    </button>
-                                    <button
-                                        onClick={() => handleUpdateStatus(selectedAppointment.id, 'COMPLETED')}
-                                        disabled={selectedAppointment.status === 'COMPLETED'}
-                                        className="bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        🎉 Concluído
-                                    </button>
-                                    <button
-                                        onClick={() => handleUpdateStatus(selectedAppointment.id, 'NO_SHOW')}
-                                        disabled={selectedAppointment.status === 'NO_SHOW'}
-                                        className="bg-gray-500 text-white py-3 rounded-lg font-semibold hover:bg-gray-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        🚫 Não Compareceu
-                                    </button>
-                                    <button
-                                        onClick={() => handleUpdateStatus(selectedAppointment.id, 'CANCELLED')}
-                                        disabled={selectedAppointment.status === 'CANCELLED'}
-                                        className="bg-red-500 text-white py-3 rounded-lg font-semibold hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed col-span-2"
-                                    >
-                                        ❌ Cancelar
-                                    </button>
+                                    {['PENDING', 'CONFIRMED', 'COMPLETED', 'NO_SHOW', 'CANCELLED'].map(status => (
+                                        <button
+                                            key={status}
+                                            onClick={() => handleUpdateStatus(selectedAppointment.id, status)}
+                                            disabled={selectedAppointment.status === status}
+                                            className={`py-3 rounded-lg font-semibold transition-all disabled:opacity-50 ${status === 'PENDING' ? 'bg-orange-500 hover:bg-orange-600' :
+                                                status === 'CONFIRMED' ? 'bg-green-500 hover:bg-green-600' :
+                                                    status === 'COMPLETED' ? 'bg-blue-500 hover:bg-blue-600' :
+                                                        status === 'NO_SHOW' ? 'bg-gray-500 hover:bg-gray-600' :
+                                                            'bg-red-500 hover:bg-red-600'
+                                                } text-white`}
+                                        >
+                                            {getStatusLabel(status)}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
                         </div>
-
-                        <button
-                            onClick={() => setSelectedAppointment(null)}
-                            className="w-full mt-6 bg-gray-200 text-charcoal py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all"
-                        >
-                            Fechar
-                        </button>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     )
 }

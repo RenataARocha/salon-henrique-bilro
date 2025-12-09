@@ -1,4 +1,4 @@
-// app/(auth)/login/page.tsx - COM LINK FUNCIONAL
+// app/(auth)/login/page.tsx - LIMPO
 
 'use client'
 
@@ -127,18 +127,6 @@ export default function LoginPage() {
                                 Cadastre-se
                             </Link>
                         </p>
-                    </div>
-
-                    <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-xs text-gray-600 font-semibold mb-2">🔐 Dados para teste:</p>
-                        <div className="space-y-1">
-                            <p className="text-xs text-gray-500">
-                                <span className="font-semibold">Admin:</span> admin@henriquebilro.com / admin123
-                            </p>
-                            <p className="text-xs text-gray-500">
-                                <span className="font-semibold">Cliente:</span> maria@example.com / cliente123
-                            </p>
-                        </div>
                     </div>
                 </div>
 
