@@ -1,4 +1,4 @@
-// src/lib/auth.ts 
+// src/lib/auth.ts - VERSÃO FINAL SEM ARQUIVOS
 
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
@@ -15,17 +15,21 @@ export const authOptions: NextAuthOptions = {
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error('Email e senha são obrigatórios')
+                    return null
                 }
 
-                // 1. VERIFICAR SE É ADMIN (usando variáveis de ambiente)
+                console.log('🔐 Tentando login:', credentials.email)
+
+                // 1️⃣ VERIFICAR SE É ADMIN (variáveis de ambiente)
                 const adminEmail = process.env.ADMIN_EMAIL
                 const adminPassword = process.env.ADMIN_PASSWORD
                 const adminName = process.env.ADMIN_NAME || 'Admin'
 
                 if (adminEmail && credentials.email === adminEmail) {
-                    // Comparar senha diretamente (texto puro nas env vars)
+                    console.log('👑 Login de Admin detectado')
+
                     if (credentials.password === adminPassword) {
+                        console.log('✅ Admin autenticado com sucesso')
                         return {
                             id: 'admin-' + adminEmail,
                             email: adminEmail,
@@ -33,16 +37,21 @@ export const authOptions: NextAuthOptions = {
                             role: 'ADMIN'
                         }
                     }
-                    throw new Error('Credenciais inválidas')
+
+                    console.log('❌ Senha do admin incorreta')
+                    return null
                 }
 
-                // 2. VERIFICAR USUÁRIOS NORMAIS NO BANCO
+                // 2️⃣ VERIFICAR USUÁRIOS NO BANCO
+                console.log('👤 Verificando usuário no banco...')
+
                 const user = await prisma.user.findUnique({
                     where: { email: credentials.email }
                 })
 
                 if (!user || !user.password) {
-                    throw new Error('Credenciais inválidas')
+                    console.log('❌ Usuário não encontrado')
+                    return null
                 }
 
                 const isPasswordValid = await bcrypt.compare(
@@ -51,8 +60,11 @@ export const authOptions: NextAuthOptions = {
                 )
 
                 if (!isPasswordValid) {
-                    throw new Error('Credenciais inválidas')
+                    console.log('❌ Senha incorreta')
+                    return null
                 }
+
+                console.log('✅ Usuário autenticado:', user.email)
 
                 return {
                     id: user.id,
@@ -85,13 +97,8 @@ export const authOptions: NextAuthOptions = {
                 session.user.id = token.id as string
             }
             return session
-        },
-        async redirect({ url, baseUrl }) {
-            if (url.startsWith('/')) return `${baseUrl}${url}`
-            else if (new URL(url).origin === baseUrl) return url
-            return baseUrl
         }
     },
     secret: process.env.NEXTAUTH_SECRET,
-    debug: process.env.NODE_ENV === 'development',
+    debug: true, // ← ATIVAR LOGS PARA DEBUG
 }
