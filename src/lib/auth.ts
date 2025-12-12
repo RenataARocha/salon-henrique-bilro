@@ -1,10 +1,9 @@
-// src/lib/auth.ts
+// src/lib/auth.ts 
 
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
-import { verifyAdminCredentials } from './admin-credentials'
 
 export const authOptions: NextAuthOptions = {
     providers: [
@@ -19,21 +18,27 @@ export const authOptions: NextAuthOptions = {
                     throw new Error('Email e senha são obrigatórios')
                 }
 
-                // 1. VERIFICAR SE É ADMIN (credenciais do arquivo)
-                if (await verifyAdminCredentials(credentials.email, credentials.password)) {
-                    return {
-                        id: 'admin-rosie',
-                        email: credentials.email,
-                        name: 'Rosie',
-                        role: 'ADMIN'
+                // 1. VERIFICAR SE É ADMIN (usando variáveis de ambiente)
+                const adminEmail = process.env.ADMIN_EMAIL
+                const adminPassword = process.env.ADMIN_PASSWORD
+                const adminName = process.env.ADMIN_NAME || 'Admin'
+
+                if (adminEmail && credentials.email === adminEmail) {
+                    // Comparar senha diretamente (texto puro nas env vars)
+                    if (credentials.password === adminPassword) {
+                        return {
+                            id: 'admin-' + adminEmail,
+                            email: adminEmail,
+                            name: adminName,
+                            role: 'ADMIN'
+                        }
                     }
+                    throw new Error('Credenciais inválidas')
                 }
 
                 // 2. VERIFICAR USUÁRIOS NORMAIS NO BANCO
                 const user = await prisma.user.findUnique({
-                    where: {
-                        email: credentials.email
-                    }
+                    where: { email: credentials.email }
                 })
 
                 if (!user || !user.password) {
