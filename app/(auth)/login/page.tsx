@@ -1,4 +1,4 @@
-// app/(auth)/login/page.tsx - LIMPO
+// app/(auth)/login/page.tsx 
 
 'use client'
 
@@ -36,16 +36,30 @@ export default function LoginPage() {
             if (result?.error) {
                 setError('Email ou senha incorretos')
                 showToast('Email ou senha incorretos', 'error')
-            } else if (result?.ok) {
+                setLoading(false)
+                return
+            }
+
+            if (result?.ok) {
                 showToast('Login realizado com sucesso!', 'success')
-                router.push('/agendar')
+
+                // Buscar a sessão para verificar o role
+                const sessionResponse = await fetch('/api/auth/session')
+                const session = await sessionResponse.json()
+
+                // Redirecionar baseado no role
+                if (session?.user?.role === 'ADMIN') {
+                    router.push('/admin')
+                } else {
+                    router.push('/agendar')
+                }
+
                 router.refresh()
             }
         } catch (err) {
             console.error('Erro no login:', err)
             setError('Erro ao fazer login. Tente novamente.')
             showToast('Erro ao fazer login. Tente novamente.', 'error')
-        } finally {
             setLoading(false)
         }
     }

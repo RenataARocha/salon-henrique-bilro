@@ -1,4 +1,4 @@
-// src/middleware.ts - VERSÃO CORRIGIDA
+// middleware.ts (na raiz do projeto)
 
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
@@ -6,11 +6,28 @@ import { NextResponse } from 'next/server'
 export default withAuth(
     function middleware(req) {
         const token = req.nextauth.token
-        const path = req.nextUrl.pathname
+        const isAuth = !!token
+        const isAuthPage = req.nextUrl.pathname.startsWith('/login') ||
+            req.nextUrl.pathname.startsWith('/register')
+        const isAdminPage = req.nextUrl.pathname.startsWith('/admin')
+        const isAgendarPage = req.nextUrl.pathname.startsWith('/agendar')
 
-        // Rotas de admin só para ADMIN
-        if (path.startsWith('/admin') && token?.role !== 'ADMIN') {
+        // Se está em página de auth e já logado, redirecionar
+        if (isAuthPage && isAuth) {
+            if (token.role === 'ADMIN') {
+                return NextResponse.redirect(new URL('/admin', req.url))
+            }
             return NextResponse.redirect(new URL('/agendar', req.url))
+        }
+
+        // Se tentar acessar /admin sem ser admin
+        if (isAdminPage && token?.role !== 'ADMIN') {
+            return NextResponse.redirect(new URL('/agendar', req.url))
+        }
+
+        // Se admin tentar acessar /agendar, redirecionar para /admin
+        if (isAgendarPage && token?.role === 'ADMIN') {
+            return NextResponse.redirect(new URL('/admin', req.url))
         }
 
         return NextResponse.next()
@@ -18,26 +35,28 @@ export default withAuth(
     {
         callbacks: {
             authorized: ({ token, req }) => {
-                const path = req.nextUrl.pathname
+                const isAuthPage = req.nextUrl.pathname.startsWith('/login') ||
+                    req.nextUrl.pathname.startsWith('/register') ||
+                    req.nextUrl.pathname.startsWith('/forgot-password') ||
+                    req.nextUrl.pathname.startsWith('/reset-password')
 
-                // Permitir acesso às rotas públicas
-                if (path.startsWith('/login') || path.startsWith('/register')) {
-                    return true
-                }
+                // Páginas de auth são públicas
+                if (isAuthPage) return true
 
-                // Para outras rotas protegidas, exigir token
+                // Outras páginas precisam de autenticação
                 return !!token
-            }
-        }
+            },
+        },
     }
 )
 
-// IMPORTANTE: Especificar APENAS as rotas que precisam de autenticação
 export const config = {
     matcher: [
-        '/agendar/:path*',
-        '/agendamentos/:path*',
         '/admin/:path*',
-        '/historico/:path*'
-    ]
+        '/agendar/:path*',
+        '/meus-agendamentos/:path*',
+        '/perfil/:path*',
+        '/login',
+        '/register'
+    ],
 }
