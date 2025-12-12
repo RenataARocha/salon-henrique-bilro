@@ -5,11 +5,14 @@
 import { useState, useEffect } from 'react'
 import { Filter } from 'lucide-react'
 
+// Definir tipos de status permitidos
+type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
+
 interface Appointment {
     id: string
     date: string
     time: string
-    status: string
+    status: AppointmentStatus
     notes?: string
     justification?: string
     justifiedAt?: string
@@ -75,11 +78,6 @@ export default function AdminAgendamentosPage() {
         }
     }
 
-    // Logo no início da função getFilteredAppointments:
-    console.log('Total appointments:', appointments.length)
-    console.log('Filter period:', filterPeriod)
-    console.log('Filter status:', filterStatus)
-
     const getFilteredAppointments = () => {
         const now = new Date()
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -127,26 +125,28 @@ export default function AdminAgendamentosPage() {
             })
     }
 
-    const getStatusColor = (status: string) => {
-        const colors = {
+    // CORREÇÃO: Tipar o parâmetro corretamente
+    const getStatusColor = (status: string): string => {
+        const colors: Record<AppointmentStatus, string> = {
             CONFIRMED: 'bg-green-100 text-green-700',
             PENDING: 'bg-orange-100 text-orange-700',
             CANCELLED: 'bg-red-100 text-red-700',
             COMPLETED: 'bg-blue-100 text-blue-700',
             NO_SHOW: 'bg-gray-100 text-gray-700'
         }
-        return colors[status] || 'bg-gray-100 text-gray-700'
+        return colors[status as AppointmentStatus] || 'bg-gray-100 text-gray-700'
     }
 
-    const getStatusLabel = (status: string) => {
-        const labels = {
+    // CORREÇÃO: Tipar o parâmetro corretamente
+    const getStatusLabel = (status: string): string => {
+        const labels: Record<AppointmentStatus, string> = {
             CONFIRMED: 'Confirmado',
             PENDING: 'Pendente',
             CANCELLED: 'Cancelado',
             COMPLETED: 'Concluído',
             NO_SHOW: 'Não Compareceu'
         }
-        return labels[status] || status
+        return labels[status as AppointmentStatus] || status
     }
 
     const filteredAppointments = getFilteredAppointments()
@@ -218,7 +218,7 @@ export default function AdminAgendamentosPage() {
                         ].map((filter) => (
                             <button
                                 key={filter.value}
-                                onClick={() => setFilterPeriod(filter.value as any)}
+                                onClick={() => setFilterPeriod(filter.value as 'today' | 'week' | 'month' | 'all')}
                                 className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterPeriod === filter.value
                                     ? 'bg-gradient-gold text-white shadow-lg'
                                     : 'bg-beige text-charcoal hover:shadow-md'
@@ -319,7 +319,7 @@ export default function AdminAgendamentosPage() {
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">
-                                    {['PENDING', 'CONFIRMED', 'COMPLETED', 'NO_SHOW', 'CANCELLED'].map(status => (
+                                    {(['PENDING', 'CONFIRMED', 'COMPLETED', 'NO_SHOW', 'CANCELLED'] as AppointmentStatus[]).map(status => (
                                         <button
                                             key={status}
                                             onClick={() => handleUpdateStatus(selectedAppointment.id, status)}
