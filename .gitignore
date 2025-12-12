@@ -44,3 +44,6 @@ next-env.d.ts
 
 # Admin credentials
 admin-credentials.json
+
+# Uploads
+public/uploads/

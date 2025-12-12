@@ -1,3 +1,5 @@
+// src/components/NavBar.tsx - ATUALIZADO
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -23,6 +25,7 @@ export default function Navbar() {
     }
 
     const user = session?.user
+    const isAdmin = user?.role === 'ADMIN'
 
     return (
         <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-charcoal/95 backdrop-blur-md shadow-lg' : 'bg-charcoal/90 backdrop-blur-sm'}`}>
@@ -56,20 +59,28 @@ export default function Navbar() {
                             </>
                         ) : (
                             <>
-                                <a href="/agendar" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
-                                    <Calendar size={16} />
-                                    Agendar
-                                </a>
-                                <a href="/historico" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
-                                    <List size={16} />
-                                    Meus Agendamentos
-                                </a>
-                                {user.role === 'ADMIN' && (
+                                {/* Mostrar apenas para CLIENTE */}
+                                {!isAdmin && (
+                                    <>
+                                        <a href="/agendar" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
+                                            <Calendar size={16} />
+                                            Agendar
+                                        </a>
+                                        <a href="/historico" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
+                                            <List size={16} />
+                                            Meus Agendamentos
+                                        </a>
+                                    </>
+                                )}
+
+                                {/* Mostrar apenas para ADMIN */}
+                                {isAdmin && (
                                     <a href="/admin" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
                                         <Settings size={16} />
                                         Admin
                                     </a>
                                 )}
+
                                 <div className="flex items-center gap-3 pl-4 border-l border-gray-500">
                                     <span className="text-white text-sm">
                                         Olá, <span className="text-gold font-semibold">{user.name?.split(' ')[0]}</span>
@@ -127,23 +138,27 @@ export default function Navbar() {
                                 <div className="text-white text-sm py-2 border-b border-gray-700">
                                     Olá, <span className="text-gold font-semibold">{user.name?.split(' ')[0]}</span>
                                 </div>
-                                <a href="/agendar" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                                    <Calendar size={16} />
-                                    Agendar
-                                </a>
-                                <a href="/meus-agendamentos" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                                    <List size={16} />
-                                    Meus Agendamentos
-                                </a>
-                                <a href="/historico" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
-                                    Histórico
-                                </a>
-                                {user.role === 'ADMIN' && (
+
+                                {!isAdmin && (
+                                    <>
+                                        <a href="/agendar" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                                            <Calendar size={16} />
+                                            Agendar
+                                        </a>
+                                        <a href="/historico" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                                            <List size={16} />
+                                            Meus Agendamentos
+                                        </a>
+                                    </>
+                                )}
+
+                                {isAdmin && (
                                     <a href="/admin" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
                                         <Settings size={16} />
                                         Admin
                                     </a>
                                 )}
+
                                 <button
                                     onClick={() => {
                                         handleLogout()
