@@ -4,6 +4,8 @@
 
 import { useState, useEffect } from 'react'
 import { Filter } from 'lucide-react'
+import AdminHeader from '@/components/admin/AdminHeader'
+
 
 // Definir tipos de status permitidos
 type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
@@ -178,10 +180,12 @@ export default function AdminAgendamentosPage() {
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto space-y-8">
-                <div>
-                    <h1 className="text-4xl font-bold text-charcoal mb-2">Agendamentos</h1>
-                    <p className="text-gray-600">Gerencie todos os agendamentos do salão</p>
-                </div>
+                {/* Novo Header */}
+                <AdminHeader
+                    title="Agendamentos"
+                    description="Gerencie todos os agendamentos do salão"
+                    showBackButton={true}
+                />
 
                 {/* Estatísticas */}
                 <div className="grid md:grid-cols-4 gap-6">

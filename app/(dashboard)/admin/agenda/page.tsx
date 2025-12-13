@@ -1,11 +1,12 @@
-// app/(dashboard)/admin/agenda/page.tsx
+// app/(dashboard)/admin/agenda/page.tsx - VERSÃO MELHORADA
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, Clock, Plus, Trash2, AlertCircle, Power } from 'lucide-react'
+import { Clock, Plus, Trash2, AlertCircle, Power, Calendar } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { useToast } from '@/components/ui/ToastContainer'
+import AdminHeader from '@/components/admin/AdminHeader'
 
 interface AvailableSlot {
     id: string
@@ -23,13 +24,13 @@ export default function AgendaAdminPage() {
     const [showAddModal, setShowAddModal] = useState(false)
 
     const daysOfWeek = [
-        { value: 0, label: 'Domingo', color: 'bg-purple-50 border-purple-200' },
-        { value: 1, label: 'Segunda-feira', color: 'bg-blue-50 border-blue-200' },
-        { value: 2, label: 'Terça-feira', color: 'bg-green-50 border-green-200' },
-        { value: 3, label: 'Quarta-feira', color: 'bg-yellow-50 border-yellow-200' },
-        { value: 4, label: 'Quinta-feira', color: 'bg-orange-50 border-orange-200' },
-        { value: 5, label: 'Sexta-feira', color: 'bg-red-50 border-red-200' },
-        { value: 6, label: 'Sábado', color: 'bg-pink-50 border-pink-200' }
+        { value: 0, label: 'Domingo', short: 'Dom', emoji: '🌤️', color: 'from-purple-500 to-purple-600' },
+        { value: 1, label: 'Segunda-feira', short: 'Seg', emoji: '💼', color: 'from-blue-500 to-blue-600' },
+        { value: 2, label: 'Terça-feira', short: 'Ter', emoji: '🎯', color: 'from-green-500 to-green-600' },
+        { value: 3, label: 'Quarta-feira', short: 'Qua', emoji: '⚡', color: 'from-yellow-500 to-yellow-600' },
+        { value: 4, label: 'Quinta-feira', short: 'Qui', emoji: '🚀', color: 'from-orange-500 to-orange-600' },
+        { value: 5, label: 'Sexta-feira', short: 'Sex', emoji: '🎉', color: 'from-red-500 to-red-600' },
+        { value: 6, label: 'Sábado', short: 'Sáb', emoji: '🌟', color: 'from-pink-500 to-pink-600' }
     ]
 
     useEffect(() => {
@@ -158,40 +159,66 @@ export default function AgendaAdminPage() {
 
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="bg-gradient-gold text-white rounded-2xl shadow-xl p-8">
-                    <div className="flex items-center justify-between">
+            <div className="max-w-7xl mx-auto space-y-8">
+                {/* Novo Header */}
+                <AdminHeader
+                    title="Gerenciar Agenda"
+                    description="Configure os horários disponíveis para agendamento"
+                    showBackButton={true}
+                />
+
+                {/* Actions Bar */}
+                <div className="flex items-center justify-between bg-white rounded-xl shadow-lg p-6">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="text-blue-600 mt-0.5 flex-shrink-0" size={20} />
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <CalendarIcon size={40} />
-                                <h1 className="text-4xl font-bold">Gerenciar Agenda</h1>
-                            </div>
-                            <p className="text-white/90">Configure os horários disponíveis para agendamento</p>
+                            <p className="text-sm font-semibold text-charcoal">Como funciona</p>
+                            <p className="text-sm text-gray-600">
+                                Adicione os horários disponíveis para cada dia. Os clientes só poderão agendar nos horários ativos.
+                            </p>
                         </div>
-                        <Button
-                            variant="secondary"
-                            onClick={() => setShowAddModal(true)}
-                            className="bg-white text-gold hover:bg-gray-100"
-                        >
-                            <Plus size={20} />
-                            Adicionar Horário
-                        </Button>
                     </div>
+                    <Button
+                        variant="primary"
+                        onClick={() => setShowAddModal(true)}
+                    >
+                        <Plus size={20} />
+                        Novo Horário
+                    </Button>
                 </div>
 
-                {/* Info Box */}
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg flex items-start gap-3">
-                    <AlertCircle className="text-blue-600 mt-0.5 flex-shrink-0" size={20} />
-                    <div>
-                        <p className="text-sm text-blue-900 font-semibold">Como funciona</p>
-                        <p className="text-sm text-blue-700">
-                            Adicione os horários disponíveis para cada dia da semana. Os clientes só poderão agendar nos horários ativos.
+                {/* Estatísticas */}
+                <div className="grid md:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Calendar className="text-blue-500" size={24} />
+                            <p className="text-sm text-gray-600">Total de Dias</p>
+                        </div>
+                        <p className="text-3xl font-bold text-charcoal">
+                            {daysOfWeek.filter(d => getSlotsByDay(d.value).length > 0).length}
+                        </p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Clock className="text-green-500" size={24} />
+                            <p className="text-sm text-gray-600">Horários Ativos</p>
+                        </div>
+                        <p className="text-3xl font-bold text-green-600">
+                            {slots.filter(s => s.active).length}
+                        </p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Clock className="text-orange-500" size={24} />
+                            <p className="text-sm text-gray-600">Total de Horários</p>
+                        </div>
+                        <p className="text-3xl font-bold text-charcoal">
+                            {slots.length}
                         </p>
                     </div>
                 </div>
 
-                {/* Grid de dias */}
+                {/* Grid de dias - NOVO DESIGN */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {daysOfWeek.map((day) => {
                         const daySlots = getSlotsByDay(day.value)
@@ -200,20 +227,23 @@ export default function AgendaAdminPage() {
                         return (
                             <div
                                 key={day.value}
-                                className={`border-2 ${day.color} rounded-2xl shadow-lg overflow-hidden transition-all hover:shadow-xl`}
+                                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all border-2 border-gray-100"
                             >
-                                {/* Header do Card */}
-                                <div className="bg-white/80 backdrop-blur p-4 border-b-2 border-gray-200">
+                                {/* Header do Card - Gradiente */}
+                                <div className={`bg-gradient-to-br ${day.color} text-white p-5`}>
                                     <div className="flex items-center justify-between mb-2">
-                                        <h3 className="text-lg font-bold text-charcoal">{day.label}</h3>
-                                        <span className="bg-gold text-white text-xs font-bold px-3 py-1 rounded-full">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-2xl">{day.emoji}</span>
+                                            <h3 className="text-lg font-bold">{day.short}</h3>
+                                        </div>
+                                        <span className="bg-white/30 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full">
                                             {activeSlots}/{daySlots.length}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-gray-600">
+                                    <p className="text-xs text-white/90">
                                         {daySlots.length === 0
-                                            ? 'Nenhum horário cadastrado'
-                                            : `${activeSlots} ${activeSlots === 1 ? 'horário ativo' : 'horários ativos'}`
+                                            ? 'Sem horários'
+                                            : `${activeSlots} ${activeSlots === 1 ? 'ativo' : 'ativos'}`
                                         }
                                     </p>
                                 </div>
@@ -225,23 +255,27 @@ export default function AgendaAdminPage() {
                                             <div
                                                 key={slot.id}
                                                 className={`group p-3 rounded-xl border-2 transition-all ${slot.active
-                                                        ? 'border-green-300 bg-green-50 hover:bg-green-100'
-                                                        : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                                                    ? 'border-green-200 bg-green-50 hover:bg-green-100 hover:shadow-md'
+                                                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100 opacity-60'
                                                     }`}
                                             >
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <Clock size={16} className={slot.active ? 'text-green-600' : 'text-gray-400'} />
-                                                        <span className={`font-bold text-sm ${slot.active ? 'text-green-900' : 'text-gray-500'}`}>
+                                                        <Clock
+                                                            size={16}
+                                                            className={slot.active ? 'text-green-600' : 'text-gray-400'}
+                                                        />
+                                                        <span className={`font-bold ${slot.active ? 'text-green-900' : 'text-gray-500'
+                                                            }`}>
                                                             {slot.timeSlot}
                                                         </span>
                                                     </div>
                                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <button
                                                             onClick={() => handleToggleSlot(slot.id, slot.active)}
-                                                            className={`p-1.5 rounded-lg transition-colors ${slot.active
-                                                                    ? 'text-green-600 hover:bg-green-200'
-                                                                    : 'text-gray-400 hover:bg-gray-200'
+                                                            className={`p-1.5 rounded-lg transition-all ${slot.active
+                                                                ? 'text-orange-600 hover:bg-orange-100'
+                                                                : 'text-green-600 hover:bg-green-100'
                                                                 }`}
                                                             title={slot.active ? 'Desativar' : 'Ativar'}
                                                         >
@@ -249,7 +283,7 @@ export default function AgendaAdminPage() {
                                                         </button>
                                                         <button
                                                             onClick={() => handleDeleteSlot(slot.id)}
-                                                            className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+                                                            className="p-1.5 text-red-600 hover:bg-red-100 rounded-lg transition-all"
                                                             title="Excluir"
                                                         >
                                                             <Trash2 size={14} />
@@ -262,6 +296,15 @@ export default function AgendaAdminPage() {
                                         <div className="text-center py-12">
                                             <Clock size={32} className="mx-auto text-gray-300 mb-2" />
                                             <p className="text-gray-400 text-sm">Nenhum horário</p>
+                                            <button
+                                                onClick={() => {
+                                                    setSelectedDay(day.value)
+                                                    setShowAddModal(true)
+                                                }}
+                                                className="mt-3 text-xs text-gold hover:text-gold-dark font-semibold"
+                                            >
+                                                + Adicionar horário
+                                            </button>
                                         </div>
                                     )}
                                 </div>
@@ -272,8 +315,14 @@ export default function AgendaAdminPage() {
 
                 {/* Modal Adicionar */}
                 {showAddModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+                    <div
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowAddModal(false)}
+                    >
+                        <div
+                            className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <h2 className="text-2xl font-bold text-charcoal mb-6 flex items-center gap-2">
                                 <Plus className="text-gold" />
                                 Adicionar Horário
@@ -291,7 +340,7 @@ export default function AgendaAdminPage() {
                                     >
                                         {daysOfWeek.map(day => (
                                             <option key={day.value} value={day.value}>
-                                                {day.label}
+                                                {day.emoji} {day.label}
                                             </option>
                                         ))}
                                     </select>

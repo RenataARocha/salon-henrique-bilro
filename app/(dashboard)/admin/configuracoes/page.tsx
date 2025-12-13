@@ -9,6 +9,8 @@ import Input from '@/components/ui/Input'
 import { useToast } from '@/components/ui/ToastContainer'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import AdminHeader from '@/components/admin/AdminHeader'
+
 
 interface SalonConfig {
     name: string
@@ -114,14 +116,13 @@ export default function ConfiguracoesPage() {
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-4xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="bg-gradient-gold text-white rounded-2xl shadow-xl p-8">
-                    <div className="flex items-center gap-3 mb-2">
-                        <Settings size={40} />
-                        <h1 className="text-4xl font-bold">Configurações</h1>
-                    </div>
-                    <p className="text-white/90">Configure as preferências do salão</p>
-                </div>
+                {/* Novo Header */}
+                <AdminHeader
+                    title="Configurações"
+                    description="Configure as preferências do salão"
+                    showBackButton={true}
+                />
+
 
                 {/* 🔐 CREDENCIAIS DE ADMINISTRADOR */}
                 <div className="bg-red-50 border-2 border-red-200 rounded-2xl shadow-lg p-8">

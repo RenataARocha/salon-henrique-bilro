@@ -7,6 +7,7 @@ import { Plus, Edit, Trash2, Power, DollarSign, Clock, X, Image as ImageIcon } f
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { useToast } from '@/components/ui/ToastContainer'
+import AdminHeader from '@/components/admin/AdminHeader'
 
 interface Service {
     id: string
@@ -261,11 +262,13 @@ export default function AdminServicosPage() {
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto space-y-8">
+                {/* Novo Header */}
+                <AdminHeader
+                    title="Serviços"
+                    description="Gerencie os serviços oferecidos pelo salão"
+                    showBackButton={true}
+                />
                 <div className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-4xl font-bold text-charcoal mb-2">Serviços</h1>
-                        <p className="text-gray-600">Gerencie os serviços oferecidos pelo salão</p>
-                    </div>
                     <Button variant="primary" onClick={() => openModal()}>
                         <Plus size={20} />
                         Novo Serviço
