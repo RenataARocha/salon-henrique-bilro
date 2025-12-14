@@ -5,14 +5,33 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
 export async function POST(request: Request) {
-    try {
-        const body = await request.json()
-        const { name, email, password, phone, birthDate } = body
+    console.log('🚀 [REGISTER] Iniciando registro...')
 
-        console.log('📝 Tentando registrar:', { email, name }) // Log para debug
+    try {
+        // Parse do body
+        let body
+        try {
+            body = await request.json()
+            console.log('📦 [REGISTER] Body recebido:', {
+                email: body.email,
+                name: body.name,
+                hasPassword: !!body.password,
+                hasPhone: !!body.phone,
+                hasBirthDate: !!body.birthDate
+            })
+        } catch (error) {
+            console.error('❌ [REGISTER] Erro ao fazer parse do body:', error)
+            return NextResponse.json(
+                { success: false, error: 'Dados inválidos' },
+                { status: 400 }
+            )
+        }
+
+        const { name, email, password, phone, birthDate } = body
 
         // Validações
         if (!name || !email || !password) {
+            console.log('⚠️ [REGISTER] Campos obrigatórios faltando')
             return NextResponse.json(
                 { success: false, error: 'Preencha todos os campos obrigatórios' },
                 { status: 400 }
@@ -20,6 +39,7 @@ export async function POST(request: Request) {
         }
 
         if (password.length < 6) {
+            console.log('⚠️ [REGISTER] Senha muito curta')
             return NextResponse.json(
                 { success: false, error: 'A senha deve ter no mínimo 6 caracteres' },
                 { status: 400 }
@@ -27,54 +47,75 @@ export async function POST(request: Request) {
         }
 
         // Verificar se email já existe
-        const existingUser = await prisma.user.findUnique({
-            where: { email: email.toLowerCase().trim() }
-        })
+        console.log('🔍 [REGISTER] Verificando se email existe:', email)
+        try {
+            const existingUser = await prisma.user.findUnique({
+                where: { email: email.toLowerCase().trim() }
+            })
 
-        if (existingUser) {
-            return NextResponse.json(
-                { success: false, error: 'Este email já está cadastrado' },
-                { status: 400 }
-            )
+            if (existingUser) {
+                console.log('⚠️ [REGISTER] Email já cadastrado:', email)
+                return NextResponse.json(
+                    { success: false, error: 'Este email já está cadastrado' },
+                    { status: 400 }
+                )
+            }
+        } catch (error) {
+            console.error('❌ [REGISTER] Erro ao verificar email:', error)
+            throw error
         }
 
         // Hash da senha
-        const hashedPassword = await bcrypt.hash(password, 10)
+        console.log('🔐 [REGISTER] Gerando hash da senha...')
+        let hashedPassword
+        try {
+            hashedPassword = await bcrypt.hash(password, 10)
+            console.log('✅ [REGISTER] Hash gerado com sucesso')
+        } catch (error) {
+            console.error('❌ [REGISTER] Erro ao gerar hash:', error)
+            throw error
+        }
 
-        // Preparar data de nascimento (se fornecida)
+        // Preparar data de nascimento
         let birthDateFormatted = null
         if (birthDate) {
+            console.log('📅 [REGISTER] Processando data de nascimento:', birthDate)
             try {
-                // Garantir que a data está no formato correto
-                const dateObj = new Date(birthDate)
-                // Adicionar timezone offset para evitar problemas
-                dateObj.setMinutes(dateObj.getMinutes() + dateObj.getTimezoneOffset())
+                const dateObj = new Date(birthDate + 'T00:00:00.000Z')
                 birthDateFormatted = dateObj
+                console.log('✅ [REGISTER] Data formatada:', birthDateFormatted.toISOString())
             } catch (error) {
-                console.error('Erro ao processar data de nascimento:', error)
-                // Continuar sem a data ao invés de falhar
+                console.error('⚠️ [REGISTER] Erro ao processar data, continuando sem ela:', error)
             }
         }
 
         // Criar usuário
-        const user = await prisma.user.create({
-            data: {
-                name: name.trim(),
-                email: email.toLowerCase().trim(),
-                password: hashedPassword,
-                phone: phone ? phone.trim() : null,
-                birthDate: birthDateFormatted,
-                role: 'CLIENT'
-            },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true
-            }
-        })
-
-        console.log('✅ Usuário criado:', user.email)
+        console.log('💾 [REGISTER] Criando usuário no banco...')
+        let user
+        try {
+            user = await prisma.user.create({
+                data: {
+                    name: name.trim(),
+                    email: email.toLowerCase().trim(),
+                    password: hashedPassword,
+                    phone: phone ? phone.trim() : null,
+                    birthDate: birthDateFormatted,
+                    role: 'CLIENT'
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true
+                }
+            })
+            console.log('✅ [REGISTER] Usuário criado com sucesso:', user.email)
+        } catch (error: any) {
+            console.error('❌ [REGISTER] Erro ao criar usuário no Prisma:', error)
+            console.error('Código do erro:', error.code)
+            console.error('Mensagem:', error.message)
+            throw error
+        }
 
         return NextResponse.json({
             success: true,
@@ -83,17 +124,16 @@ export async function POST(request: Request) {
         })
 
     } catch (error: any) {
-        console.error('❌ Erro no registro:', error)
+        console.error('❌ [REGISTER] ERRO FATAL:', error)
+        console.error('Nome do erro:', error.name)
+        console.error('Mensagem:', error.message)
         console.error('Stack:', error.stack)
 
         return NextResponse.json(
             {
                 success: false,
                 error: 'Erro ao criar conta. Tente novamente.',
-                // Em desenvolvimento, mostrar mais detalhes
-                ...(process.env.NODE_ENV === 'development' && {
-                    details: error.message
-                })
+                details: error.message // Mostrar detalhes para debug
             },
             { status: 500 }
         )
