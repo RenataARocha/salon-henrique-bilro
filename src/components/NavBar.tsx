@@ -66,7 +66,7 @@ export default function Navbar() {
                                             <Calendar size={16} />
                                             Agendar
                                         </a>
-                                        <a href="/historico" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
+                                        <a href="/meus-agendamentos" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
                                             <List size={16} />
                                             Meus Agendamentos
                                         </a>
@@ -145,7 +145,7 @@ export default function Navbar() {
                                             <Calendar size={16} />
                                             Agendar
                                         </a>
-                                        <a href="/historico" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
+                                        <a href="/meus-agendamentos" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
                                             <List size={16} />
                                             Meus Agendamentos
                                         </a>
