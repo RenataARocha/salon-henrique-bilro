@@ -1,248 +1,274 @@
 // app/(dashboard)/admin/servicos/page.tsx
 
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Power, DollarSign, Clock, X, Image as ImageIcon } from 'lucide-react'
-import Button from '@/components/ui/Button'
-import Input from '@/components/ui/Input'
-import { useToast } from '@/components/ui/ToastContainer'
-import AdminHeader from '@/components/admin/AdminHeader'
+import { useState, useEffect } from "react";
+import {
+    Plus,
+    Edit,
+    Trash2,
+    Power,
+    DollarSign,
+    Clock,
+    X,
+    Image as ImageIcon,
+} from "lucide-react";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import { useToast } from "@/components/ui/ToastContainer";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 interface Service {
-    id: string
-    name: string
-    description: string
-    price: number
-    duration: number
-    active: boolean
-    images?: string[]
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    duration: number;
+    active: boolean;
+    images?: string[];
 }
 
 export default function AdminServicosPage() {
-    const { showToast } = useToast()
-    const [services, setServices] = useState<Service[]>([])
-    const [loading, setLoading] = useState(true)
-    const [showModal, setShowModal] = useState(false)
-    const [editingService, setEditingService] = useState<Service | null>(null)
+    const { showToast } = useToast();
+    const [services, setServices] = useState<Service[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
+    const [editingService, setEditingService] = useState<Service | null>(null);
     const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        price: '',
-        duration: '',
+        name: "",
+        description: "",
+        price: "",
+        duration: "",
         images: [] as string[],
-        newImageUrl: ''
-    })
+        newImageUrl: "",
+    });
+    const [uploadLoading, setUploadLoading] = useState(false);
 
     useEffect(() => {
-        fetchServices()
-    }, [])
+        fetchServices();
+    }, []);
 
     const fetchServices = async () => {
         try {
-            setLoading(true)
-            const res = await fetch('/api/services')
-            const data = await res.json()
+            setLoading(true);
+            const res = await fetch("/api/services");
+            const data = await res.json();
             if (data.success) {
-                setServices(data.data)
+                setServices(data.data);
             }
         } catch (error) {
-            console.error('Erro ao buscar serviços:', error)
-            showToast('Erro ao carregar serviços', 'error')
+            console.error("Erro ao buscar serviços:", error);
+            showToast("Erro ao carregar serviços", "error");
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     const openModal = (service?: Service) => {
         if (service) {
-            setEditingService(service)
+            setEditingService(service);
             setFormData({
                 name: service.name,
                 description: service.description,
                 price: service.price.toString(),
                 duration: service.duration.toString(),
                 images: service.images || [],
-                newImageUrl: ''
-            })
+                newImageUrl: "",
+            });
         } else {
-            setEditingService(null)
+            setEditingService(null);
             setFormData({
-                name: '',
-                description: '',
-                price: '',
-                duration: '',
+                name: "",
+                description: "",
+                price: "",
+                duration: "",
                 images: [],
-                newImageUrl: ''
-            })
+                newImageUrl: "",
+            });
         }
-        setShowModal(true)
-    }
+        setShowModal(true);
+    };
 
     const closeModal = () => {
-        setShowModal(false)
-        setEditingService(null)
-        setFormData({ name: '', description: '', price: '', duration: '', images: [], newImageUrl: '' })
-    }
+        setShowModal(false);
+        setEditingService(null);
+        setFormData({
+            name: "",
+            description: "",
+            price: "",
+            duration: "",
+            images: [],
+            newImageUrl: "",
+        });
+    };
 
     const handleAddImage = () => {
         if (!formData.newImageUrl.trim()) {
-            showToast('Digite uma URL válida', 'error')
-            return
+            showToast("Digite uma URL válida", "error");
+            return;
         }
 
         if (!formData.newImageUrl.match(/\.(jpg|jpeg|png|gif|webp)/i)) {
-            showToast('URL deve ser uma imagem (.jpg, .png, .gif, .webp)', 'error')
-            return
+            showToast("URL deve ser uma imagem (.jpg, .png, .gif, .webp)", "error");
+            return;
         }
 
         if (formData.images.length >= 5) {
-            showToast('Você pode adicionar no máximo 5 imagens', 'error')
-            return
+            showToast("Você pode adicionar no máximo 5 imagens", "error");
+            return;
         }
 
         setFormData({
             ...formData,
             images: [...formData.images, formData.newImageUrl],
-            newImageUrl: ''
-        })
-    }
+            newImageUrl: "",
+        });
+    };
 
+    // Substitua a função handleFileUpload por esta:
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const files = e.target.files
-        if (!files || files.length === 0) return
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
 
         if (formData.images.length + files.length > 5) {
-            showToast('Você pode adicionar no máximo 5 imagens', 'error')
-            return
+            showToast("Você pode adicionar no máximo 5 imagens", "error");
+            return;
         }
 
-        const formDataUpload = new FormData()
-        Array.from(files).forEach(file => {
-            formDataUpload.append('files', file)
-        })
+        const formDataUpload = new FormData();
+        Array.from(files).forEach((file) => {
+            formDataUpload.append("files", file);
+        });
 
         try {
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formDataUpload
-            })
+            setUploadLoading(true); // ← ADICIONAR
+            showToast(
+                `Fazendo upload de ${files.length} ${files.length === 1 ? "imagem" : "imagens"
+                }...`,
+                "info"
+            ); // ← ADICIONAR
 
-            const data = await res.json()
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formDataUpload,
+            });
+
+            const data = await res.json();
 
             if (data.success) {
                 setFormData({
                     ...formData,
-                    images: [...formData.images, ...data.urls]
-                })
-                showToast('Imagens adicionadas!', 'success')
+                    images: [...formData.images, ...data.urls],
+                });
+                showToast(
+                    `✅ ${data.urls.length} ${data.urls.length === 1 ? "imagem adicionada" : "imagens adicionadas"
+                    }!`,
+                    "success"
+                );
             } else {
-                showToast(data.error || 'Erro ao fazer upload', 'error')
+                showToast(data.error || "Erro ao fazer upload", "error");
             }
         } catch (error) {
-            console.error('Erro:', error)
-            showToast('Erro ao fazer upload das imagens', 'error')
+            console.error("Erro:", error);
+            showToast("Erro ao fazer upload das imagens", "error");
+        } finally {
+            setUploadLoading(false); // ← ADICIONAR
+            // Limpar o input para permitir selecionar os mesmos arquivos novamente
+            e.target.value = "";
         }
-    }
-
-    const handleRemoveImage = (index: number) => {
-        setFormData({
-            ...formData,
-            images: formData.images.filter((_, i) => i !== index)
-        })
-    }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
+        e.preventDefault();
 
         if (!formData.name || !formData.price || !formData.duration) {
-            showToast('Preencha todos os campos obrigatórios', 'error')
-            return
+            showToast("Preencha todos os campos obrigatórios", "error");
+            return;
         }
 
         try {
             const url = editingService
                 ? `/api/admin/services?id=${editingService.id}`
-                : '/api/admin/services'
+                : "/api/admin/services";
 
-            const method = editingService ? 'PATCH' : 'POST'
+            const method = editingService ? "PATCH" : "POST";
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     name: formData.name,
                     description: formData.description,
                     price: parseFloat(formData.price),
                     duration: parseInt(formData.duration),
-                    images: formData.images
-                })
-            })
+                    images: formData.images,
+                }),
+            });
 
-            const data = await res.json()
+            const data = await res.json();
 
             if (data.success) {
                 showToast(
-                    editingService ? 'Serviço atualizado!' : 'Serviço criado!',
-                    'success'
-                )
-                fetchServices()
-                closeModal()
+                    editingService ? "Serviço atualizado!" : "Serviço criado!",
+                    "success"
+                );
+                fetchServices();
+                closeModal();
             } else {
-                showToast(data.error || 'Erro ao salvar serviço', 'error')
+                showToast(data.error || "Erro ao salvar serviço", "error");
             }
         } catch (error) {
-            console.error('Erro:', error)
-            showToast('Erro ao salvar serviço', 'error')
+            console.error("Erro:", error);
+            showToast("Erro ao salvar serviço", "error");
         }
-    }
+    };
 
     const handleToggleActive = async (service: Service) => {
         try {
             const res = await fetch(`/api/admin/services?id=${service.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ active: !service.active })
-            })
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ active: !service.active }),
+            });
 
-            const data = await res.json()
+            const data = await res.json();
 
             if (data.success) {
                 showToast(
-                    service.active ? 'Serviço desativado' : 'Serviço ativado',
-                    'success'
-                )
-                fetchServices()
+                    service.active ? "Serviço desativado" : "Serviço ativado",
+                    "success"
+                );
+                fetchServices();
             } else {
-                showToast(data.error || 'Erro ao atualizar serviço', 'error')
+                showToast(data.error || "Erro ao atualizar serviço", "error");
             }
         } catch (error) {
-            console.error('Erro:', error)
-            showToast('Erro ao atualizar serviço', 'error')
+            console.error("Erro:", error);
+            showToast("Erro ao atualizar serviço", "error");
         }
-    }
+    };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Tem certeza que deseja excluir este serviço?')) return
+        if (!confirm("Tem certeza que deseja excluir este serviço?")) return;
 
         try {
             const res = await fetch(`/api/admin/services?id=${id}`, {
-                method: 'DELETE'
-            })
+                method: "DELETE",
+            });
 
-            const data = await res.json()
+            const data = await res.json();
 
             if (data.success) {
-                showToast('Serviço excluído com sucesso!', 'success')
-                fetchServices()
+                showToast("Serviço excluído com sucesso!", "success");
+                fetchServices();
             } else {
-                showToast(data.error || 'Erro ao excluir serviço', 'error')
+                showToast(data.error || "Erro ao excluir serviço", "error");
             }
         } catch (error) {
-            console.error('Erro:', error)
-            showToast('Erro ao excluir serviço', 'error')
+            console.error("Erro:", error);
+            showToast("Erro ao excluir serviço", "error");
         }
-    }
+    };
 
     if (loading) {
         return (
@@ -256,7 +282,7 @@ export default function AdminServicosPage() {
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 
     return (
@@ -278,7 +304,11 @@ export default function AdminServicosPage() {
                 {services.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {services.map((service) => (
-                            <div key={service.id} className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow ${!service.active ? 'opacity-60' : ''}`}>
+                            <div
+                                key={service.id}
+                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow ${!service.active ? "opacity-60" : ""
+                                    }`}
+                            >
                                 {service.images && service.images.length > 0 && (
                                     <div className="mb-4 h-48 rounded-lg overflow-hidden bg-gray-100">
                                         <img
@@ -290,13 +320,22 @@ export default function AdminServicosPage() {
                                 )}
 
                                 <div className="flex justify-between items-start mb-4">
-                                    <h3 className="text-xl font-bold text-charcoal">{service.name}</h3>
-                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${service.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                        {service.active ? 'Ativo' : 'Inativo'}
+                                    <h3 className="text-xl font-bold text-charcoal">
+                                        {service.name}
+                                    </h3>
+                                    <span
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold ${service.active
+                                                ? "bg-green-100 text-green-700"
+                                                : "bg-red-100 text-red-700"
+                                            }`}
+                                    >
+                                        {service.active ? "Ativo" : "Inativo"}
                                     </span>
                                 </div>
 
-                                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{service.description}</p>
+                                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                    {service.description}
+                                </p>
 
                                 <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
                                     <div>
@@ -316,14 +355,26 @@ export default function AdminServicosPage() {
                                 </div>
 
                                 <div className="flex gap-2">
-                                    <button onClick={() => openModal(service)} className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all flex items-center justify-center gap-1">
+                                    <button
+                                        onClick={() => openModal(service)}
+                                        className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all flex items-center justify-center gap-1"
+                                    >
                                         <Edit size={16} />
                                         Editar
                                     </button>
-                                    <button onClick={() => handleToggleActive(service)} className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 ${service.active ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                                    <button
+                                        onClick={() => handleToggleActive(service)}
+                                        className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 ${service.active
+                                                ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                                                : "bg-green-100 text-green-700 hover:bg-green-200"
+                                            }`}
+                                    >
                                         <Power size={16} />
                                     </button>
-                                    <button onClick={() => handleDelete(service.id)} className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1">
+                                    <button
+                                        onClick={() => handleDelete(service.id)}
+                                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1"
+                                    >
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
@@ -333,8 +384,12 @@ export default function AdminServicosPage() {
                 ) : (
                     <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                         <p className="text-6xl mb-4">💇‍♀️</p>
-                        <h3 className="text-2xl font-bold text-charcoal mb-2">Nenhum serviço cadastrado</h3>
-                        <p className="text-gray-600 mb-6">Adicione serviços para começar a receber agendamentos</p>
+                        <h3 className="text-2xl font-bold text-charcoal mb-2">
+                            Nenhum serviço cadastrado
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                            Adicione serviços para começar a receber agendamentos
+                        </p>
                         <Button variant="primary" onClick={() => openModal()}>
                             + Adicionar Primeiro Serviço
                         </Button>
@@ -346,9 +401,14 @@ export default function AdminServicosPage() {
                         <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                             <div className="flex justify-between items-start mb-6">
                                 <h2 className="text-3xl font-bold text-charcoal">
-                                    {editingService ? 'Editar Serviço' : 'Novo Serviço'}
+                                    {editingService ? "Editar Serviço" : "Novo Serviço"}
                                 </h2>
-                                <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                                <button
+                                    onClick={closeModal}
+                                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                                >
+                                    ×
+                                </button>
                             </div>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
@@ -359,14 +419,20 @@ export default function AdminServicosPage() {
                                     placeholder="Ex: Corte Feminino"
                                     required
                                     value={formData.name}
-                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, name: e.target.value })
+                                    }
                                 />
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-charcoal mb-2">Descrição</label>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Descrição
+                                    </label>
                                     <textarea
                                         value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, description: e.target.value })
+                                        }
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none resize-none"
                                         rows={3}
                                         placeholder="Descreva o serviço..."
@@ -383,7 +449,9 @@ export default function AdminServicosPage() {
                                         step="0.01"
                                         min="0"
                                         value={formData.price}
-                                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, price: e.target.value })
+                                        }
                                         icon={<DollarSign size={20} />}
                                     />
 
@@ -396,7 +464,9 @@ export default function AdminServicosPage() {
                                         min="15"
                                         step="15"
                                         value={formData.duration}
-                                        onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                                        onChange={(e) =>
+                                            setFormData({ ...formData, duration: e.target.value })
+                                        }
                                         icon={<Clock size={20} />}
                                     />
                                 </div>
@@ -411,8 +481,15 @@ export default function AdminServicosPage() {
                                     {formData.images.length > 0 && (
                                         <div className="grid grid-cols-3 gap-3 mb-3">
                                             {formData.images.map((url, index) => (
-                                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
-                                                    <img src={url} alt={`Imagem ${index + 1}`} className="w-full h-full object-cover" />
+                                                <div
+                                                    key={index}
+                                                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200"
+                                                >
+                                                    <img
+                                                        src={url}
+                                                        alt={`Imagem ${index + 1}`}
+                                                        className="w-full h-full object-cover"
+                                                    />
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRemoveImage(index)}
@@ -427,26 +504,48 @@ export default function AdminServicosPage() {
 
                                     <div className="space-y-3">
                                         {/* Botão de Upload */}
-                                        <label className="w-full bg-gold text-white px-4 py-3 rounded-lg hover:bg-gold-dark transition-colors cursor-pointer flex items-center justify-center gap-2 font-semibold">
+                                        <label
+                                            className={`w-full px-4 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 font-semibold ${uploadLoading
+                                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                    : "bg-gold text-white hover:bg-gold-dark"
+                                                }`}
+                                        >
                                             <input
                                                 type="file"
                                                 accept="image/*"
                                                 multiple
                                                 onChange={handleFileUpload}
                                                 className="hidden"
+                                                disabled={uploadLoading}
                                             />
-                                            <ImageIcon size={20} />
-                                            Escolher Imagens do Computador
+                                            {uploadLoading ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                                    Fazendo upload...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <ImageIcon size={20} />
+                                                    Escolher Imagens do Computador
+                                                </>
+                                            )}
                                         </label>
 
                                         {/* OU URL Manual */}
                                         <div>
-                                            <p className="text-xs text-gray-500 text-center mb-2">ou cole uma URL</p>
+                                            <p className="text-xs text-gray-500 text-center mb-2">
+                                                ou cole uma URL
+                                            </p>
                                             <div className="flex gap-2">
                                                 <input
                                                     type="url"
                                                     value={formData.newImageUrl}
-                                                    onChange={(e) => setFormData({ ...formData, newImageUrl: e.target.value })}
+                                                    onChange={(e) =>
+                                                        setFormData({
+                                                            ...formData,
+                                                            newImageUrl: e.target.value,
+                                                        })
+                                                    }
                                                     placeholder="https://exemplo.com/imagem.jpg"
                                                     className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none text-sm"
                                                 />
@@ -462,16 +561,22 @@ export default function AdminServicosPage() {
                                     </div>
 
                                     <p className="text-xs text-gray-500 mt-2">
-                                        {formData.images.length}/5 imagens • Você pode adicionar até 5 imagens
+                                        {formData.images.length}/5 imagens • Você pode adicionar até
+                                        5 imagens
                                     </p>
                                 </div>
 
                                 <div className="flex gap-3 pt-4">
-                                    <Button type="button" variant="secondary" onClick={closeModal} className="flex-1">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        onClick={closeModal}
+                                        className="flex-1"
+                                    >
                                         Cancelar
                                     </Button>
                                     <Button type="submit" variant="primary" className="flex-1">
-                                        {editingService ? 'Salvar Alterações' : 'Criar Serviço'}
+                                        {editingService ? "Salvar Alterações" : "Criar Serviço"}
                                     </Button>
                                 </div>
                             </form>
@@ -480,5 +585,5 @@ export default function AdminServicosPage() {
                 )}
             </div>
         </div>
-    )
+    );
 }
