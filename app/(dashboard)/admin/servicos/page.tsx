@@ -125,6 +125,14 @@ export default function AdminServicosPage() {
         });
     };
 
+    const handleRemoveImage = (indexToRemove: number) => {
+        setFormData({
+            ...formData,
+            images: formData.images.filter((_, index) => index !== indexToRemove),
+        });
+        showToast("Imagem removida", "info");
+    };
+
     // Substitua a função handleFileUpload por esta:
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -325,8 +333,8 @@ export default function AdminServicosPage() {
                                     </h3>
                                     <span
                                         className={`px-3 py-1 rounded-full text-xs font-semibold ${service.active
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-red-100 text-red-700"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-red-100 text-red-700"
                                             }`}
                                     >
                                         {service.active ? "Ativo" : "Inativo"}
@@ -365,8 +373,8 @@ export default function AdminServicosPage() {
                                     <button
                                         onClick={() => handleToggleActive(service)}
                                         className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 ${service.active
-                                                ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                                                : "bg-green-100 text-green-700 hover:bg-green-200"
+                                            ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                                            : "bg-green-100 text-green-700 hover:bg-green-200"
                                             }`}
                                     >
                                         <Power size={16} />
@@ -506,8 +514,8 @@ export default function AdminServicosPage() {
                                         {/* Botão de Upload */}
                                         <label
                                             className={`w-full px-4 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 font-semibold ${uploadLoading
-                                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                                    : "bg-gold text-white hover:bg-gold-dark"
+                                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                : "bg-gold text-white hover:bg-gold-dark"
                                                 }`}
                                         >
                                             <input
