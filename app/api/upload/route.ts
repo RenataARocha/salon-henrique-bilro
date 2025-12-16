@@ -1,9 +1,14 @@
-// app/api/upload/route.ts
+// app/api/upload/route.ts - COM CLOUDINARY
 
 import { NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { v2 as cloudinary } from 'cloudinary'
+
+// Configurar Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+})
 
 export async function POST(request: Request) {
     try {
@@ -17,29 +22,22 @@ export async function POST(request: Request) {
             )
         }
 
-        // Criar pasta se não existir
-        const uploadDir = join(process.cwd(), 'public', 'uploads', 'services')
-        if (!existsSync(uploadDir)) {
-            await mkdir(uploadDir, { recursive: true })
-        }
-
         const uploadedUrls: string[] = []
 
         for (const file of files) {
+            // Converter File para base64
             const bytes = await file.arrayBuffer()
             const buffer = Buffer.from(bytes)
+            const base64 = buffer.toString('base64')
+            const dataURI = `data:${file.type};base64,${base64}`
 
-            // Gerar nome único com timestamp
-            const timestamp = Date.now()
-            const ext = file.name.split('.').pop()
-            const filename = `service-${timestamp}-${Math.random().toString(36).substring(7)}.${ext}`
-            const filepath = join(uploadDir, filename)
+            // Upload para Cloudinary
+            const result = await cloudinary.uploader.upload(dataURI, {
+                folder: 'salon-services', // Pasta no Cloudinary
+                resource_type: 'auto'
+            })
 
-            // Salvar arquivo
-            await writeFile(filepath, buffer)
-
-            // URL pública
-            uploadedUrls.push(`/uploads/services/${filename}`)
+            uploadedUrls.push(result.secure_url)
         }
 
         return NextResponse.json({
