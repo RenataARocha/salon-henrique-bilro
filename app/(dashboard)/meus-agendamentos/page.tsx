@@ -1,4 +1,4 @@
-// app/(dashboard)/historico/page.tsx - FUNCIONAL
+// app/(dashboard)/meus-agendamentos/page.tsx 
 
 'use client'
 
@@ -7,6 +7,8 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Clock, Calendar, CheckCircle, XCircle, AlertCircle, Ban } from 'lucide-react'
 import Navbar from '@/components/NavBar'
+import RescheduleModal from '@/components/appointments/RescheduleModal'
+import { Calendar as CalendarIcon } from 'lucide-react'
 
 interface Appointment {
     id: string
@@ -27,6 +29,7 @@ export default function HistoricoPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [loading, setLoading] = useState(true)
     const [filterStatus, setFilterStatus] = useState<string>('all')
+    const [rescheduleAppointment, setRescheduleAppointment] = useState<Appointment | null>(null)
 
     useEffect(() => {
         if (sessionStatus === 'unauthenticated') {
@@ -105,6 +108,59 @@ export default function HistoricoPage() {
         }
     }
 
+    const canReschedule = (appointment: Appointment) => {
+        // Só pode reagendar se estiver PENDING ou CONFIRMED
+        if (!['PENDING', 'CONFIRMED'].includes(appointment.status)) {
+            return false
+        }
+
+        try {
+            // Verificar se ainda não passou (com margem de 2 horas)
+            // Formatos possíveis da API:
+            // date: "2025-12-24" ou "2025-12-24T00:00:00.000Z"
+            // time: "10:00" ou "10:00:00"
+
+            // Garantir que a data está no formato YYYY-MM-DD
+            const dateOnly = appointment.date.split('T')[0]
+
+            // Garantir que o horário está no formato HH:mm
+            const timeOnly = appointment.time.substring(0, 5)
+
+            // Criar a data completa no formato ISO
+            const appointmentDateTime = new Date(`${dateOnly}T${timeOnly}:00`)
+            const minTime = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 horas a partir de agora
+
+            console.log('🔍 Debug Reagendamento:', {
+                servico: appointment.service.name,
+                dataOriginal: appointment.date,
+                horaOriginal: appointment.time,
+                dataProcessada: dateOnly,
+                horaProcessada: timeOnly,
+                dataCompleta: `${dateOnly}T${timeOnly}:00`,
+                appointmentDateTime: appointmentDateTime.toString(),
+                isValid: !isNaN(appointmentDateTime.getTime()),
+                minTime: minTime.toString(),
+                podeReagendar: appointmentDateTime > minTime
+            })
+
+            // Verificar se a data é válida
+            if (isNaN(appointmentDateTime.getTime())) {
+                console.error('❌ Data inválida:', appointment)
+                return false
+            }
+
+            return appointmentDateTime > minTime
+        } catch (error) {
+            console.error('❌ Erro ao verificar reagendamento:', error, appointment)
+            return false
+        }
+    }
+
+    const handleRescheduleSuccess = () => {
+        setRescheduleAppointment(null)
+        fetchAppointments() // Recarrega a lista após reagendar
+    }
+
     const filteredAppointments = appointments
         .filter(apt => filterStatus === 'all' || apt.status === filterStatus)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -179,8 +235,8 @@ export default function HistoricoPage() {
                                 key={filter.value}
                                 onClick={() => setFilterStatus(filter.value)}
                                 className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${filterStatus === filter.value
-                                        ? 'bg-gradient-gold text-white shadow-lg'
-                                        : 'bg-white text-charcoal hover:shadow-md'
+                                    ? 'bg-gradient-gold text-white shadow-lg'
+                                    : 'bg-white text-charcoal hover:shadow-md'
                                     }`}
                             >
                                 {filter.icon} {filter.label}
@@ -237,14 +293,27 @@ export default function HistoricoPage() {
                                             </div>
                                         </div>
 
-                                        {appointment.status === 'COMPLETED' && (
-                                            <button
-                                                onClick={() => router.push('/agendar')}
-                                                className="text-sm text-gold hover:text-gold-dark font-semibold"
-                                            >
-                                                Agendar novamente →
-                                            </button>
-                                        )}
+                                        {/* Botões de ação */}
+                                        <div className="flex gap-3 mt-4">
+                                            {canReschedule(appointment) && (
+                                                <button
+                                                    onClick={() => setRescheduleAppointment(appointment)}
+                                                    className="flex items-center gap-2 text-sm text-gold hover:text-gold-dark font-semibold transition-colors cursor-pointer"
+                                                >
+                                                    <CalendarIcon size={16} />
+                                                    Reagendar
+                                                </button>
+                                            )}
+
+                                            {appointment.status === 'COMPLETED' && (
+                                                <button
+                                                    onClick={() => router.push('/agendar')}
+                                                    className="text-sm text-gold hover:text-gold-dark font-semibold"
+                                                >
+                                                    Agendar novamente →
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 )
                             })}
@@ -271,6 +340,15 @@ export default function HistoricoPage() {
                     )}
                 </div>
             </div>
+
+            {/* Modal de Reagendamento */}
+            {rescheduleAppointment && (
+                <RescheduleModal
+                    appointment={rescheduleAppointment}
+                    onClose={() => setRescheduleAppointment(null)}
+                    onSuccess={handleRescheduleSuccess}
+                />
+            )}
         </>
     )
 }
