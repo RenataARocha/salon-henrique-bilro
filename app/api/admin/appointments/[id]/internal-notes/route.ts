@@ -1,5 +1,3 @@
-// app/api/admin/appointments/[id]/internal-notes/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -7,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -19,12 +17,12 @@ export async function PUT(
             )
         }
 
+        const { id } = await context.params
         const body = await request.json()
         const { internalNotes } = body
 
-        // Atualizar o campo internalNotes no banco
         const appointment = await prisma.appointment.update({
-            where: { id: params.id },
+            where: { id },
             data: { internalNotes }
         })
 

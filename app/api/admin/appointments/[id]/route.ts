@@ -1,5 +1,3 @@
-// app/api/admin/appointments/[id]/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -7,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -19,8 +17,10 @@ export async function GET(
             )
         }
 
+        const { id } = await context.params  // PEGA O ID AQUI
+
         const appointment = await prisma.appointment.findUnique({
-            where: { id: params.id },
+            where: { id },  // USA SÓ 'id', NÃO 'params.id'
             include: {
                 user: {
                     select: {
@@ -50,7 +50,6 @@ export async function GET(
             )
         }
 
-        // Montar resposta com valores padrão para campos que podem não existir
         const response = {
             ...appointment,
             finalPrice: appointment.finalPrice || appointment.service.price,
@@ -59,8 +58,8 @@ export async function GET(
             paymentMethod: appointment.paymentMethod || null,
             cancelReason: appointment.cancelReason || null,
             rescheduledFrom: appointment.rescheduledFrom || null,
-            coupon: null, // Por enquanto null até criar a tabela
-            statusHistory: [] // Por enquanto vazio até criar a tabela
+            coupon: null,
+            statusHistory: []
         }
 
         return NextResponse.json({

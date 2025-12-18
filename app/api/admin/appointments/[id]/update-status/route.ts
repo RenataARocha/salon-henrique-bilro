@@ -1,5 +1,3 @@
-// app/api/admin/appointments/[id]/update-status/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -19,7 +17,7 @@ export async function PUT(
             )
         }
 
-        const { id } = await context.params
+        const { id } = await context.params  // SÓ UMA VEZ AQUI!
         const body = await request.json()
         const { status } = body
 
