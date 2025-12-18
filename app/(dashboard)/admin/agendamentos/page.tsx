@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { Filter } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
-
+import AppointmentDetailsModal from '@/components/admin/AppointmentDetailsModal'
 
 // Definir tipos de status permitidos
 type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
@@ -35,7 +35,7 @@ export default function AdminAgendamentosPage() {
     const [loading, setLoading] = useState(true)
     const [filterStatus, setFilterStatus] = useState<string>('all')
     const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month' | 'all'>('all')
-    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
+    const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
 
     useEffect(() => {
         fetchAppointments()
@@ -54,29 +54,6 @@ export default function AdminAgendamentosPage() {
             console.error('Erro ao buscar agendamentos:', error)
         } finally {
             setLoading(false)
-        }
-    }
-
-    const handleUpdateStatus = async (id: string, newStatus: string) => {
-        try {
-            const res = await fetch('/api/admin/appointments', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, status: newStatus })
-            })
-
-            const data = await res.json()
-
-            if (data.success) {
-                alert('✅ Status atualizado!')
-                fetchAppointments()
-                setSelectedAppointment(null)
-            } else {
-                alert('❌ ' + data.error)
-            }
-        } catch (error) {
-            console.error('Erro:', error)
-            alert('Erro ao atualizar status')
         }
     }
 
@@ -127,7 +104,6 @@ export default function AdminAgendamentosPage() {
             })
     }
 
-    // CORREÇÃO: Tipar o parâmetro corretamente
     const getStatusColor = (status: string): string => {
         const colors: Record<AppointmentStatus, string> = {
             CONFIRMED: 'bg-green-100 text-green-700',
@@ -139,7 +115,6 @@ export default function AdminAgendamentosPage() {
         return colors[status as AppointmentStatus] || 'bg-gray-100 text-gray-700'
     }
 
-    // CORREÇÃO: Tipar o parâmetro corretamente
     const getStatusLabel = (status: string): string => {
         const labels: Record<AppointmentStatus, string> = {
             CONFIRMED: 'Confirmado',
@@ -180,7 +155,7 @@ export default function AdminAgendamentosPage() {
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto space-y-8">
-                {/* Novo Header */}
+                {/* Header */}
                 <AdminHeader
                     title="Agendamentos"
                     description="Gerencie todos os agendamentos do salão"
@@ -264,7 +239,7 @@ export default function AdminAgendamentosPage() {
                             <div
                                 key={apt.id}
                                 className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
-                                onClick={() => setSelectedAppointment(apt)}
+                                onClick={() => setSelectedAppointmentId(apt.id)}
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
@@ -307,41 +282,13 @@ export default function AdminAgendamentosPage() {
                     </div>
                 )}
 
-                {/* Modal */}
-                {selectedAppointment && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedAppointment(null)}>
-                        <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                            <button onClick={() => setSelectedAppointment(null)} className="float-right text-gray-400 hover:text-gray-600 text-2xl">×</button>
-                            <h2 className="text-3xl font-bold text-charcoal mb-6">Detalhes</h2>
-
-                            <div className="space-y-4">
-                                <div className="bg-beige rounded-lg p-4">
-                                    <h3 className="font-bold mb-2">👤 Cliente</h3>
-                                    <p><strong>Nome:</strong> {selectedAppointment.user.name}</p>
-                                    <p><strong>Email:</strong> {selectedAppointment.user.email}</p>
-                                    <p><strong>Telefone:</strong> {selectedAppointment.user.phone}</p>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    {(['PENDING', 'CONFIRMED', 'COMPLETED', 'NO_SHOW', 'CANCELLED'] as AppointmentStatus[]).map(status => (
-                                        <button
-                                            key={status}
-                                            onClick={() => handleUpdateStatus(selectedAppointment.id, status)}
-                                            disabled={selectedAppointment.status === status}
-                                            className={`py-3 rounded-lg font-semibold transition-all disabled:opacity-50 ${status === 'PENDING' ? 'bg-orange-500 hover:bg-orange-600' :
-                                                status === 'CONFIRMED' ? 'bg-green-500 hover:bg-green-600' :
-                                                    status === 'COMPLETED' ? 'bg-blue-500 hover:bg-blue-600' :
-                                                        status === 'NO_SHOW' ? 'bg-gray-500 hover:bg-gray-600' :
-                                                            'bg-red-500 hover:bg-red-600'
-                                                } text-white`}
-                                        >
-                                            {getStatusLabel(status)}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                {/* Modal Detalhado */}
+                {selectedAppointmentId && (
+                    <AppointmentDetailsModal
+                        appointmentId={selectedAppointmentId}
+                        onClose={() => setSelectedAppointmentId(null)}
+                        onUpdate={fetchAppointments}
+                    />
                 )}
             </div>
         </div>
