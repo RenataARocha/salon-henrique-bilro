@@ -1,3 +1,5 @@
+// app/api/admin/appointments/[id]/update-status/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -5,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -17,9 +19,11 @@ export async function PUT(
             )
         }
 
+        const { id } = await context.params
         const body = await request.json()
         const { status } = body
 
+        // Validar status
         const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']
         if (!validStatuses.includes(status)) {
             return NextResponse.json(
@@ -28,8 +32,9 @@ export async function PUT(
             )
         }
 
+        // Atualizar o agendamento
         const appointment = await prisma.appointment.update({
-            where: { id: params.id },
+            where: { id },
             data: { status }
         })
 

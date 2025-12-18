@@ -1,3 +1,5 @@
+// app/api/admin/appointments/[id]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -48,16 +50,17 @@ export async function GET(
             )
         }
 
+        // Montar resposta com valores padrão para campos que podem não existir
         const response = {
             ...appointment,
-            finalPrice: appointment.service.price,
-            discountAmount: 0,
-            internalNotes: null,
-            paymentMethod: null,
-            cancelReason: null,
-            rescheduledFrom: null,
-            coupon: null,
-            statusHistory: []
+            finalPrice: appointment.finalPrice || appointment.service.price,
+            discountAmount: appointment.discountAmount || 0,
+            internalNotes: appointment.internalNotes || null,
+            paymentMethod: appointment.paymentMethod || null,
+            cancelReason: appointment.cancelReason || null,
+            rescheduledFrom: appointment.rescheduledFrom || null,
+            coupon: null, // Por enquanto null até criar a tabela
+            statusHistory: [] // Por enquanto vazio até criar a tabela
         }
 
         return NextResponse.json({
