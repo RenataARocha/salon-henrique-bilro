@@ -17,7 +17,9 @@ export async function PUT(
             )
         }
 
-        const { id } = await context.params
+        const params = await context.params
+        const id = params.id
+
         const body = await request.json()
         const { internalNotes } = body
 

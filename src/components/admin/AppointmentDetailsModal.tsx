@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { X, User, Phone, Mail, Calendar, Clock, DollarSign, MessageSquare, CheckCircle, XCircle, Ban, Edit3, ExternalLink } from 'lucide-react'
+import { X, User, Phone, Mail, Calendar, Clock, DollarSign, MessageSquare, CheckCircle, XCircle, Ban, Edit3, ExternalLink, CalendarClock } from 'lucide-react'
+import RescheduleModal from './RescheduleModal'
 
 interface AppointmentDetailsModalProps {
     appointmentId: string
@@ -50,6 +51,7 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
     const [actionLoading, setActionLoading] = useState(false)
     const [internalNote, setInternalNote] = useState('')
     const [showNoteInput, setShowNoteInput] = useState(false)
+    const [showRescheduleModal, setShowRescheduleModal] = useState(false)
 
     useEffect(() => {
         fetchAppointmentDetails()
@@ -420,6 +422,8 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
                                 </div>
                             </div>
                         </div>
+
+
                     </div>
 
                     {/* Ações Rápidas */}
@@ -450,6 +454,15 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
                                     </button>
 
                                     <button
+                                        onClick={() => setShowRescheduleModal(true)}
+                                        disabled={actionLoading}
+                                        className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-600 disabled:opacity-50"
+                                    >
+                                        <CalendarClock size={18} />
+                                        Reagendar
+                                    </button>
+
+                                    <button
                                         onClick={() => handleStatusChange('NO_SHOW')}
                                         disabled={actionLoading}
                                         className="flex items-center gap-2 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 disabled:opacity-50"
@@ -471,7 +484,34 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
                         </div>
                     </div>
                 </div>
+
+
             </div>
+
+            {/* Modal de Reagendamento */}
+            {showRescheduleModal && appointment && (
+                <RescheduleModal
+                    appointment={{
+                        id: appointment.id,
+                        date: appointment.date,
+                        time: appointment.time,
+                        service: {
+                            name: appointment.service.name,
+                            duration: appointment.service.duration
+                        },
+                        user: {
+                            name: appointment.user.name
+                        }
+                    }}
+                    onClose={() => setShowRescheduleModal(false)}
+                    onSuccess={() => {
+                        setShowRescheduleModal(false)
+                        fetchAppointmentDetails()
+                        onUpdate()
+                    }}
+                />
+            )}
         </div>
     )
+
 }

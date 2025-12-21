@@ -1,3 +1,5 @@
+// app/api/admin/appointments/[id]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -17,10 +19,21 @@ export async function GET(
             )
         }
 
-        const { id } = await context.params  // PEGA O ID AQUI
+        // AWAIT nos params!
+        const params = await context.params
+        const id = params.id
+
+        console.log('🔍 Buscando agendamento com ID:', id)
+
+        if (!id) {
+            return NextResponse.json(
+                { success: false, message: 'ID não fornecido' },
+                { status: 400 }
+            )
+        }
 
         const appointment = await prisma.appointment.findUnique({
-            where: { id },  // USA SÓ 'id', NÃO 'params.id'
+            where: { id },
             include: {
                 user: {
                     select: {
@@ -52,15 +65,17 @@ export async function GET(
 
         const response = {
             ...appointment,
-            finalPrice: appointment.finalPrice || appointment.service.price,
-            discountAmount: appointment.discountAmount || 0,
+            finalPrice: appointment.service.price,
+            discountAmount: 0,
             internalNotes: appointment.internalNotes || null,
-            paymentMethod: appointment.paymentMethod || null,
-            cancelReason: appointment.cancelReason || null,
-            rescheduledFrom: appointment.rescheduledFrom || null,
+            paymentMethod: null,
+            cancelReason: null,
+            rescheduledFrom: null,
             coupon: null,
             statusHistory: []
         }
+
+        console.log('✅ Agendamento encontrado!')
 
         return NextResponse.json({
             success: true,

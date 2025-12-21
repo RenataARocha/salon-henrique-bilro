@@ -17,12 +17,20 @@ export async function PUT(
             )
         }
 
-        const { id } = await context.params  // SÓ UMA VEZ AQUI!
+        const params = await context.params
+        const id = params.id
+
         const body = await request.json()
         const { status } = body
 
-        // Validar status
-        const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']
+        const validStatuses = [
+            'PENDING',
+            'CONFIRMED',
+            'COMPLETED',
+            'CANCELLED',
+            'NO_SHOW'
+        ]
+
         if (!validStatuses.includes(status)) {
             return NextResponse.json(
                 { success: false, message: 'Status inválido' },
@@ -30,7 +38,6 @@ export async function PUT(
             )
         }
 
-        // Atualizar o agendamento
         const appointment = await prisma.appointment.update({
             where: { id },
             data: { status }
