@@ -19,18 +19,10 @@ export async function PUT(
 
         const params = await context.params
         const id = params.id
-
         const body = await request.json()
         const { status } = body
 
-        const validStatuses = [
-            'PENDING',
-            'CONFIRMED',
-            'COMPLETED',
-            'CANCELLED',
-            'NO_SHOW'
-        ]
-
+        const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']
         if (!validStatuses.includes(status)) {
             return NextResponse.json(
                 { success: false, message: 'Status inválido' },
@@ -38,10 +30,26 @@ export async function PUT(
             )
         }
 
+        // Atualizar o agendamento
         const appointment = await prisma.appointment.update({
             where: { id },
             data: { status }
         })
+
+        // 🆕 REGISTRAR NO HISTÓRICO
+        try {
+            await prisma.appointmentStatusHistory.create({
+                data: {
+                    appointmentId: id,
+                    status,
+                    changedBy: session.user.id,
+                    notes: `Status alterado para ${status} pelo admin`
+                }
+            })
+        } catch (historyError) {
+            // Se a tabela ainda não existe, só loga mas não falha
+            console.log('⚠️ Histórico não registrado:', historyError)
+        }
 
         return NextResponse.json({
             success: true,

@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { serviceId, date, time, notes } = body
+        const { serviceId, date, time, notes, paymentMethod } = body
 
         // Validações
         if (!serviceId || !date || !time) {
@@ -101,6 +101,7 @@ export async function POST(request: Request) {
                 date: new Date(date),
                 time,
                 notes: notes || null,
+                paymentMethod,
                 status: 'PENDING'
             },
             include: {

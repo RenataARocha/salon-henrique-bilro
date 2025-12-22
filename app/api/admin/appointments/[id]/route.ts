@@ -1,5 +1,3 @@
-// app/api/admin/appointments/[id]/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -19,18 +17,8 @@ export async function GET(
             )
         }
 
-        // AWAIT nos params!
         const params = await context.params
         const id = params.id
-
-        console.log('🔍 Buscando agendamento com ID:', id)
-
-        if (!id) {
-            return NextResponse.json(
-                { success: false, message: 'ID não fornecido' },
-                { status: 400 }
-            )
-        }
 
         const appointment = await prisma.appointment.findUnique({
             where: { id },
@@ -63,6 +51,27 @@ export async function GET(
             )
         }
 
+        // BUSCAR HISTÓRICO
+
+        let statusHistory: Array<{
+            status: string
+            changedAt: Date
+            notes: string | null
+        }> = []
+        try {
+            statusHistory = await prisma.appointmentStatusHistory.findMany({
+                where: { appointmentId: id },
+                orderBy: { changedAt: 'desc' },
+                select: {
+                    status: true,
+                    changedAt: true,
+                    notes: true
+                }
+            })
+        } catch (error) {
+            console.log('⚠️ Histórico não disponível')
+        }
+
         const response = {
             ...appointment,
             finalPrice: appointment.service.price,
@@ -72,10 +81,8 @@ export async function GET(
             cancelReason: null,
             rescheduledFrom: null,
             coupon: null,
-            statusHistory: []
+            statusHistory // 🆕 INCLUIR HISTÓRICO
         }
-
-        console.log('✅ Agendamento encontrado!')
 
         return NextResponse.json({
             success: true,
