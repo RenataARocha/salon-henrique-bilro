@@ -22,7 +22,8 @@ export async function GET(request: Request) {
                 userId: session.user.id
             },
             include: {
-                service: true
+                service: true,
+                coupon: true // ✅ Incluir dados do cupom
             },
             orderBy: {
                 date: 'desc'
@@ -53,7 +54,18 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json()
-        const { serviceId, date, time, notes, paymentMethod } = body
+        const {
+            serviceId,
+            date,
+            time,
+            notes,
+            paymentMethod,
+            // ✅ NOVOS CAMPOS DE CUPOM
+            cupomId,
+            valorOriginal,
+            valorDesconto,
+            valorFinal
+        } = body
 
         // Validações
         if (!serviceId || !date || !time) {
@@ -93,6 +105,44 @@ export async function POST(request: Request) {
             )
         }
 
+        // ✅ Validar cupom se foi fornecido
+        if (cupomId) {
+            const coupon = await prisma.coupon.findUnique({
+                where: { id: cupomId }
+            })
+
+            if (!coupon) {
+                return NextResponse.json(
+                    { success: false, error: 'Cupom inválido' },
+                    { status: 400 }
+                )
+            }
+
+            if (!coupon.active) {
+                return NextResponse.json(
+                    { success: false, error: 'Cupom desativado' },
+                    { status: 400 }
+                )
+            }
+
+            // Verificar validade
+            const now = new Date()
+            if (new Date(coupon.validFrom) > now || new Date(coupon.validUntil) < now) {
+                return NextResponse.json(
+                    { success: false, error: 'Cupom fora do período de validade' },
+                    { status: 400 }
+                )
+            }
+
+            // Verificar quantidade de usos
+            if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+                return NextResponse.json(
+                    { success: false, error: 'Cupom esgotado' },
+                    { status: 400 }
+                )
+            }
+        }
+
         // Criar agendamento
         const appointment = await prisma.appointment.create({
             data: {
@@ -102,13 +152,28 @@ export async function POST(request: Request) {
                 time,
                 notes: notes || null,
                 paymentMethod,
-                status: 'PENDING'
+                status: 'PENDING',
+                // ✅ CAMPOS DE CUPOM
+                couponId: cupomId || null,
+                discountAmount: valorDesconto || 0,
+                finalPrice: valorFinal || service.price
             },
             include: {
                 service: true,
-                user: true
+                user: true,
+                coupon: true // ✅ Incluir dados do cupom
             }
         })
+
+        // ✅ Incrementar contador de uso do cupom
+        if (cupomId) {
+            await prisma.coupon.update({
+                where: { id: cupomId },
+                data: {
+                    usedCount: { increment: 1 }
+                }
+            })
+        }
 
         return NextResponse.json({
             success: true,
@@ -165,6 +230,16 @@ export async function DELETE(request: Request) {
                 { success: false, error: 'Sem permissão para cancelar este agendamento' },
                 { status: 403 }
             )
+        }
+
+        // ✅ Se tinha cupom, decrementar contador ao cancelar
+        if (appointment.couponId) {
+            await prisma.coupon.update({
+                where: { id: appointment.couponId },
+                data: {
+                    usedCount: { decrement: 1 }
+                }
+            })
         }
 
         // Atualizar status para CANCELLED

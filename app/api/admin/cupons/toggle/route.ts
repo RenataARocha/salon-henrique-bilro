@@ -1,14 +1,12 @@
-// app/api/admin/coupons/[id]/toggle/route.ts
+// app/api/admin/cupons/toggle/route.ts
+// (NÃO é [id]/toggle, é só toggle)
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function PATCH(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
 
@@ -19,8 +17,16 @@ export async function PATCH(
             )
         }
 
-        const params = await context.params
-        const id = params.id
+        // Pegar ID do body ao invés dos params
+        const body = await request.json()
+        const { id, ativo } = body
+
+        if (!id) {
+            return NextResponse.json(
+                { success: false, message: 'ID não fornecido' },
+                { status: 400 }
+            )
+        }
 
         const coupon = await prisma.coupon.findUnique({
             where: { id }
@@ -33,10 +39,11 @@ export async function PATCH(
             )
         }
 
+        // Usar o valor do ativo enviado no body (mais direto)
         const updatedCoupon = await prisma.coupon.update({
             where: { id },
             data: {
-                active: !coupon.active
+                active: ativo
             }
         })
 
