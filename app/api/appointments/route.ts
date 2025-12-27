@@ -232,6 +232,12 @@ export async function DELETE(request: Request) {
             )
         }
 
+        // Atualizar status para CANCELLED
+        await prisma.appointment.update({
+            where: { id: appointmentId },
+            data: { status: 'CANCELLED' }
+        })
+
         // ✅ Se tinha cupom, decrementar contador ao cancelar
         if (appointment.couponId) {
             await prisma.coupon.update({
@@ -241,12 +247,6 @@ export async function DELETE(request: Request) {
                 }
             })
         }
-
-        // Atualizar status para CANCELLED
-        await prisma.appointment.update({
-            where: { id: appointmentId },
-            data: { status: 'CANCELLED' }
-        })
 
         return NextResponse.json({
             success: true,
