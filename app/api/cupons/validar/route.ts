@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ✅ CORRIGIDO: prisma.coupon (não cupom)
+        // Buscar cupom no banco
         const cupom = await prisma.coupon.findUnique({
             where: { code: codigo.toUpperCase() }
         });
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ✅ CORRIGIDO: cupom.active (não ativo)
+        // Verificar se está ativo
         if (!cupom.active) {
             return NextResponse.json(
                 {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ✅ CORRIGIDO: cupom.validFrom (não dataInicio)
+        // Verificar data de início
         const agora = new Date();
         if (cupom.validFrom && new Date(cupom.validFrom) > agora) {
             return NextResponse.json(
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ✅ CORRIGIDO: cupom.validUntil (não dataFim)
+        // Verificar data de fim
         if (cupom.validUntil && new Date(cupom.validUntil) < agora) {
             return NextResponse.json(
                 {
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ✅ CORRIGIDO: cupom.maxUses e usedCount
+        // Verificar quantidade de usos
         if (cupom.maxUses && cupom.usedCount >= cupom.maxUses) {
             return NextResponse.json(
                 {
@@ -88,7 +88,6 @@ export async function POST(req: NextRequest) {
         let valorDesconto = 0;
         let valorFinal = valorServico;
 
-        // ✅ CORRIGIDO: PERCENTAGE e FIXED (não PERCENTUAL e FIXO)
         if (cupom.discountType === 'PERCENTAGE') {
             valorDesconto = (valorServico * cupom.discountValue) / 100;
             valorFinal = valorServico - valorDesconto;
@@ -106,7 +105,6 @@ export async function POST(req: NextRequest) {
                 id: cupom.id,
                 codigo: cupom.code,
                 descricao: cupom.description,
-                // ✅ Converter de volta para português para o frontend
                 tipoDesconto: cupom.discountType === 'PERCENTAGE' ? 'PERCENTUAL' : 'FIXO',
                 valorDesconto: cupom.discountValue
             },
