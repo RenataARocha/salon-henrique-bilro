@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/NavBar";
+import { Tag, CheckCircle, XCircle, Loader2, Percent, DollarSign } from 'lucide-react';
 
 interface Service {
     id: string;
@@ -11,6 +12,24 @@ interface Service {
     description: string;
     price: number;
     duration: number;
+}
+
+interface CupomValidado {
+    valido: boolean;
+    erro?: string;
+    cupom?: {
+        id: string;
+        codigo: string;
+        descricao: string;
+        tipoDesconto: 'PERCENTUAL' | 'FIXO';
+        valorDesconto: number;
+    };
+    desconto?: {
+        valorOriginal: number;
+        valorDesconto: number;
+        valorFinal: number;
+        percentual: number | null;
+    };
 }
 
 export default function AgendarPage() {
@@ -28,6 +47,12 @@ export default function AgendarPage() {
     const [selectedTime, setSelectedTime] = useState("");
     const [notes, setNotes] = useState("");
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
+
+    // Estados do cupom
+    const [codigoCupom, setCodigoCupom] = useState('');
+    const [validandoCupom, setValidandoCupom] = useState(false);
+    const [cupomValidado, setCupomValidado] = useState<CupomValidado | null>(null);
+    const [mostrarCampoCupom, setMostrarCampoCupom] = useState(false);
 
     // Buscar serviços ao carregar
     useEffect(() => {
@@ -79,6 +104,53 @@ export default function AgendarPage() {
         fetchAvailableSlots(date);
     };
 
+    const validarCupom = async () => {
+        if (!codigoCupom.trim()) {
+            alert('Digite um código de cupom');
+            return;
+        }
+
+        if (!selectedService) {
+            alert('Selecione um serviço primeiro');
+            return;
+        }
+
+        setValidandoCupom(true);
+        setCupomValidado(null);
+
+        try {
+            const response = await fetch('/api/cupons/validar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    codigo: codigoCupom.toUpperCase(),
+                    valorServico: selectedService.price
+                })
+            });
+
+            const data: CupomValidado = await response.json();
+            setCupomValidado(data);
+        } catch (error) {
+            console.error('Erro ao validar cupom:', error);
+            const errorData: CupomValidado = {
+                valido: false,
+                erro: 'Erro ao validar cupom. Tente novamente.'
+            };
+            setCupomValidado(errorData);
+        } finally {
+            setValidandoCupom(false);
+        }
+    };
+
+    const removerCupom = () => {
+        setCodigoCupom('');
+        setCupomValidado(null);
+    };
+
+    const valorFinal = cupomValidado?.valido
+        ? cupomValidado.desconto?.valorFinal || 0
+        : selectedService?.price || 0;
+
     const handleSubmit = async () => {
         if (!selectedService || !selectedDate || !selectedTime) {
             alert("Por favor, preencha todos os campos obrigatórios");
@@ -97,7 +169,11 @@ export default function AgendarPage() {
                     date: selectedDate,
                     time: selectedTime,
                     notes,
-                    paymentMethod: selectedPaymentMethod
+                    paymentMethod: selectedPaymentMethod,
+                    cupomId: cupomValidado?.valido ? cupomValidado.cupom?.id : null,
+                    valorOriginal: selectedService.price,
+                    valorDesconto: cupomValidado?.valido ? cupomValidado.desconto?.valorDesconto : 0,
+                    valorFinal: valorFinal
                 }),
             });
 
@@ -192,7 +268,11 @@ export default function AgendarPage() {
                                     {services.map((service) => (
                                         <div
                                             key={service.id}
-                                            onClick={() => setSelectedService(service)}
+                                            onClick={() => {
+                                                setSelectedService(service);
+                                                setCupomValidado(null);
+                                                setCodigoCupom('');
+                                            }}
                                             className={`p-6 rounded-xl border-2 cursor-pointer transition-all ${selectedService?.id === service.id
                                                 ? "border-gold bg-gold bg-opacity-10"
                                                 : "border-gray-200 hover:border-gold hover:shadow-lg"
@@ -241,6 +321,130 @@ export default function AgendarPage() {
                                     <p className="text-lg font-bold text-charcoal">
                                         {selectedService?.name}
                                     </p>
+                                </div>
+
+                                {/* Campo de Cupom */}
+                                <div className="space-y-3">
+                                    {!mostrarCampoCupom && !cupomValidado?.valido && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setMostrarCampoCupom(true)}
+                                            className="flex items-center gap-2 text-gold hover:text-yellow-600 transition-colors text-sm font-semibold"
+                                        >
+                                            <Tag size={18} />
+                                            🎉 Tenho um cupom de desconto
+                                        </button>
+                                    )}
+
+                                    {(mostrarCampoCupom || cupomValidado) && (
+                                        <div className="bg-gradient-to-r from-gold/10 to-yellow-50 rounded-xl p-5 border-2 border-gold/30">
+                                            <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                                <Tag size={18} className="text-gold" />
+                                                Cupom de Desconto
+                                            </label>
+
+                                            {cupomValidado?.valido ? (
+                                                <div className="space-y-3">
+                                                    <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex items-start gap-2">
+                                                                <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
+                                                                <div>
+                                                                    <p className="font-bold text-green-900">{cupomValidado.cupom?.codigo}</p>
+                                                                    <p className="text-sm text-green-700">{cupomValidado.cupom?.descricao}</p>
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={removerCupom}
+                                                                className="text-green-600 hover:text-green-700 text-sm font-medium ml-2"
+                                                            >
+                                                                Remover
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="bg-white rounded-lg p-4 space-y-2 text-sm">
+                                                        <div className="flex justify-between text-gray-600">
+                                                            <span>Valor original:</span>
+                                                            <span>R$ {selectedService?.price.toFixed(2)}</span>
+                                                        </div>
+
+                                                        <div className="flex justify-between text-green-600 font-semibold">
+                                                            <span className="flex items-center gap-1">
+                                                                {cupomValidado.cupom?.tipoDesconto === 'PERCENTUAL' ? (
+                                                                    <>
+                                                                        <Percent size={14} />
+                                                                        Desconto ({cupomValidado.cupom?.valorDesconto}%):
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <DollarSign size={14} />
+                                                                        Desconto:
+                                                                    </>
+                                                                )}
+                                                            </span>
+                                                            <span>- R$ {cupomValidado.desconto?.valorDesconto.toFixed(2)}</span>
+                                                        </div>
+
+                                                        <div className="flex justify-between text-lg font-bold text-charcoal pt-2 border-t border-gray-200">
+                                                            <span>Total a pagar:</span>
+                                                            <span className="text-gold">R$ {valorFinal.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    <div className="flex gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={codigoCupom}
+                                                            onChange={(e) => setCodigoCupom(e.target.value.toUpperCase())}
+                                                            onKeyPress={(e) => e.key === 'Enter' && validarCupom()}
+                                                            placeholder="Digite o código do cupom"
+                                                            disabled={validandoCupom}
+                                                            className="flex-1 px-4 py-3 border-2 border-gold/30 rounded-lg focus:border-gold focus:outline-none uppercase font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={validarCupom}
+                                                            disabled={validandoCupom || !codigoCupom.trim()}
+                                                            className="px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold"
+                                                        >
+                                                            {validandoCupom ? (
+                                                                <>
+                                                                    <Loader2 size={18} className="animate-spin" />
+                                                                    Validando...
+                                                                </>
+                                                            ) : (
+                                                                'Aplicar'
+                                                            )}
+                                                        </button>
+                                                    </div>
+
+                                                    {cupomValidado && !cupomValidado.valido && (
+                                                        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 flex items-start gap-2">
+                                                            <XCircle className="text-red-600 flex-shrink-0 mt-0.5" size={18} />
+                                                            <p className="text-sm text-red-700">{cupomValidado.erro}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {mostrarCampoCupom && !cupomValidado && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setMostrarCampoCupom(false);
+                                                                setCodigoCupom('');
+                                                            }}
+                                                            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                                                        >
+                                                            Não tenho cupom
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Seletor de data */}
@@ -317,18 +521,10 @@ export default function AgendarPage() {
                                     </label>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                         {[
-                                            { value: "PIX", label: "💳 PIX", icon: "🔵" },
-                                            {
-                                                value: "CARTAO_CREDITO",
-                                                label: "💳 Crédito",
-                                                icon: "💳",
-                                            },
-                                            {
-                                                value: "CARTAO_DEBITO",
-                                                label: "💳 Débito",
-                                                icon: "💳",
-                                            },
-                                            { value: "DINHEIRO", label: "💵 Dinheiro", icon: "💵" },
+                                            { value: "PIX", label: "💳 PIX" },
+                                            { value: "CARTAO_CREDITO", label: "💳 Crédito" },
+                                            { value: "CARTAO_DEBITO", label: "💳 Débito" },
+                                            { value: "DINHEIRO", label: "💵 Dinheiro" },
                                         ].map((method) => (
                                             <button
                                                 key={method.value}
@@ -344,18 +540,6 @@ export default function AgendarPage() {
                                         ))}
                                     </div>
                                 </div>
-                                <InfoBox
-                                    label="Forma de Pagamento"
-                                    value={
-                                        selectedPaymentMethod === "PIX"
-                                            ? "💳 PIX"
-                                            : selectedPaymentMethod === "CARTAO_CREDITO"
-                                                ? "💳 Cartão de Crédito"
-                                                : selectedPaymentMethod === "CARTAO_DEBITO"
-                                                    ? "💳 Cartão de Débito"
-                                                    : "💵 Dinheiro"
-                                    }
-                                />
 
                                 <div className="flex gap-4">
                                     <button
@@ -389,10 +573,40 @@ export default function AgendarPage() {
                                         label="Serviço"
                                         value={selectedService?.name || ""}
                                     />
-                                    <InfoBox
-                                        label="Valor"
-                                        value={`R$ ${selectedService?.price.toFixed(2)}`}
-                                    />
+
+                                    {cupomValidado?.valido ? (
+                                        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <Tag className="text-green-600" size={18} />
+                                                <span className="font-bold text-green-900">
+                                                    Cupom Aplicado: {cupomValidado.cupom?.codigo}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-green-700 mb-3">
+                                                {cupomValidado.cupom?.descricao}
+                                            </p>
+                                            <div className="space-y-1 text-sm">
+                                                <div className="flex justify-between text-gray-600">
+                                                    <span>Valor original:</span>
+                                                    <span className="line-through">R$ {selectedService?.price.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-green-600 font-semibold">
+                                                    <span>Desconto:</span>
+                                                    <span>- R$ {cupomValidado.desconto?.valorDesconto.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-lg font-bold text-green-900 pt-2 border-t border-green-300">
+                                                    <span>Total a pagar:</span>
+                                                    <span>R$ {valorFinal.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <InfoBox
+                                            label="Valor"
+                                            value={`R$ ${selectedService?.price.toFixed(2)}`}
+                                        />
+                                    )}
+
                                     <InfoBox
                                         label="Duração"
                                         value={`${selectedService?.duration} minutos`}
@@ -409,6 +623,18 @@ export default function AgendarPage() {
                                         })}
                                     />
                                     <InfoBox label="Horário" value={selectedTime} />
+                                    <InfoBox
+                                        label="Forma de Pagamento"
+                                        value={
+                                            selectedPaymentMethod === "PIX"
+                                                ? "💳 PIX"
+                                                : selectedPaymentMethod === "CARTAO_CREDITO"
+                                                    ? "💳 Cartão de Crédito"
+                                                    : selectedPaymentMethod === "CARTAO_DEBITO"
+                                                        ? "💳 Cartão de Débito"
+                                                        : "💵 Dinheiro"
+                                        }
+                                    />
                                     {notes && <InfoBox label="Observações" value={notes} />}
                                 </div>
 
@@ -429,7 +655,7 @@ export default function AgendarPage() {
                                     <button
                                         onClick={handleSubmit}
                                         disabled={loading}
-                                        className="flex-1 bg-gradient-gold text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50"
+                                        className="flex-1 bg-gradient-gold text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {loading ? "Agendando..." : "Confirmar Agendamento"}
                                     </button>

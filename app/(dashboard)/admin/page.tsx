@@ -1,9 +1,9 @@
-// app/(dashboard)/admin/page.tsx - ADICIONAR BOTÃO HOME
+// app/(dashboard)/admin/page.tsx
 
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { Calendar, Users, Settings, Scissors, Home } from 'lucide-react'
+import { Calendar, Users, Settings, Scissors, Home, Tag } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
@@ -23,6 +23,13 @@ export default function AdminDashboard() {
             icon: Scissors,
             href: '/admin/servicos',
             color: 'bg-purple-500'
+        },
+        {
+            title: 'Cupons',
+            description: 'Criar e gerenciar cupons de desconto',
+            icon: Tag,
+            href: '/admin/cupons',
+            color: 'bg-rose-500'
         },
         {
             title: 'Horários',
@@ -67,7 +74,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Cards de Menu */}
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {menuItems.map((item) => (
                         <Link
                             key={item.href}

@@ -1,186 +1,245 @@
-// app/api/cupons/validar/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+// app/api/cupons/route.ts
 
-export async function POST(req: NextRequest) {
+import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
+
+// GET - Listar todos os cupons
+export async function GET(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getServerSession(authOptions)
 
-        if (!session) {
+        if (!session || session.user.role !== 'ADMIN') {
             return NextResponse.json(
-                { error: 'Não autenticado' },
+                { success: false, message: 'Não autorizado' },
                 { status: 401 }
-            );
+            )
         }
 
-        const { codigo, valorServico } = await req.json();
-
-        if (!codigo || !valorServico) {
-            return NextResponse.json(
-                { error: 'Código do cupom e valor do serviço são obrigatórios' },
-                { status: 400 }
-            );
-        }
-
-        // Buscar cupom no banco - USANDO SEU SCHEMA (Coupon, code)
-        const cupom = await prisma.coupon.findUnique({
-            where: { code: codigo.toUpperCase() }
-        });
-
-        if (!cupom) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom não encontrado'
-                },
-                { status: 200 }
-            );
-        }
-
-        // Verificar se está ativo
-        if (!cupom.active) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom desativado'
-                },
-                { status: 200 }
-            );
-        }
-
-        // Verificar data de início
-        const agora = new Date();
-        if (cupom.validFrom && new Date(cupom.validFrom) > agora) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom ainda não está disponível'
-                },
-                { status: 200 }
-            );
-        }
-
-        // Verificar data de fim
-        if (cupom.validUntil && new Date(cupom.validUntil) < agora) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom expirado'
-                },
-                { status: 200 }
-            );
-        }
-
-        // Verificar quantidade de usos
-        if (cupom.maxUses && cupom.usedCount >= cupom.maxUses) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom esgotado'
-                },
-                { status: 200 }
-            );
-        }
-
-        // Calcular desconto
-        let valorDesconto = 0;
-        let valorFinal = valorServico;
-
-        if (cupom.discountType === 'PERCENTAGE') {
-            valorDesconto = (valorServico * cupom.discountValue) / 100;
-            valorFinal = valorServico - valorDesconto;
-        } else if (cupom.discountType === 'FIXED') {
-            valorDesconto = Math.min(cupom.discountValue, valorServico);
-            valorFinal = valorServico - valorDesconto;
-        }
-
-        // Garantir que o valor final não seja negativo
-        valorFinal = Math.max(0, valorFinal);
+        // ✅ CORRIGIDO: prisma.coupon (não cupom)
+        const coupons = await prisma.coupon.findMany({
+            orderBy: {
+                createdAt: 'desc'
+            },
+            include: {
+                _count: {
+                    select: {
+                        appointments: true
+                    }
+                }
+            }
+        })
 
         return NextResponse.json({
-            valido: true,
-            cupom: {
-                id: cupom.id,
-                codigo: cupom.code,
-                descricao: cupom.description,
-                tipoDesconto: cupom.discountType === 'PERCENTAGE' ? 'PERCENTUAL' : 'FIXO',
-                valorDesconto: cupom.discountValue
-            },
-            desconto: {
-                valorOriginal: valorServico,
-                valorDesconto: valorDesconto,
-                valorFinal: valorFinal,
-                percentual: cupom.discountType === 'PERCENTAGE' ? cupom.discountValue : null
-            }
-        });
+            success: true,
+            data: coupons
+        })
 
     } catch (error) {
-        console.error('Erro ao validar cupom:', error);
+        console.error('❌ Erro ao buscar cupons:', error)
         return NextResponse.json(
-            { error: 'Erro ao validar cupom' },
+            {
+                success: false,
+                message: 'Erro ao buscar cupons'
+            },
             { status: 500 }
-        );
+        )
     }
 }
 
-// Rota GET para informações do cupom (sem aplicar desconto)
-export async function GET(req: NextRequest) {
+// POST - Criar novo cupom
+export async function POST(request: NextRequest) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getServerSession(authOptions)
 
-        if (!session) {
+        if (!session || session.user.role !== 'ADMIN') {
             return NextResponse.json(
-                { error: 'Não autenticado' },
+                { success: false, message: 'Não autorizado' },
                 { status: 401 }
-            );
+            )
         }
 
-        const { searchParams } = new URL(req.url);
-        const codigo = searchParams.get('codigo');
+        const body = await request.json()
+        const {
+            code,
+            description,
+            discountType,
+            discountValue,
+            minValue,
+            maxUses,
+            validFrom,
+            validUntil,
+            applicableServices
+        } = body
 
-        if (!codigo) {
+        console.log('📦 Dados recebidos:', body)
+
+        // Validações
+        if (!code || !description || !discountType || !discountValue || !validFrom || !validUntil) {
             return NextResponse.json(
-                { error: 'Código do cupom é obrigatório' },
+                { success: false, message: 'Preencha todos os campos obrigatórios' },
                 { status: 400 }
-            );
+            )
         }
 
-        const cupom = await prisma.coupon.findUnique({
-            where: { code: codigo.toUpperCase() }
-        });
+        // ✅ CORRIGIDO: prisma.coupon.findUnique
+        const existingCoupon = await prisma.coupon.findUnique({
+            where: { code: code.toUpperCase() }
+        })
 
-        if (!cupom) {
+        if (existingCoupon) {
             return NextResponse.json(
-                { encontrado: false },
-                { status: 200 }
-            );
+                { success: false, message: 'Já existe um cupom com este código' },
+                { status: 400 }
+            )
         }
 
-        const usosRestantes = cupom.maxUses
-            ? cupom.maxUses - cupom.usedCount
-            : null;
+        // ✅ CORRIGIDO: prisma.coupon.create
+        const coupon = await prisma.coupon.create({
+            data: {
+                code: code.toUpperCase(),
+                description,
+                discountType,
+                discountValue: parseFloat(discountValue),
+                minValue: minValue ? parseFloat(minValue) : null,
+                maxUses: maxUses ? parseInt(maxUses) : null,
+                validFrom: new Date(validFrom),
+                validUntil: new Date(validUntil),
+                applicableServices: applicableServices || [],
+                active: true
+            }
+        })
+
+        console.log('✅ Cupom criado:', coupon)
 
         return NextResponse.json({
-            encontrado: true,
-            cupom: {
-                codigo: cupom.code,
-                descricao: cupom.description,
-                tipoDesconto: cupom.discountType === 'PERCENTAGE' ? 'PERCENTUAL' : 'FIXO',
-                valorDesconto: cupom.discountValue,
-                ativo: cupom.active,
-                dataInicio: cupom.validFrom,
-                dataFim: cupom.validUntil,
-                usosRestantes: usosRestantes
-            }
-        });
+            success: true,
+            data: coupon,
+            message: 'Cupom criado com sucesso!'
+        })
 
     } catch (error) {
-        console.error('Erro ao buscar cupom:', error);
+        console.error('❌ Erro ao criar cupom:', error)
         return NextResponse.json(
-            { error: 'Erro ao buscar cupom' },
+            {
+                success: false,
+                message: 'Erro ao criar cupom: ' + (error instanceof Error ? error.message : 'Erro desconhecido')
+            },
             { status: 500 }
-        );
+        )
+    }
+}
+
+// PUT - Atualizar cupom
+export async function PUT(request: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions)
+
+        if (!session || session.user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, message: 'Não autorizado' },
+                { status: 401 }
+            )
+        }
+
+        const { searchParams } = new URL(request.url)
+        const id = searchParams.get('id')
+
+        if (!id) {
+            return NextResponse.json(
+                { success: false, message: 'ID não fornecido' },
+                { status: 400 }
+            )
+        }
+
+        const body = await request.json()
+        const {
+            code,
+            description,
+            discountType,
+            discountValue,
+            minValue,
+            maxUses,
+            validFrom,
+            validUntil,
+            applicableServices
+        } = body
+
+        // ✅ CORRIGIDO: prisma.coupon.update
+        const coupon = await prisma.coupon.update({
+            where: { id },
+            data: {
+                code: code.toUpperCase(),
+                description,
+                discountType,
+                discountValue: parseFloat(discountValue),
+                minValue: minValue ? parseFloat(minValue) : null,
+                maxUses: maxUses ? parseInt(maxUses) : null,
+                validFrom: new Date(validFrom),
+                validUntil: new Date(validUntil),
+                applicableServices: applicableServices || []
+            }
+        })
+
+        return NextResponse.json({
+            success: true,
+            data: coupon,
+            message: 'Cupom atualizado com sucesso!'
+        })
+
+    } catch (error) {
+        console.error('❌ Erro ao atualizar cupom:', error)
+        return NextResponse.json(
+            {
+                success: false,
+                message: 'Erro ao atualizar cupom'
+            },
+            { status: 500 }
+        )
+    }
+}
+
+// DELETE - Deletar cupom
+export async function DELETE(request: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions)
+
+        if (!session || session.user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, message: 'Não autorizado' },
+                { status: 401 }
+            )
+        }
+
+        const { searchParams } = new URL(request.url)
+        const id = searchParams.get('id')
+
+        if (!id) {
+            return NextResponse.json(
+                { success: false, message: 'ID não fornecido' },
+                { status: 400 }
+            )
+        }
+
+        // ✅ CORRIGIDO: prisma.coupon.delete
+        await prisma.coupon.delete({
+            where: { id }
+        })
+
+        return NextResponse.json({
+            success: true,
+            message: 'Cupom deletado com sucesso!'
+        })
+
+    } catch (error) {
+        console.error('❌ Erro ao deletar cupom:', error)
+        return NextResponse.json(
+            {
+                success: false,
+                message: 'Erro ao deletar cupom'
+            },
+            { status: 500 }
+        )
     }
 }
