@@ -1,5 +1,3 @@
-// app/(dashboard)/admin/agendamentos/page.tsx
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -7,7 +5,6 @@ import { Filter } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import AppointmentDetailsModal from '@/components/admin/AppointmentDetailsModal'
 
-// Definir tipos de status permitidos
 type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
 
 interface Appointment {
@@ -36,6 +33,7 @@ export default function AdminAgendamentosPage() {
     const [filterStatus, setFilterStatus] = useState<string>('all')
     const [filterPeriod, setFilterPeriod] = useState<'today' | 'week' | 'month' | 'all'>('all')
     const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null)
+    const [searchTerm, setSearchTerm] = useState('')
 
     useEffect(() => {
         fetchAppointments()
@@ -77,6 +75,19 @@ export default function AdminAgendamentosPage() {
 
         return appointments
             .filter(apt => {
+                // Filtro de busca por nome, telefone ou email
+                if (searchTerm) {
+                    const search = searchTerm.toLowerCase()
+                    const matchName = apt.user.name.toLowerCase().includes(search)
+                    const matchPhone = apt.user.phone.includes(search)
+                    const matchEmail = apt.user.email.toLowerCase().includes(search)
+                    const matchId = apt.id.toLowerCase().includes(search)
+
+                    if (!matchName && !matchPhone && !matchEmail && !matchId) {
+                        return false
+                    }
+                }
+
                 // Filtro de status
                 if (filterStatus !== 'all' && apt.status !== filterStatus) return false
 
@@ -132,6 +143,8 @@ export default function AdminAgendamentosPage() {
         total: filteredAppointments.length,
         pending: filteredAppointments.filter(a => a.status === 'PENDING').length,
         confirmed: filteredAppointments.filter(a => a.status === 'CONFIRMED').length,
+        completed: filteredAppointments.filter(a => a.status === 'COMPLETED').length,
+        cancelled: filteredAppointments.filter(a => a.status === 'CANCELLED').length,
         revenue: filteredAppointments
             .filter(a => a.status === 'COMPLETED')
             .reduce((sum, a) => sum + a.service.price, 0)
@@ -162,8 +175,19 @@ export default function AdminAgendamentosPage() {
                     showBackButton={true}
                 />
 
+                {/* Barra de Busca */}
+                <div className="bg-white rounded-xl p-4 shadow">
+                    <input
+                        type="text"
+                        placeholder="🔍 Buscar por nome, telefone, email ou ID..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                    />
+                </div>
+
                 {/* Estatísticas */}
-                <div className="grid md:grid-cols-4 gap-6">
+                <div className="grid md:grid-cols-5 gap-6">
                     <div className="bg-white rounded-xl p-6 shadow">
                         <p className="text-gray-600 text-sm mb-1">Total</p>
                         <p className="text-3xl font-bold text-charcoal">{stats.total}</p>
@@ -175,6 +199,10 @@ export default function AdminAgendamentosPage() {
                     <div className="bg-white rounded-xl p-6 shadow">
                         <p className="text-gray-600 text-sm mb-1">Confirmados</p>
                         <p className="text-3xl font-bold text-green-600">{stats.confirmed}</p>
+                    </div>
+                    <div className="bg-white rounded-xl p-6 shadow">
+                        <p className="text-gray-600 text-sm mb-1">Concluídos</p>
+                        <p className="text-3xl font-bold text-blue-600">{stats.completed}</p>
                     </div>
                     <div className="bg-white rounded-xl p-6 shadow">
                         <p className="text-gray-600 text-sm mb-1">Receita</p>
@@ -278,7 +306,12 @@ export default function AdminAgendamentosPage() {
                     <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                         <p className="text-6xl mb-4">📭</p>
                         <h3 className="text-2xl font-bold text-charcoal mb-2">Nenhum agendamento</h3>
-                        <p className="text-gray-600">Não há agendamentos para o filtro selecionado</p>
+                        <p className="text-gray-600">
+                            {searchTerm
+                                ? `Nenhum resultado encontrado para "${searchTerm}"`
+                                : 'Não há agendamentos para o filtro selecionado'
+                            }
+                        </p>
                     </div>
                 )}
 

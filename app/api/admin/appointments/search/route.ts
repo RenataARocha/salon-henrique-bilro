@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
         // Filtro de período do dia
         if (timeOfDay.length > 0) {
-            const timeConditions = timeOfDay.map(period => {
+            const timeConditions = timeOfDay.map((period: string) => {  // ✅ Adicione : string
                 switch (period) {
                     case 'morning':
                         return { time: { gte: '06:00', lt: '12:00' } }
