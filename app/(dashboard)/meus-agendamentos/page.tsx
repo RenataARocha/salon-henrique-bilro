@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Clock, Calendar, CheckCircle, XCircle, AlertCircle, Ban } from 'lucide-react'
+import { Clock, Calendar, CheckCircle, XCircle, AlertCircle, Ban, Tag, Percent } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
 import { Calendar as CalendarIcon } from 'lucide-react'
@@ -21,6 +21,16 @@ interface Appointment {
         price: number
         duration: number
     }
+    // ✅ NOVOS CAMPOS DE CUPOM
+    couponId?: string | null
+    discountAmount?: number
+    finalPrice?: number | null
+    coupon?: {
+        code: string
+        description: string
+        discountType: string
+        discountValue: number
+    } | null
 }
 
 export default function HistoricoPage() {
@@ -109,41 +119,16 @@ export default function HistoricoPage() {
     }
 
     const canReschedule = (appointment: Appointment) => {
-        // Só pode reagendar se estiver PENDING ou CONFIRMED
         if (!['PENDING', 'CONFIRMED'].includes(appointment.status)) {
             return false
         }
 
         try {
-            // Verificar se ainda não passou (com margem de 2 horas)
-            // Formatos possíveis da API:
-            // date: "2025-12-24" ou "2025-12-24T00:00:00.000Z"
-            // time: "10:00" ou "10:00:00"
-
-            // Garantir que a data está no formato YYYY-MM-DD
             const dateOnly = appointment.date.split('T')[0]
-
-            // Garantir que o horário está no formato HH:mm
             const timeOnly = appointment.time.substring(0, 5)
-
-            // Criar a data completa no formato ISO
             const appointmentDateTime = new Date(`${dateOnly}T${timeOnly}:00`)
-            const minTime = new Date(Date.now() + 2 * 60 * 60 * 1000) // 2 horas a partir de agora
+            const minTime = new Date(Date.now() + 2 * 60 * 60 * 1000)
 
-            console.log('🔍 Debug Reagendamento:', {
-                servico: appointment.service.name,
-                dataOriginal: appointment.date,
-                horaOriginal: appointment.time,
-                dataProcessada: dateOnly,
-                horaProcessada: timeOnly,
-                dataCompleta: `${dateOnly}T${timeOnly}:00`,
-                appointmentDateTime: appointmentDateTime.toString(),
-                isValid: !isNaN(appointmentDateTime.getTime()),
-                minTime: minTime.toString(),
-                podeReagendar: appointmentDateTime > minTime
-            })
-
-            // Verificar se a data é válida
             if (isNaN(appointmentDateTime.getTime())) {
                 console.error('❌ Data inválida:', appointment)
                 return false
@@ -158,7 +143,7 @@ export default function HistoricoPage() {
 
     const handleRescheduleSuccess = () => {
         setRescheduleAppointment(null)
-        fetchAppointments() // Recarrega a lista após reagendar
+        fetchAppointments()
     }
 
     const filteredAppointments = appointments
@@ -287,11 +272,50 @@ export default function HistoricoPage() {
                                                     <StatusIcon size={14} />
                                                     {statusInfo.label}
                                                 </span>
-                                                <span className="text-2xl font-bold text-gold">
-                                                    R$ {appointment.service.price.toFixed(2)}
-                                                </span>
+                                                {/* ✅ MOSTRAR VALOR COM CUPOM */}
+                                                {appointment.couponId ? (
+                                                    <div className="text-right">
+                                                        <span className="text-2xl font-bold text-green-600">
+                                                            R$ {(appointment.finalPrice || appointment.service.price).toFixed(2)}
+                                                        </span>
+                                                        <p className="text-xs text-gray-500 line-through">
+                                                            R$ {appointment.service.price.toFixed(2)}
+                                                        </p>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-2xl font-bold text-gold">
+                                                        R$ {appointment.service.price.toFixed(2)}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
+
+                                        {/* ✅ BADGE DO CUPOM */}
+                                        {appointment.couponId && appointment.coupon && (
+                                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 mb-3">
+                                                <div className="flex items-start gap-2">
+                                                    <Tag className="text-green-600 flex-shrink-0 mt-0.5" size={18} />
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <p className="font-bold text-green-900 text-sm">
+                                                                Cupom: {appointment.coupon.code}
+                                                            </p>
+                                                            {appointment.coupon.discountType === 'PERCENTAGE' && (
+                                                                <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                    <Percent size={10} /> {appointment.coupon.discountValue}%
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-xs text-green-700 mb-1">
+                                                            {appointment.coupon.description}
+                                                        </p>
+                                                        <p className="text-xs text-green-600 font-semibold">
+                                                            💰 Você economizou R$ {(appointment.discountAmount || 0).toFixed(2)}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         {/* Botões de ação */}
                                         <div className="flex gap-3 mt-4">
