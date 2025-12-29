@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Filter, X, ChevronDown, Search, SortAsc, SortDesc } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Filter, X, Search } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import AppointmentDetailsModal from '@/components/admin/AppointmentDetailsModal'
 
@@ -23,13 +23,14 @@ interface Appointment {
     justification?: string
     justifiedAt?: string
     paymentMethod?: string
+    serviceId?: string
     user: {
         name: string
         email: string
         phone: string
     }
     service: {
-        id: string
+        id?: string
         name: string
         price: number
         duration: number
@@ -96,99 +97,12 @@ export default function AdminAgendamentosPage() {
         return 'evening'
     }
 
-    const getFilteredAppointments = () => {
-        const now = new Date()
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-        today.setHours(0, 0, 0, 0)
-
-        const weekStart = new Date(today)
-        weekStart.setDate(today.getDate() - today.getDay())
-
-        const weekEnd = new Date(weekStart)
-        weekEnd.setDate(weekStart.getDate() + 6)
-        weekEnd.setHours(23, 59, 59, 999)
-
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-        monthStart.setHours(0, 0, 0, 0)
-
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        monthEnd.setHours(23, 59, 59, 999)
-
-        let filtered = appointments.filter(apt => {
-            // Busca textual
-            if (searchTerm) {
-                const search = searchTerm.toLowerCase()
-                const matchName = apt.user.name.toLowerCase().includes(search)
-                const matchPhone = apt.user.phone.includes(search)
-                const matchEmail = apt.user.email.toLowerCase().includes(search)
-                const matchId = apt.id.toLowerCase().includes(search)
-
-                if (!matchName && !matchPhone && !matchEmail && !matchId) {
-                    return false
-                }
-            }
-
-            // Filtro de status
-            if (filterStatus !== 'all' && apt.status !== filterStatus) return false
-
-            // Filtro de serviços
-            if (selectedServices.length > 0 && !selectedServices.includes(apt.service.id)) {
-                return false
-            }
-
-            // Filtro de período do dia
-            if (selectedTimeOfDay.length > 0) {
-                const timeOfDay = getTimeOfDay(apt.time)
-                if (!selectedTimeOfDay.includes(timeOfDay)) {
-                    return false
-                }
-            }
-
-            // Filtro de forma de pagamento
-            if (selectedPaymentMethods.length > 0) {
-                if (!apt.paymentMethod || !selectedPaymentMethods.includes(apt.paymentMethod)) {
-                    return false
-                }
-            }
-
-            // Filtro de período
-            if (filterPeriod === 'all') return true
-
-            const aptDate = new Date(apt.date)
-
-            switch (filterPeriod) {
-                case 'today':
-                    return aptDate.toDateString() === today.toDateString()
-                case 'week':
-                    return aptDate >= weekStart && aptDate <= weekEnd
-                case 'month':
-                    return aptDate >= monthStart && aptDate <= monthEnd
-                default:
-                    return true
-            }
-        })
-
-        // Ordenação
-        filtered.sort((a, b) => {
-            switch (sortBy) {
-                case 'date-asc':
-                    return new Date(a.date + 'T' + a.time).getTime() - new Date(b.date + 'T' + b.time).getTime()
-                case 'date-desc':
-                    return new Date(b.date + 'T' + b.time).getTime() - new Date(a.date + 'T' + a.time).getTime()
-                case 'price-asc':
-                    return a.service.price - b.service.price
-                case 'price-desc':
-                    return b.service.price - a.service.price
-                case 'name-asc':
-                    return a.user.name.localeCompare(b.user.name)
-                case 'name-desc':
-                    return b.user.name.localeCompare(a.user.name)
-                default:
-                    return 0
-            }
-        })
-
-        return filtered
+    const toggleArrayItem = (array: string[], setArray: (arr: string[]) => void, item: string) => {
+        if (array.includes(item)) {
+            setArray(array.filter(i => i !== item))
+        } else {
+            setArray([...array, item])
+        }
     }
 
     const clearAllFilters = () => {
@@ -212,13 +126,120 @@ export default function AdminAgendamentosPage() {
         return count
     }
 
-    const toggleArrayItem = (array: string[], setArray: (arr: string[]) => void, item: string) => {
-        if (array.includes(item)) {
-            setArray(array.filter(i => i !== item))
-        } else {
-            setArray([...array, item])
-        }
-    }
+    // UseMemo para forçar re-render quando sortBy mudar
+    const filteredAppointments = useMemo(() => {
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        today.setHours(0, 0, 0, 0)
+
+        const weekStart = new Date(today)
+        weekStart.setDate(today.getDate() - today.getDay())
+
+        const weekEnd = new Date(weekStart)
+        weekEnd.setDate(weekStart.getDate() + 6)
+        weekEnd.setHours(23, 59, 59, 999)
+
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+        monthStart.setHours(0, 0, 0, 0)
+
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        monthEnd.setHours(23, 59, 59, 999)
+
+        let filtered = appointments.filter(apt => {
+            if (searchTerm) {
+                const search = searchTerm.toLowerCase()
+                const matchName = apt.user.name.toLowerCase().includes(search)
+                const matchPhone = apt.user.phone.includes(search)
+                const matchEmail = apt.user.email.toLowerCase().includes(search)
+                const matchId = apt.id.toLowerCase().includes(search)
+
+                if (!matchName && !matchPhone && !matchEmail && !matchId) {
+                    return false
+                }
+            }
+
+            if (filterStatus !== 'all' && apt.status !== filterStatus) return false
+
+            if (selectedServices.length > 0) {
+                const serviceId = apt.serviceId || apt.service?.id
+                if (!serviceId || !selectedServices.includes(serviceId)) {
+                    return false
+                }
+            }
+
+            if (selectedTimeOfDay.length > 0) {
+                const timeOfDay = getTimeOfDay(apt.time)
+                if (!selectedTimeOfDay.includes(timeOfDay)) {
+                    return false
+                }
+            }
+
+            if (selectedPaymentMethods.length > 0) {
+                if (!apt.paymentMethod) return false
+                const normalizedPayment = apt.paymentMethod.toUpperCase()
+                if (!selectedPaymentMethods.includes(normalizedPayment)) {
+                    return false
+                }
+            }
+
+            if (filterPeriod !== 'all') {
+                const aptDate = new Date(apt.date)
+
+                switch (filterPeriod) {
+                    case 'today':
+                        if (aptDate.toDateString() !== today.toDateString()) return false
+                        break
+                    case 'week':
+                        if (aptDate < weekStart || aptDate > weekEnd) return false
+                        break
+                    case 'month':
+                        if (aptDate < monthStart || aptDate > monthEnd) return false
+                        break
+                }
+            }
+
+            return true
+        })
+
+        // Ordenação
+        const sorted = [...filtered].sort((a, b) => {
+            switch (sortBy) {
+                case 'date-asc': {
+                    const dateA = new Date(a.date + 'T' + a.time)
+                    const dateB = new Date(b.date + 'T' + b.time)
+                    return dateA.getTime() - dateB.getTime()
+                }
+                case 'date-desc': {
+                    const dateA = new Date(a.date + 'T' + a.time)
+                    const dateB = new Date(b.date + 'T' + b.time)
+                    return dateB.getTime() - dateA.getTime()
+                }
+                case 'price-asc':
+                    return (a.service?.price || 0) - (b.service?.price || 0)
+                case 'price-desc':
+                    return (b.service?.price || 0) - (a.service?.price || 0)
+                case 'name-asc':
+                    return a.user.name.localeCompare(b.user.name)
+                case 'name-desc':
+                    return b.user.name.localeCompare(a.user.name)
+                default:
+                    return 0
+            }
+        })
+
+        return sorted
+    }, [appointments, searchTerm, filterStatus, filterPeriod, selectedServices, selectedTimeOfDay, selectedPaymentMethods, sortBy])
+
+    const stats = useMemo(() => ({
+        total: filteredAppointments.length,
+        pending: filteredAppointments.filter(a => a.status === 'PENDING').length,
+        confirmed: filteredAppointments.filter(a => a.status === 'CONFIRMED').length,
+        completed: filteredAppointments.filter(a => a.status === 'COMPLETED').length,
+        cancelled: filteredAppointments.filter(a => a.status === 'CANCELLED').length,
+        revenue: filteredAppointments
+            .filter(a => a.status === 'COMPLETED')
+            .reduce((sum, a) => sum + a.service.price, 0)
+    }), [filteredAppointments])
 
     const getStatusColor = (status: string): string => {
         const colors: Record<AppointmentStatus, string> = {
@@ -240,19 +261,6 @@ export default function AdminAgendamentosPage() {
             NO_SHOW: 'Não Compareceu'
         }
         return labels[status as AppointmentStatus] || status
-    }
-
-    const filteredAppointments = getFilteredAppointments()
-
-    const stats = {
-        total: filteredAppointments.length,
-        pending: filteredAppointments.filter(a => a.status === 'PENDING').length,
-        confirmed: filteredAppointments.filter(a => a.status === 'CONFIRMED').length,
-        completed: filteredAppointments.filter(a => a.status === 'COMPLETED').length,
-        cancelled: filteredAppointments.filter(a => a.status === 'CANCELLED').length,
-        revenue: filteredAppointments
-            .filter(a => a.status === 'COMPLETED')
-            .reduce((sum, a) => sum + a.service.price, 0)
     }
 
     const activeFiltersCount = getActiveFiltersCount()
@@ -333,7 +341,7 @@ export default function AdminAgendamentosPage() {
 
                     {/* Filtros Avançados */}
                     {showAdvancedFilters && (
-                        <div className="border-t pt-4 space-y-4 animate-fadeIn">
+                        <div className="border-t pt-4 space-y-4">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-semibold text-charcoal">Filtros Avançados</h3>
                                 {activeFiltersCount > 0 && (
@@ -351,20 +359,24 @@ export default function AdminAgendamentosPage() {
                                 {/* Filtro de Serviços */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Serviços ({selectedServices.length} selecionados)
+                                        Serviços ({selectedServices.length})
                                     </label>
                                     <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2 bg-gray-50">
-                                        {services.map(service => (
-                                            <label key={service.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedServices.includes(service.id)}
-                                                    onChange={() => toggleArrayItem(selectedServices, setSelectedServices, service.id)}
-                                                    className="rounded text-gold focus:ring-gold"
-                                                />
-                                                <span className="text-sm">{service.name}</span>
-                                            </label>
-                                        ))}
+                                        {services.length === 0 ? (
+                                            <p className="text-sm text-gray-500 p-2">Nenhum serviço cadastrado</p>
+                                        ) : (
+                                            services.map(service => (
+                                                <label key={service.id} className="flex items-center gap-2 cursor-pointer hover:bg-white p-2 rounded">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedServices.includes(service.id)}
+                                                        onChange={() => toggleArrayItem(selectedServices, setSelectedServices, service.id)}
+                                                        className="rounded text-gold focus:ring-gold"
+                                                    />
+                                                    <span className="text-sm">{service.name}</span>
+                                                </label>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
 
@@ -400,9 +412,9 @@ export default function AdminAgendamentosPage() {
                                     <div className="space-y-2">
                                         {[
                                             { value: 'PIX', label: '💳 PIX' },
-                                            { value: 'CREDIT', label: '💳 Cartão Crédito' },
-                                            { value: 'DEBIT', label: '💳 Cartão Débito' },
-                                            { value: 'CASH', label: '💵 Dinheiro' }
+                                            { value: 'CARTAO_CREDITO', label: '💳 Cartão Crédito' },
+                                            { value: 'CARTAO_DEBITO', label: '💳 Cartão Débito' },
+                                            { value: 'DINHEIRO', label: '💵 Dinheiro' }
                                         ].map(payment => (
                                             <label key={payment.value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
                                                 <input
