@@ -1,0 +1,334 @@
+//app/(dashboard)/admin/aniversariantes/page.tsx
+
+'use client'
+
+import { useState, useEffect } from 'react'
+import { Calendar, Gift, Mail, MessageCircle, ChevronLeft, ChevronRight, Cake, TrendingUp, Clock } from 'lucide-react'
+import AdminHeader from '@/components/admin/AdminHeader'
+import BirthdayOfferModal from '@/components/admin/BirthdayOfferModal'
+
+interface Birthday {
+    id: string
+    name: string
+    email: string
+    phone?: string
+    birthDate: string
+    birthDay: number
+    birthMonth: number
+    age: number
+    daysUntil: number
+    isPast: boolean
+    isToday: boolean
+    clientSince: string
+    totalAppointments: number
+    lastAppointment?: {
+        date: string
+        service: {
+            name: string
+        }
+    }
+}
+
+interface Stats {
+    total: number
+    upcoming: number
+    today: number
+    thisWeek: number
+}
+
+const MONTHS = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+]
+
+export default function AniversariantesPage() {
+    const [birthdays, setBirthdays] = useState<Birthday[]>([])
+    const [stats, setStats] = useState<Stats>({ total: 0, upcoming: 0, today: 0, thisWeek: 0 })
+    const [loading, setLoading] = useState(true)
+    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1)
+    const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
+    const [selectedBirthday, setSelectedBirthday] = useState<Birthday | null>(null)
+    const [showOfferModal, setShowOfferModal] = useState(false)
+
+    useEffect(() => {
+        fetchBirthdays()
+    }, [currentMonth, currentYear])
+
+    const fetchBirthdays = async () => {
+        try {
+            setLoading(true)
+            const res = await fetch(`/api/admin/birthdays?month=${currentMonth}&year=${currentYear}`)
+            const data = await res.json()
+
+            if (data.success) {
+                setBirthdays(data.data)
+                setStats(data.stats)
+            }
+        } catch (error) {
+            console.error('Erro ao buscar aniversariantes:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handlePreviousMonth = () => {
+        if (currentMonth === 1) {
+            setCurrentMonth(12)
+            setCurrentYear(currentYear - 1)
+        } else {
+            setCurrentMonth(currentMonth - 1)
+        }
+    }
+
+    const handleNextMonth = () => {
+        if (currentMonth === 12) {
+            setCurrentMonth(1)
+            setCurrentYear(currentYear + 1)
+        } else {
+            setCurrentMonth(currentMonth + 1)
+        }
+    }
+
+    const handleSendOffer = (birthday: Birthday) => {
+        setSelectedBirthday(birthday)
+        setShowOfferModal(true)
+    }
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        })
+    }
+
+    const getDaysText = (daysUntil: number) => {
+        if (daysUntil === 0) return 'É HOJE! 🎉'
+        if (daysUntil === 1) return 'Amanhã'
+        if (daysUntil < 0) return 'Já passou'
+        if (daysUntil <= 7) return `Em ${daysUntil} dias`
+        return `Dia ${Math.abs(daysUntil)}`
+    }
+
+    const getBadgeColor = (daysUntil: number) => {
+        if (daysUntil === 0) return 'bg-gradient-to-r from-pink-500 to-purple-500 text-white animate-pulse'
+        if (daysUntil > 0 && daysUntil <= 3) return 'bg-orange-100 text-orange-700'
+        if (daysUntil > 3 && daysUntil <= 7) return 'bg-yellow-100 text-yellow-700'
+        return 'bg-gray-100 text-gray-600'
+    }
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-beige py-8 px-4">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-center justify-center py-20">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
+                            <p className="text-gray-600">Carregando aniversariantes...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="max-w-7xl mx-auto space-y-8">
+                <AdminHeader
+                    title="Aniversariantes do Mês"
+                    description="Envie ofertas especiais para clientes aniversariantes"
+                    showBackButton={true}
+                />
+
+                {/* Seletor de Mês */}
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                    <div className="flex items-center justify-between">
+                        <button
+                            onClick={handlePreviousMonth}
+                            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+
+                        <div className="text-center">
+                            <h2 className="text-3xl font-bold text-charcoal flex items-center gap-3 justify-center">
+                                <Cake className="text-gold" size={32} />
+                                {MONTHS[currentMonth - 1]} {currentYear}
+                            </h2>
+                        </div>
+
+                        <button
+                            onClick={handleNextMonth}
+                            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
+                        >
+                            <ChevronRight size={24} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Estatísticas */}
+                <div className="grid md:grid-cols-4 gap-6">
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Calendar className="text-blue-500" size={24} />
+                            <p className="text-sm text-gray-600">Total no Mês</p>
+                        </div>
+                        <p className="text-3xl font-bold text-charcoal">{stats.total}</p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Gift className="text-pink-500" size={24} />
+                            <p className="text-sm text-gray-600">Hoje</p>
+                        </div>
+                        <p className="text-3xl font-bold text-pink-600">{stats.today}</p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Clock className="text-orange-500" size={24} />
+                            <p className="text-sm text-gray-600">Próximos 7 Dias</p>
+                        </div>
+                        <p className="text-3xl font-bold text-orange-600">{stats.thisWeek}</p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-lg p-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <TrendingUp className="text-green-500" size={24} />
+                            <p className="text-sm text-gray-600">A Enviar</p>
+                        </div>
+                        <p className="text-3xl font-bold text-green-600">{stats.upcoming}</p>
+                    </div>
+                </div>
+
+                {/* Lista de Aniversariantes */}
+                {birthdays.length === 0 ? (
+                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                        <Cake size={64} className="mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-2xl font-bold text-charcoal mb-2">
+                            Nenhum aniversariante este mês
+                        </h3>
+                        <p className="text-gray-600">
+                            Não há clientes com aniversário em {MONTHS[currentMonth - 1]}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {birthdays.map(birthday => (
+                            <div
+                                key={birthday.id}
+                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${birthday.isToday ? 'ring-4 ring-pink-500 ring-opacity-50' : ''
+                                    }`}
+                            >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="text-4xl">🎂</div>
+                                            <div>
+                                                <h3 className="text-xl font-bold text-charcoal flex items-center gap-2">
+                                                    {birthday.name}
+                                                    {birthday.isToday && (
+                                                        <span className="text-sm bg-gradient-to-r from-pink-500 to-purple-500 text-white px-3 py-1 rounded-full animate-pulse">
+                                                            HOJE! 🎉
+                                                        </span>
+                                                    )}
+                                                </h3>
+                                                <p className="text-gray-600">
+                                                    {birthday.birthDay}/{birthday.birthMonth} - {birthday.age} anos
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid md:grid-cols-3 gap-4 mb-4">
+                                            <div>
+                                                <p className="text-sm text-gray-500 mb-1">Cliente desde</p>
+                                                <p className="font-semibold">
+                                                    {new Date(birthday.clientSince).getFullYear()}
+                                                </p>
+                                            </div>
+
+                                            <div>
+                                                <p className="text-sm text-gray-500 mb-1">Total de atendimentos</p>
+                                                <p className="font-semibold">{birthday.totalAppointments}</p>
+                                            </div>
+
+                                            <div>
+                                                <p className="text-sm text-gray-500 mb-1">Último agendamento</p>
+                                                <p className="font-semibold">
+                                                    {birthday.lastAppointment
+                                                        ? new Date(birthday.lastAppointment.date).toLocaleDateString('pt-BR')
+                                                        : 'Nunca'}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {birthday.lastAppointment && (
+                                            <p className="text-sm text-gray-600">
+                                                Último serviço: <span className="font-semibold">{birthday.lastAppointment.service.name}</span>
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    <div className="text-right space-y-3">
+                                        <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${getBadgeColor(birthday.daysUntil)}`}>
+                                            {getDaysText(birthday.daysUntil)}
+                                        </span>
+
+                                        <div className="flex flex-col gap-2">
+                                            <button
+                                                onClick={() => handleSendOffer(birthday)}
+                                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                                            >
+                                                <Gift size={18} />
+                                                Criar Oferta
+                                            </button>
+
+                                            {birthday.email && (
+                                                <a
+                                                    href={`mailto:${birthday.email}`}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold justify-center"
+                                                >
+                                                    <Mail size={18} />
+                                                    Email
+                                                </a>
+                                            )}
+
+                                            {birthday.phone && (
+                                                <a
+                                                    href={`https://wa.me/55${birthday.phone.replace(/\D/g, '')}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold justify-center"
+                                                >
+                                                    <MessageCircle size={18} />
+                                                    WhatsApp
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Modal de Oferta */}
+            {showOfferModal && selectedBirthday && (
+                <BirthdayOfferModal
+                    birthday={selectedBirthday}
+                    onClose={() => {
+                        setShowOfferModal(false)
+                        setSelectedBirthday(null)
+                    }}
+                    onSuccess={() => {
+                        setShowOfferModal(false)
+                        setSelectedBirthday(null)
+                        fetchBirthdays()
+                    }}
+                />
+            )}
+        </div>
+    )
+}
