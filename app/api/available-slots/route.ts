@@ -2,6 +2,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getBlockedTimesForDate, isTimeBlocked } from '@/lib/blocked-times-utils'
 
 export async function GET(request: Request) {
     try {
@@ -59,11 +60,10 @@ export async function GET(request: Request) {
             }
         })
 
-        // Filtrar horários já reservados
         const bookedTimes = bookedAppointments.map(apt => apt.time)
-        const availableTimes = availableSlots
-            .filter(slot => !bookedTimes.includes(slot.timeSlot))
-            .map(slot => slot.timeSlot)
+
+        // 🆕 BUSCAR HORÁRIOS BLOQUEADOS
+        const blockedTimes = await getBlockedTimesForDate(selectedDate)
 
         // Verificar se a data selecionada já passou
         const today = new Date()
@@ -78,20 +78,32 @@ export async function GET(request: Request) {
             })
         }
 
+        // Filtrar horários
+        let availableTimes = availableSlots
+            .map(slot => slot.timeSlot)
+            .filter(time => {
+                // Já está reservado?
+                if (bookedTimes.includes(time)) {
+                    return false
+                }
+
+                // 🆕 Está bloqueado?
+                if (isTimeBlocked(time, blockedTimes)) {
+                    return false
+                }
+
+                return true
+            })
+
         // Se for hoje, filtrar horários que já passaram
         if (selectedDate.getTime() === today.getTime()) {
             const now = new Date()
             const currentHour = now.getHours()
             const currentMinute = now.getMinutes()
 
-            const futureSlots = availableTimes.filter(time => {
+            availableTimes = availableTimes.filter(time => {
                 const [hour, minute] = time.split(':').map(Number)
                 return (hour > currentHour) || (hour === currentHour && minute > currentMinute)
-            })
-
-            return NextResponse.json({
-                success: true,
-                data: futureSlots
             })
         }
 

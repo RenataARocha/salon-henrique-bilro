@@ -3,7 +3,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { Calendar, Users, Settings, Scissors, Home, Tag } from 'lucide-react'
+import { Calendar, Users, Settings, Scissors, Home, Tag, Ban } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
@@ -32,11 +32,18 @@ export default function AdminDashboard() {
             color: 'bg-rose-500'
         },
         {
-            title: 'Horários',
-            description: 'Configurar horários de funcionamento',
+            title: 'Horários de Funcionamento',
+            description: 'Configurar quando o salão está aberto',
             icon: Users,
             href: '/admin/agenda',
             color: 'bg-green-500'
+        },
+        {
+            title: 'Horários Bloqueados',
+            description: 'Bloquear horários indisponíveis (almoço, folga, feriados)',
+            icon: Ban,
+            href: '/admin/horarios-bloqueados',
+            color: 'bg-red-500'
         },
         {
             title: 'Configurações',
