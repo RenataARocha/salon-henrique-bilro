@@ -23,7 +23,8 @@ model User {
   appointments   Appointment[]
   passwordResets PasswordReset[]
   reviews        Review[]
-  blockedTimes   BlockedTime[] // 🆕 ADICIONADO
+  blockedTimes   BlockedTime[]
+  couponUsages   CouponUsage[] // 🆕 ADICIONADO
 
   @@map("users")
 }
@@ -80,10 +81,12 @@ model Appointment {
   service         Service                    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   coupon          Coupon?                    @relation(fields: [couponId], references: [id])
   statusHistory   AppointmentStatusHistory[]
+  couponUsages    CouponUsage[] // 🆕 ADICIONADO
 
   @@index([userId])
   @@index([serviceId])
   @@index([date])
+  @@index([couponId])
   @@map("appointments")
 }
 
@@ -111,24 +114,52 @@ model AvailableSlot {
   @@map("available_slots")
 }
 
+// 🆕 MODELO ATUALIZADO COM NOVAS FUNCIONALIDADES
 model Coupon {
-  id                 String        @id @default(cuid())
-  code               String        @unique
+  id                 String   @id @default(cuid())
+  code               String   @unique
   description        String
-  discountType       String
+  discountType       String // "PERCENTAGE" ou "FIXED"
   discountValue      Float
   minValue           Float?
   maxUses            Int?
-  usedCount          Int           @default(0)
+  usedCount          Int      @default(0)
   validFrom          DateTime
   validUntil         DateTime
-  active             Boolean       @default(true)
-  applicableServices String[]      @default([])
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  appointments       Appointment[]
+  active             Boolean  @default(true)
+  applicableServices String[] @default([])
+
+  // 🆕 Novas funcionalidades
+  perUserLimit Boolean @default(false) // Um uso por cliente
+  daysOfWeek   Int[]   @default([]) // [0,1,2,3,4,5,6]
+  timeStart    String? // "09:00"
+  timeEnd      String? // "18:00"
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+  usageHistory CouponUsage[] // 🆕 ADICIONADO
 
   @@map("coupons")
+}
+
+// 🆕 NOVO MODELO - Histórico de uso de cupons
+model CouponUsage {
+  id             String      @id @default(cuid())
+  couponId       String
+  coupon         Coupon      @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appointmentId  String
+  appointment    Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  discountAmount Float
+  usedAt         DateTime    @default(now())
+
+  @@index([couponId])
+  @@index([userId])
+  @@index([appointmentId])
+  @@map("coupon_usage")
 }
 
 model Review {
@@ -147,7 +178,6 @@ model Review {
   @@map("reviews")
 }
 
-// 🆕 MODELO ATUALIZADO E COMPLETO
 model BlockedTime {
   id String @id @default(cuid())
 
@@ -160,7 +190,7 @@ model BlockedTime {
   endTime   String?
 
   // Para bloqueios recorrentes (ex: toda segunda-feira)
-  dayOfWeek   Int? // 0-6 (Domingo a Sábado)
+  dayOfWeek   Int?
   isRecurring Boolean @default(false)
 
   // Informações
@@ -168,8 +198,8 @@ model BlockedTime {
   description String?
 
   // Para controlar período de validade
-  startDate DateTime? // Início do período
-  endDate   DateTime? // Fim do período
+  startDate DateTime?
+  endDate   DateTime?
 
   // Metadata
   createdBy String
@@ -186,13 +216,12 @@ model BlockedTime {
   @@map("blocked_times")
 }
 
-// 🆕 ENUM DE TIPOS DE BLOQUEIO
 enum BlockedTimeType {
-  LUNCH_BREAK // Horário de almoço
-  DAY_OFF // Folga/Dia de descanso
-  HOLIDAY // Feriado
-  VACATION // Férias
-  MAINTENANCE // Manutenção do salão
-  SPECIAL_EVENT // Evento especial (curso, viagem)
-  OTHER // Outro motivo
+  LUNCH_BREAK
+  DAY_OFF
+  HOLIDAY
+  VACATION
+  MAINTENANCE
+  SPECIAL_EVENT
+  OTHER
 }

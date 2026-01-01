@@ -1,8 +1,17 @@
-// app/api/cupons/validar/route.ts
+// app/api/coupons/validate/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+
+interface ValidationRequest {
+    codigo: string;
+    valorServico: number;
+    serviceIds?: string[];
+    scheduledDate?: string;
+    scheduledTime?: string;
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -10,16 +19,25 @@ export async function POST(req: NextRequest) {
 
         if (!session) {
             return NextResponse.json(
-                { error: 'Não autenticado' },
+                { valido: false, erro: 'Não autenticado' },
                 { status: 401 }
             );
         }
 
-        const { codigo, valorServico } = await req.json();
+        const {
+            codigo,
+            valorServico,
+            serviceIds = [],
+            scheduledDate,
+            scheduledTime
+        }: ValidationRequest = await req.json();
 
         if (!codigo || !valorServico) {
             return NextResponse.json(
-                { error: 'Código do cupom e valor do serviço são obrigatórios' },
+                {
+                    valido: false,
+                    erro: 'Código do cupom e valor do serviço são obrigatórios'
+                },
                 { status: 400 }
             );
         }
@@ -30,58 +48,108 @@ export async function POST(req: NextRequest) {
         });
 
         if (!cupom) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom não encontrado'
-                },
-                { status: 200 }
-            );
+            return NextResponse.json({
+                valido: false,
+                erro: 'Cupom não encontrado'
+            });
         }
 
-        // Verificar se está ativo
+        // Validação 1: Verificar se está ativo
         if (!cupom.active) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom desativado'
-                },
-                { status: 200 }
-            );
+            return NextResponse.json({
+                valido: false,
+                erro: 'Cupom desativado'
+            });
         }
 
-        // Verificar data de início
+        // Validação 2: Verificar data de início
         const agora = new Date();
         if (cupom.validFrom && new Date(cupom.validFrom) > agora) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom ainda não está disponível'
-                },
-                { status: 200 }
-            );
+            return NextResponse.json({
+                valido: false,
+                erro: `Cupom válido a partir de ${new Date(cupom.validFrom).toLocaleDateString('pt-BR')}`
+            });
         }
 
-        // Verificar data de fim
+        // Validação 3: Verificar data de fim
         if (cupom.validUntil && new Date(cupom.validUntil) < agora) {
-            return NextResponse.json(
-                {
-                    valido: false,
-                    erro: 'Cupom expirado'
-                },
-                { status: 200 }
-            );
+            return NextResponse.json({
+                valido: false,
+                erro: 'Cupom expirado'
+            });
         }
 
-        // Verificar quantidade de usos
+        // Validação 4: Verificar quantidade de usos
         if (cupom.maxUses && cupom.usedCount >= cupom.maxUses) {
-            return NextResponse.json(
-                {
+            return NextResponse.json({
+                valido: false,
+                erro: 'Cupom esgotado'
+            });
+        }
+
+        // Validação 5: Verificar se usuário já usou (se perUserLimit = true)
+        if (cupom.perUserLimit) {
+            const userUsage = await prisma.appointment.findFirst({
+                where: {
+                    userId: session.user.id,
+                    couponId: cupom.id,
+                    status: { not: 'CANCELLED' }
+                }
+            });
+
+            if (userUsage) {
+                return NextResponse.json({
                     valido: false,
-                    erro: 'Cupom esgotado'
-                },
-                { status: 200 }
+                    erro: 'Você já utilizou este cupom'
+                });
+            }
+        }
+
+        // Validação 6: Verificar valor mínimo
+        if (cupom.minValue && valorServico < cupom.minValue) {
+            return NextResponse.json({
+                valido: false,
+                erro: `Valor mínimo de R$ ${cupom.minValue.toFixed(2)} não atingido`
+            });
+        }
+
+        // Validação 7: Verificar serviços aplicáveis
+        if (cupom.applicableServices && cupom.applicableServices.length > 0) {
+            const hasApplicableService = serviceIds.some(id =>
+                cupom.applicableServices.includes(id)
             );
+
+            if (!hasApplicableService) {
+                return NextResponse.json({
+                    valido: false,
+                    erro: 'Cupom não aplicável aos serviços selecionados'
+                });
+            }
+        }
+
+        // Validação 8: Verificar dia da semana (se aplicável)
+        if (cupom.daysOfWeek && cupom.daysOfWeek.length > 0 && scheduledDate) {
+            const dayOfWeek = new Date(scheduledDate).getDay();
+
+            if (!cupom.daysOfWeek.includes(dayOfWeek)) {
+                const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+                const validDays = cupom.daysOfWeek.map(d => days[d]).join(', ');
+
+                return NextResponse.json({
+                    valido: false,
+                    erro: `Cupom válido apenas: ${validDays}`
+                });
+            }
+        }
+
+        // Validação 9: Verificar horário (se aplicável)
+        if (cupom.timeStart && cupom.timeEnd && scheduledTime) {
+            if (scheduledTime < cupom.timeStart || scheduledTime > cupom.timeEnd) {
+                return NextResponse.json({
+                    valido: false,
+                    erro: `Cupom válido das ${cupom.timeStart} às ${cupom.timeEnd}`
+                });
+            }
         }
 
         // Calcular desconto
@@ -117,13 +185,10 @@ export async function POST(req: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Erro ao validar cupom:', error);
-        return NextResponse.json(
-            {
-                valido: false,
-                erro: 'Erro ao validar cupom'
-            },
-            { status: 500 }
-        );
+        console.error('❌ Erro ao validar cupom:', error);
+        return NextResponse.json({
+            valido: false,
+            erro: 'Erro ao validar cupom'
+        }, { status: 500 });
     }
 }

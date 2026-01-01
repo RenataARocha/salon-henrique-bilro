@@ -1,4 +1,4 @@
-// app/api/cupons/route.ts
+// app/api/admin/coupons/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -17,8 +17,24 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        // ✅ CORRIGIDO: prisma.coupon (não cupom)
+        const { searchParams } = new URL(request.url)
+        const active = searchParams.get('active')
+        const expired = searchParams.get('expired')
+
+        const now = new Date()
+        const where: any = {}
+
+        if (active === 'true') {
+            where.active = true
+            where.validUntil = { gte: now }
+        }
+
+        if (expired === 'true') {
+            where.validUntil = { lt: now }
+        }
+
         const coupons = await prisma.coupon.findMany({
+            where,
             orderBy: {
                 createdAt: 'desc'
             },
@@ -31,9 +47,18 @@ export async function GET(request: NextRequest) {
             }
         })
 
+        // Adicionar informações extras
+        const couponsWithStats = coupons.map(coupon => ({
+            ...coupon,
+            usageCount: coupon._count.appointments,
+            remainingUses: coupon.maxUses ? coupon.maxUses - coupon.usedCount : null,
+            isExpired: coupon.validUntil < now,
+            isActive: coupon.active && coupon.validUntil >= now
+        }))
+
         return NextResponse.json({
             success: true,
-            data: coupons
+            data: couponsWithStats
         })
 
     } catch (error) {
@@ -70,7 +95,11 @@ export async function POST(request: NextRequest) {
             maxUses,
             validFrom,
             validUntil,
-            applicableServices
+            applicableServices,
+            perUserLimit,
+            daysOfWeek,
+            timeStart,
+            timeEnd
         } = body
 
         console.log('📦 Dados recebidos:', body)
@@ -83,7 +112,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // ✅ CORRIGIDO: prisma.coupon.findUnique
+        // Verificar se já existe
         const existingCoupon = await prisma.coupon.findUnique({
             where: { code: code.toUpperCase() }
         })
@@ -95,7 +124,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // ✅ CORRIGIDO: prisma.coupon.create
+        // Criar cupom
         const coupon = await prisma.coupon.create({
             data: {
                 code: code.toUpperCase(),
@@ -107,6 +136,10 @@ export async function POST(request: NextRequest) {
                 validFrom: new Date(validFrom),
                 validUntil: new Date(validUntil),
                 applicableServices: applicableServices || [],
+                perUserLimit: perUserLimit || false,
+                daysOfWeek: daysOfWeek || [],
+                timeStart: timeStart || null,
+                timeEnd: timeEnd || null,
                 active: true
             }
         })
@@ -117,7 +150,7 @@ export async function POST(request: NextRequest) {
             success: true,
             data: coupon,
             message: 'Cupom criado com sucesso!'
-        })
+        }, { status: 201 })
 
     } catch (error) {
         console.error('❌ Erro ao criar cupom:', error)
@@ -154,31 +187,23 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json()
-        const {
-            code,
-            description,
-            discountType,
-            discountValue,
-            minValue,
-            maxUses,
-            validFrom,
-            validUntil,
-            applicableServices
-        } = body
 
-        // ✅ CORRIGIDO: prisma.coupon.update
         const coupon = await prisma.coupon.update({
             where: { id },
             data: {
-                code: code.toUpperCase(),
-                description,
-                discountType,
-                discountValue: parseFloat(discountValue),
-                minValue: minValue ? parseFloat(minValue) : null,
-                maxUses: maxUses ? parseInt(maxUses) : null,
-                validFrom: new Date(validFrom),
-                validUntil: new Date(validUntil),
-                applicableServices: applicableServices || []
+                description: body.description,
+                discountType: body.discountType,
+                discountValue: parseFloat(body.discountValue),
+                minValue: body.minValue ? parseFloat(body.minValue) : null,
+                maxUses: body.maxUses ? parseInt(body.maxUses) : null,
+                validFrom: new Date(body.validFrom),
+                validUntil: new Date(body.validUntil),
+                applicableServices: body.applicableServices || [],
+                perUserLimit: body.perUserLimit || false,
+                daysOfWeek: body.daysOfWeek || [],
+                timeStart: body.timeStart || null,
+                timeEnd: body.timeEnd || null,
+                active: body.active !== undefined ? body.active : true
             }
         })
 
@@ -200,7 +225,7 @@ export async function PUT(request: NextRequest) {
     }
 }
 
-// DELETE - Deletar cupom
+// DELETE - Desativar cupom
 export async function DELETE(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
@@ -222,22 +247,24 @@ export async function DELETE(request: NextRequest) {
             )
         }
 
-        // ✅ CORRIGIDO: prisma.coupon.delete
-        await prisma.coupon.delete({
-            where: { id }
+        // Desativar ao invés de deletar (manter histórico)
+        const coupon = await prisma.coupon.update({
+            where: { id },
+            data: { active: false }
         })
 
         return NextResponse.json({
             success: true,
-            message: 'Cupom deletado com sucesso!'
+            data: coupon,
+            message: 'Cupom desativado com sucesso!'
         })
 
     } catch (error) {
-        console.error('❌ Erro ao deletar cupom:', error)
+        console.error('❌ Erro ao desativar cupom:', error)
         return NextResponse.json(
             {
                 success: false,
-                message: 'Erro ao deletar cupom'
+                message: 'Erro ao desativar cupom'
             },
             { status: 500 }
         )
