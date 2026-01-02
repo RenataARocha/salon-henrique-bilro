@@ -1,3 +1,5 @@
+// src/components/admin/RescheduleModal.tsx
+
 import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, AlertCircle } from 'lucide-react'
 
@@ -162,8 +164,8 @@ export default function RescheduleModal({ appointment, onClose, onSuccess }: Res
                                             key={time}
                                             onClick={() => setSelectedTime(time)}
                                             className={`px-4 py-3 rounded-lg font-semibold transition-all ${selectedTime === time
-                                                    ? 'bg-purple-500 text-white shadow-lg scale-105'
-                                                    : 'bg-gray-100 text-charcoal hover:bg-gray-200'
+                                                ? 'bg-purple-500 text-white shadow-lg scale-105'
+                                                : 'bg-gray-100 text-charcoal hover:bg-gray-200'
                                                 }`}
                                         >
                                             {time}

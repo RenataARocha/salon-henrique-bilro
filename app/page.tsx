@@ -1,3 +1,5 @@
+// app/page.tsx - Home completa com Carrossel
+
 'use client'
 
 import Navbar from '@/components/NavBar'
@@ -5,8 +7,9 @@ import Hero from '@/components/home/Hero'
 import Features from '@/components/home/Feactures'
 import About from '@/components/home/About'
 import Location from '@/components/home/Location'
-import ServiceCard from '@/components/ServiceCard'
+import ReviewsCarousel from '@/components/home/ReviewsCarousel'
 import CTA from '@/components/home/CTA'
+import ServiceCard from '@/components/ServiceCard'
 import SmartBookingButton from '@/components/SmartBookingButton'
 
 export default function Home() {
@@ -21,8 +24,6 @@ export default function Home() {
         <Hero />
         <Features />
         <About />
-        <Location />
-        <CTA />
 
         {/* SEÇÃO — Serviços (única) */}
         <section id="servicos" className="py-20 bg-beige">
@@ -70,6 +71,12 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* 🆕 CARROSSEL DE AVALIAÇÕES */}
+        <ReviewsCarousel />
+
+        <Location />
+        <CTA />
       </main>
     </>
   )

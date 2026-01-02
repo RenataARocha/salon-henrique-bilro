@@ -3,7 +3,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { Calendar, Users, Settings, Scissors, Home, Tag, Ban, Cake } from 'lucide-react'
+import { Calendar, Users, Settings, Scissors, Home, Tag, Ban, Cake, Star } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
@@ -30,6 +30,13 @@ export default function AdminDashboard() {
             icon: Tag,
             href: '/admin/cupons',
             color: 'bg-rose-500'
+        },
+        {
+            title: 'Avaliações',
+            description: 'Moderar avaliações e depoimentos dos clientes',
+            icon: Star,
+            href: '/admin/avaliacoes',
+            color: 'bg-yellow-500'
         },
         {
             title: 'Aniversariantes',
