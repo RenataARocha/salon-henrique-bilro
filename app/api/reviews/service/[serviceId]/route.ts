@@ -1,15 +1,16 @@
-// ============================================
 // app/api/reviews/service/[serviceId]/route.ts
-// Avaliações de um serviço específico
+// 🔧 VERSÃO CORRIGIDA para Next.js 15+
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(
     req: NextRequest,
-    { params }: { params: { serviceId: string } }
+    context: { params: Promise<{ serviceId: string }> }
 ) {
     try {
+        // ✅ IMPORTANTE: Await params no Next.js 15+
+        const params = await context.params;
         const serviceId = params.serviceId;
 
         // Buscar avaliações aprovadas
