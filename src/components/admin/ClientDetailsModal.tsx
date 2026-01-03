@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { Search, X, Filter, UserPlus, TrendingUp, Calendar, DollarSign, Star } from 'lucide-react'
-import ClientDetailsModal from '@/components/admin/ClientDetailsModal'
+
 interface Client {
     id: string
     name: string
@@ -11,16 +11,20 @@ interface Client {
     birthDate: string | null
     image: string | null
     createdAt: string
-    _count: {
-        appointments: number
-    }
-    stats?: {
+    stats: {
+        totalAppointments: number
         totalSpent: number
-        completedAppointments: number
-        canceledAppointments: number
-        lastVisit: string | null
-        averageFrequency: number
+        avgTicket: number
+        lastAppointment: string | null
+        daysSinceLastAppointment: number | null
         favoriteService: string | null
+        attendanceRate: number
+    }
+    segments: {
+        isVIP: boolean
+        isNew: boolean
+        isInactive: boolean
+        isBirthdayThisMonth: boolean
     }
 }
 
@@ -59,7 +63,7 @@ export default function ClientesPage() {
     }
 
     const filteredClients = useMemo(() => {
-        let filtered = clients.filter(client => {
+        const filtered = clients.filter(client => {
             // Busca por nome, email ou telefone
             if (searchTerm) {
                 const search = searchTerm.toLowerCase()
@@ -74,19 +78,15 @@ export default function ClientesPage() {
 
             // Filtro por número de visitas
             if (filterByVisits !== 'all') {
-                const visits = client._count.appointments
-                if (filterByVisits === 'new' && visits > 1) return false
-                if (filterByVisits === 'regular' && (visits < 2 || visits > 10)) return false
-                if (filterByVisits === 'vip' && visits <= 10) return false
+                if (filterByVisits === 'new' && !client.segments.isNew) return false
+                if (filterByVisits === 'regular' && (client.segments.isNew || client.segments.isVIP)) return false
+                if (filterByVisits === 'vip' && !client.segments.isVIP) return false
             }
 
-            // Filtro por status (ativo = tem agendamento recente)
+            // Filtro por status (ativo/inativo)
             if (filterByStatus !== 'all') {
-                const lastVisit = client.stats?.lastVisit
-                const isActive = lastVisit && new Date(lastVisit) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) // 90 dias
-
-                if (filterByStatus === 'active' && !isActive) return false
-                if (filterByStatus === 'inactive' && isActive) return false
+                if (filterByStatus === 'active' && client.segments.isInactive) return false
+                if (filterByStatus === 'inactive' && !client.segments.isInactive) return false
             }
 
             return true
@@ -100,17 +100,17 @@ export default function ClientesPage() {
                 case 'name-desc':
                     return b.name.localeCompare(a.name)
                 case 'visits-asc':
-                    return a._count.appointments - b._count.appointments
+                    return a.stats.totalAppointments - b.stats.totalAppointments
                 case 'visits-desc':
-                    return b._count.appointments - a._count.appointments
+                    return b.stats.totalAppointments - a.stats.totalAppointments
                 case 'spent-asc':
-                    return (a.stats?.totalSpent || 0) - (b.stats?.totalSpent || 0)
+                    return a.stats.totalSpent - b.stats.totalSpent
                 case 'spent-desc':
-                    return (b.stats?.totalSpent || 0) - (a.stats?.totalSpent || 0)
+                    return b.stats.totalSpent - a.stats.totalSpent
                 case 'recent-asc':
-                    return new Date(a.stats?.lastVisit || 0).getTime() - new Date(b.stats?.lastVisit || 0).getTime()
+                    return new Date(a.stats.lastAppointment || 0).getTime() - new Date(b.stats.lastAppointment || 0).getTime()
                 case 'recent-desc':
-                    return new Date(b.stats?.lastVisit || 0).getTime() - new Date(a.stats?.lastVisit || 0).getTime()
+                    return new Date(b.stats.lastAppointment || 0).getTime() - new Date(a.stats.lastAppointment || 0).getTime()
                 default:
                     return 0
             }
@@ -130,10 +130,10 @@ export default function ClientesPage() {
             : 0
     }), [clients])
 
-    const getClientBadge = (visits: number) => {
-        if (visits <= 1) return { label: '🆕 Novo', color: 'bg-blue-100 text-blue-700' }
-        if (visits <= 10) return { label: '⭐ Regular', color: 'bg-green-100 text-green-700' }
-        return { label: '👑 VIP', color: 'bg-purple-100 text-purple-700' }
+    const getClientBadge = (client: Client) => {
+        if (client.segments.isVIP) return { label: '👑 VIP', color: 'bg-purple-100 text-purple-700' }
+        if (client.segments.isNew) return { label: '🆕 Novo', color: 'bg-blue-100 text-blue-700' }
+        return { label: '⭐ Regular', color: 'bg-green-100 text-green-700' }
     }
 
     const clearFilters = () => {
@@ -278,8 +278,8 @@ export default function ClientesPage() {
                                                 key={option.value}
                                                 onClick={() => setFilterByVisits(option.value as any)}
                                                 className={`px-4 py-2 rounded-lg font-medium transition-all ${filterByVisits === option.value
-                                                    ? 'bg-gold text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                        ? 'bg-gold text-white'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                             >
                                                 {option.label}
@@ -302,8 +302,8 @@ export default function ClientesPage() {
                                                 key={option.value}
                                                 onClick={() => setFilterByStatus(option.value as any)}
                                                 className={`px-4 py-2 rounded-lg font-medium transition-all ${filterByStatus === option.value
-                                                    ? 'bg-gold text-white'
-                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                        ? 'bg-gold text-white'
+                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                             >
                                                 {option.label}
@@ -417,13 +417,6 @@ export default function ClientesPage() {
                 .bg-charcoal { background-color: #2C2C2C; }
                 .bg-beige { background-color: #F5F5DC; }
             `}</style>
-
-            {selectedClientId && (
-                <ClientDetailsModal
-                    clientId={selectedClientId}
-                    onClose={() => setSelectedClientId(null)}
-                />
-            )}
         </div>
     )
 }
