@@ -45,6 +45,7 @@ function BulkActionsBar({
     onCancel,
     onComplete,
     onNoShow,
+    onDelete,
     onClearSelection
 }: {
     selectedCount: number
@@ -52,12 +53,13 @@ function BulkActionsBar({
     onCancel: () => void
     onComplete: () => void
     onNoShow: () => void
+    onDelete: () => void
     onClearSelection: () => void
 }) {
     if (selectedCount === 0) return null
 
     return (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-charcoal text-white rounded-2xl shadow-2xl p-6 z-50 min-w-[600px] animate-slide-up">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-charcoal text-white rounded-2xl shadow-2xl p-6 z-50 min-w-[700px] animate-slide-up">
             <div className="flex items-center justify-between gap-6">
                 <div className="flex items-center gap-3">
                     <div className="bg-gold rounded-full w-10 h-10 flex items-center justify-center font-bold">
@@ -92,10 +94,18 @@ function BulkActionsBar({
                     </button>
                     <button
                         onClick={onCancel}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg font-semibold transition-colors"
                         title="Cancelar selecionados"
                     >
                         ❌ Cancelar
+                    </button>
+                    <div className="w-px h-8 bg-gray-600"></div>
+                    <button
+                        onClick={onDelete}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                        title="EXCLUIR permanentemente selecionados"
+                    >
+                        🗑️ Excluir
                     </button>
                     <button
                         onClick={onClearSelection}
@@ -343,6 +353,55 @@ export default function AdminAgendamentosPage() {
         } catch (error) {
             console.error('Erro ao realizar ação em massa:', error)
             alert('Erro ao atualizar agendamentos')
+        }
+    }
+
+    // Excluir em Massa
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return
+
+        // Confirmação robusta com aviso de perigo
+        const firstConfirm = confirm(
+            `⚠️ ATENÇÃO: Você está prestes a EXCLUIR PERMANENTEMENTE ${selectedIds.size} agendamento(s)!\n\n` +
+            `Esta ação NÃO PODE ser desfeita!\n\n` +
+            `Os dados serão perdidos para sempre.\n\n` +
+            `Deseja continuar?`
+        )
+
+        if (!firstConfirm) return
+
+        // Segunda confirmação
+        const secondConfirm = confirm(
+            `🚨 ÚLTIMA CONFIRMAÇÃO!\n\n` +
+            `Tem CERTEZA ABSOLUTA que deseja excluir ${selectedIds.size} agendamento(s)?\n\n` +
+            `Digite OK mentalmente e clique em "OK" para confirmar.`
+        )
+
+        if (!secondConfirm) return
+
+        try {
+            const promises = Array.from(selectedIds).map(id =>
+                fetch(`/api/admin/appointments/${id}`, {
+                    method: 'DELETE'
+                })
+            )
+
+            const results = await Promise.all(promises)
+
+            // Verifica se todas as exclusões foram bem-sucedidas
+            const failedCount = results.filter(r => !r.ok).length
+
+            if (failedCount > 0) {
+                alert(`⚠️ ${failedCount} agendamento(s) não puderam ser excluídos. Os demais foram removidos.`)
+            } else {
+                alert(`✅ ${selectedIds.size} agendamento(s) excluído(s) com sucesso!`)
+            }
+
+            await fetchAppointments()
+            setSelectedIds(new Set())
+        } catch (error) {
+            console.error('Erro ao excluir agendamentos:', error)
+            alert('❌ Erro ao excluir agendamentos. Tente novamente.')
         }
     }
 
@@ -843,6 +902,7 @@ export default function AdminAgendamentosPage() {
                     onCancel={() => handleBulkAction('CANCELLED')}
                     onComplete={() => handleBulkAction('COMPLETED')}
                     onNoShow={() => handleBulkAction('NO_SHOW')}
+                    onDelete={handleBulkDelete}
                     onClearSelection={clearSelection}
                 />
             </div>

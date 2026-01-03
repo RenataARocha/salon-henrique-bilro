@@ -1,25 +1,25 @@
+// app/api/admin/appointments/[id]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+// GET - Buscar detalhes do agendamento
 export async function GET(
     request: NextRequest,
     context: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
-
         if (!session || session.user.role !== 'ADMIN') {
             return NextResponse.json(
                 { success: false, message: 'Não autorizado' },
                 { status: 401 }
             )
         }
-
         const params = await context.params
         const id = params.id
-
         const appointment = await prisma.appointment.findUnique({
             where: { id },
             include: {
@@ -43,16 +43,13 @@ export async function GET(
                 }
             }
         })
-
         if (!appointment) {
             return NextResponse.json(
                 { success: false, message: 'Agendamento não encontrado' },
                 { status: 404 }
             )
         }
-
         // BUSCAR HISTÓRICO
-
         let statusHistory: Array<{
             status: string
             changedAt: Date
@@ -71,7 +68,6 @@ export async function GET(
         } catch (error) {
             console.log('⚠️ Histórico não disponível')
         }
-
         const response = {
             ...appointment,
             finalPrice: appointment.service.price,
@@ -81,14 +77,12 @@ export async function GET(
             cancelReason: null,
             rescheduledFrom: null,
             coupon: null,
-            statusHistory // 🆕 INCLUIR HISTÓRICO
+            statusHistory
         }
-
         return NextResponse.json({
             success: true,
             data: response
         })
-
     } catch (error) {
         console.error('❌ Erro ao buscar detalhes:', error)
         return NextResponse.json(
@@ -97,6 +91,117 @@ export async function GET(
                 message: 'Erro ao buscar detalhes',
                 error: error instanceof Error ? error.message : String(error)
             },
+            { status: 500 }
+        )
+    }
+}
+
+// PATCH - Atualizar status do agendamento
+export async function PATCH(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await getServerSession(authOptions)
+        if (!session || session.user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, message: 'Não autorizado' },
+                { status: 401 }
+            )
+        }
+
+        const params = await context.params
+        const id = params.id
+        const body = await request.json()
+        const { status } = body
+
+        // Verificar se agendamento existe
+        const appointment = await prisma.appointment.findUnique({
+            where: { id }
+        })
+
+        if (!appointment) {
+            return NextResponse.json(
+                { success: false, message: 'Agendamento não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        // Atualizar status
+        const updated = await prisma.appointment.update({
+            where: { id },
+            data: { status }
+        })
+
+        return NextResponse.json({
+            success: true,
+            message: 'Status atualizado com sucesso',
+            data: updated
+        })
+    } catch (error) {
+        console.error('Erro ao atualizar agendamento:', error)
+        return NextResponse.json(
+            { success: false, message: 'Erro ao atualizar agendamento' },
+            { status: 500 }
+        )
+    }
+}
+
+// DELETE - Excluir agendamento permanentemente
+export async function DELETE(
+    request: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await getServerSession(authOptions)
+
+        // Verificar autenticação e permissão ADMIN
+        if (!session || session.user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, message: 'Não autorizado' },
+                { status: 401 }
+            )
+        }
+
+        const params = await context.params
+        const id = params.id
+
+        // Verificar se agendamento existe
+        const appointment = await prisma.appointment.findUnique({
+            where: { id },
+            include: {
+                user: true,
+                service: true
+            }
+        })
+
+        if (!appointment) {
+            return NextResponse.json(
+                { success: false, message: 'Agendamento não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        // Excluir agendamento
+        await prisma.appointment.delete({
+            where: { id }
+        })
+
+        return NextResponse.json({
+            success: true,
+            message: 'Agendamento excluído com sucesso',
+            data: {
+                id: appointment.id,
+                userName: appointment.user.name,
+                serviceName: appointment.service.name,
+                date: appointment.date,
+                time: appointment.time
+            }
+        })
+    } catch (error) {
+        console.error('Erro ao excluir agendamento:', error)
+        return NextResponse.json(
+            { success: false, message: 'Erro ao excluir agendamento' },
             { status: 500 }
         )
     }
