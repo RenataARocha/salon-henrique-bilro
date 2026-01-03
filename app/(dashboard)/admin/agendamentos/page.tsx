@@ -1,9 +1,8 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Filter, X, Search } from 'lucide-react'
+import { Filter, X, Search, CheckSquare, Square } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
-import AppointmentDetailsModal from '@/components/admin/AppointmentDetailsModal'
 
 type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
 
@@ -39,10 +38,177 @@ interface Appointment {
 
 type SortOption = 'date-asc' | 'date-desc' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc'
 
+// Componente de Barra de Ações em Massa
+function BulkActionsBar({
+    selectedCount,
+    onConfirm,
+    onCancel,
+    onComplete,
+    onNoShow,
+    onClearSelection
+}: {
+    selectedCount: number
+    onConfirm: () => void
+    onCancel: () => void
+    onComplete: () => void
+    onNoShow: () => void
+    onClearSelection: () => void
+}) {
+    if (selectedCount === 0) return null
+
+    return (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-charcoal text-white rounded-2xl shadow-2xl p-6 z-50 min-w-[600px] animate-slide-up">
+            <div className="flex items-center justify-between gap-6">
+                <div className="flex items-center gap-3">
+                    <div className="bg-gold rounded-full w-10 h-10 flex items-center justify-center font-bold">
+                        {selectedCount}
+                    </div>
+                    <span className="font-semibold">
+                        {selectedCount} {selectedCount === 1 ? 'agendamento selecionado' : 'agendamentos selecionados'}
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={onConfirm}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors"
+                        title="Confirmar selecionados"
+                    >
+                        ✅ Confirmar
+                    </button>
+                    <button
+                        onClick={onComplete}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors"
+                        title="Concluir selecionados"
+                    >
+                        🎉 Concluir
+                    </button>
+                    <button
+                        onClick={onNoShow}
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg font-semibold transition-colors"
+                        title="Marcar como não compareceu"
+                    >
+                        🚫 Não Compareceu
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition-colors"
+                        title="Cancelar selecionados"
+                    >
+                        ❌ Cancelar
+                    </button>
+                    <button
+                        onClick={onClearSelection}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-800 rounded-lg font-semibold transition-colors"
+                        title="Limpar seleção"
+                    >
+                        <X size={20} />
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// Modal de Detalhes Simplificado
+function AppointmentDetailsModal({
+    appointment,
+    onClose,
+    getStatusColor,
+    getStatusLabel
+}: {
+    appointment: Appointment
+    onClose: () => void
+    getStatusColor: (status: string) => string
+    getStatusLabel: (status: string) => string
+}) {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6 border-b">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-2xl font-bold text-charcoal">Detalhes do Agendamento</h2>
+                        <button
+                            onClick={onClose}
+                            className="text-gray-400 hover:text-gray-600"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                </div>
+                <div className="p-6">
+                    <div className="space-y-6">
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Cliente</p>
+                                <p className="font-semibold text-charcoal text-lg">{appointment.user.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Status</p>
+                                <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(appointment.status)}`}>
+                                    {getStatusLabel(appointment.status)}
+                                </span>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Telefone</p>
+                                <p className="font-semibold text-charcoal">{appointment.user.phone}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Email</p>
+                                <p className="font-semibold text-charcoal">{appointment.user.email}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Serviço</p>
+                                <p className="font-semibold text-charcoal">{appointment.service.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Valor</p>
+                                <p className="font-semibold text-gold text-xl">R$ {appointment.service.price.toFixed(2)}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Data</p>
+                                <p className="font-semibold text-charcoal">
+                                    {new Date(appointment.date).toLocaleDateString('pt-BR')}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Horário</p>
+                                <p className="font-semibold text-charcoal">{appointment.time}</p>
+                            </div>
+                            {appointment.paymentMethod && (
+                                <div>
+                                    <p className="text-sm text-gray-500 mb-1">Pagamento</p>
+                                    <p className="font-semibold text-charcoal">{appointment.paymentMethod}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {appointment.notes && (
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Observações</p>
+                                <p className="text-charcoal bg-gray-50 p-3 rounded-lg">{appointment.notes}</p>
+                            </div>
+                        )}
+
+                        {appointment.justification && (
+                            <div>
+                                <p className="text-sm text-gray-500 mb-1">Justificativa</p>
+                                <p className="text-charcoal bg-gray-50 p-3 rounded-lg">{appointment.justification}</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// Componente Principal
 export default function AdminAgendamentosPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [services, setServices] = useState<Service[]>([])
     const [loading, setLoading] = useState(true)
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
     // Filtros
     const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -126,7 +292,60 @@ export default function AdminAgendamentosPage() {
         return count
     }
 
-    // UseMemo para forçar re-render quando sortBy mudar
+    // Funções de Seleção
+    const toggleSelection = (id: string) => {
+        const newSelected = new Set(selectedIds)
+        if (newSelected.has(id)) {
+            newSelected.delete(id)
+        } else {
+            newSelected.add(id)
+        }
+        setSelectedIds(newSelected)
+    }
+
+    const toggleSelectAll = () => {
+        if (selectedIds.size === filteredAppointments.length) {
+            setSelectedIds(new Set())
+        } else {
+            setSelectedIds(new Set(filteredAppointments.map(apt => apt.id)))
+        }
+    }
+
+    const clearSelection = () => {
+        setSelectedIds(new Set())
+    }
+
+    // Ações em Massa
+    const handleBulkAction = async (action: AppointmentStatus) => {
+        if (selectedIds.size === 0) return
+
+        const confirmMessage = `Deseja realmente ${action === 'CONFIRMED' ? 'confirmar' :
+                action === 'COMPLETED' ? 'concluir' :
+                    action === 'NO_SHOW' ? 'marcar como não compareceu' :
+                        'cancelar'
+            } ${selectedIds.size} agendamento(s)?`
+
+        if (!confirm(confirmMessage)) return
+
+        try {
+            const promises = Array.from(selectedIds).map(id =>
+                fetch(`/api/admin/appointments/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: action })
+                })
+            )
+
+            await Promise.all(promises)
+            await fetchAppointments()
+            setSelectedIds(new Set())
+            alert(`${selectedIds.size} agendamento(s) atualizado(s) com sucesso!`)
+        } catch (error) {
+            console.error('Erro ao realizar ação em massa:', error)
+            alert('Erro ao atualizar agendamentos')
+        }
+    }
+
     const filteredAppointments = useMemo(() => {
         const now = new Date()
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -201,7 +420,6 @@ export default function AdminAgendamentosPage() {
             return true
         })
 
-        // Ordenação
         const sorted = [...filtered].sort((a, b) => {
             switch (sortBy) {
                 case 'date-asc': {
@@ -264,6 +482,7 @@ export default function AdminAgendamentosPage() {
     }
 
     const activeFiltersCount = getActiveFiltersCount()
+    const selectedAppointment = appointments.find(a => a.id === selectedAppointmentId)
 
     if (loading) {
         return (
@@ -281,8 +500,9 @@ export default function AdminAgendamentosPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
+        <div className="min-h-screen bg-beige py-8 px-4 pb-32">
             <div className="max-w-7xl mx-auto space-y-8">
+                {/* Header */}
                 <AdminHeader
                     title="Agendamentos"
                     description="Gerencie todos os agendamentos do salão"
@@ -356,7 +576,6 @@ export default function AdminAgendamentosPage() {
                             </div>
 
                             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {/* Filtro de Serviços */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Serviços ({selectedServices.length})
@@ -380,7 +599,6 @@ export default function AdminAgendamentosPage() {
                                     </div>
                                 </div>
 
-                                {/* Filtro de Período do Dia */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Período do Dia
@@ -404,7 +622,6 @@ export default function AdminAgendamentosPage() {
                                     </div>
                                 </div>
 
-                                {/* Filtro de Pagamento */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Forma de Pagamento
@@ -474,8 +691,8 @@ export default function AdminAgendamentosPage() {
                                 key={filter.value}
                                 onClick={() => setFilterPeriod(filter.value as 'today' | 'week' | 'month' | 'all')}
                                 className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterPeriod === filter.value
-                                    ? 'bg-gradient-gold text-white shadow-lg'
-                                    : 'bg-beige text-charcoal hover:shadow-md'
+                                        ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
+                                        : 'bg-beige text-charcoal hover:shadow-md'
                                     }`}
                             >
                                 {filter.icon} {filter.label}
@@ -498,8 +715,8 @@ export default function AdminAgendamentosPage() {
                             key={filter.value}
                             onClick={() => setFilterStatus(filter.value)}
                             className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
-                                ? 'bg-gradient-gold text-white shadow-lg'
-                                : 'bg-white text-charcoal hover:shadow-md'
+                                    ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
+                                    : 'bg-white text-charcoal hover:shadow-md'
                                 }`}
                         >
                             {filter.icon} {filter.label}
@@ -507,48 +724,87 @@ export default function AdminAgendamentosPage() {
                     ))}
                 </div>
 
-                {/* Lista */}
+                {/* Lista com Checkboxes */}
                 {filteredAppointments.length > 0 ? (
-                    <div className="grid gap-4">
-                        {filteredAppointments.map((apt) => (
+                    <>
+                        {/* Botão Selecionar Todos - ACIMA DA LISTA */}
+                        <div className="flex justify-between items-center">
+                            <p className="text-gray-600">
+                                {filteredAppointments.length} {filteredAppointments.length === 1 ? 'agendamento encontrado' : 'agendamentos encontrados'}
+                            </p>
+                            <button
+                                onClick={toggleSelectAll}
+                                className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border-2 border-gold hover:bg-gold hover:text-white transition-colors font-semibold"
+                            >
+                                {selectedIds.size === filteredAppointments.length ? (
+                                    <><CheckSquare size={20} /> Desmarcar Todos</>
+                                ) : (
+                                    <><Square size={20} /> Selecionar Todos</>
+                                )}
+                            </button>
+                        </div>
+
+                        <div className="grid gap-4">{filteredAppointments.map((apt) => (
                             <div
                                 key={apt.id}
-                                className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer"
-                                onClick={() => setSelectedAppointmentId(apt.id)}
+                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
+                                    }`}
                             >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <h3 className="text-xl font-bold text-charcoal">{apt.user.name}</h3>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
-                                                {getStatusLabel(apt.status)}
-                                            </span>
+                                <div className="flex items-start gap-4">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            toggleSelection(apt.id)
+                                        }}
+                                        className="mt-1 flex-shrink-0"
+                                    >
+                                        {selectedIds.has(apt.id) ? (
+                                            <CheckSquare size={24} className="text-gold" />
+                                        ) : (
+                                            <Square size={24} className="text-gray-400 hover:text-gold" />
+                                        )}
+                                    </button>
+
+                                    <div
+                                        className="flex-1 cursor-pointer"
+                                        onClick={() => setSelectedAppointmentId(apt.id)}
+                                    >
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-3">
+                                                    <h3 className="text-xl font-bold text-charcoal">{apt.user.name}</h3>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
+                                                        {getStatusLabel(apt.status)}
+                                                    </span>
+                                                </div>
+                                                <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                                    <div>
+                                                        <p className="text-gray-500 mb-1">Serviço</p>
+                                                        <p className="font-semibold text-charcoal">{apt.service.name}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-gray-500 mb-1">Data e Hora</p>
+                                                        <p className="font-semibold text-charcoal">
+                                                            {new Date(apt.date).toLocaleDateString('pt-BR')} às {apt.time}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-gray-500 mb-1">Contato</p>
+                                                        <p className="font-semibold text-charcoal">{apt.user.phone}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-2xl font-bold text-gold">R$ {apt.service.price.toFixed(2)}</p>
+                                                <p className="text-sm text-gray-500">{apt.service.duration} min</p>
+                                            </div>
                                         </div>
-                                        <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                            <div>
-                                                <p className="text-gray-500 mb-1">Serviço</p>
-                                                <p className="font-semibold text-charcoal">{apt.service.name}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 mb-1">Data e Hora</p>
-                                                <p className="font-semibold text-charcoal">
-                                                    {new Date(apt.date).toLocaleDateString('pt-BR')} às {apt.time}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-gray-500 mb-1">Contato</p>
-                                                <p className="font-semibold text-charcoal">{apt.user.phone}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-2xl font-bold text-gold">R$ {apt.service.price.toFixed(2)}</p>
-                                        <p className="text-sm text-gray-500">{apt.service.duration} min</p>
                                     </div>
                                 </div>
                             </div>
                         ))}
-                    </div>
+                        </div>
+                    </>
                 ) : (
                     <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                         <p className="text-6xl mb-4">📭</p>
@@ -562,7 +818,7 @@ export default function AdminAgendamentosPage() {
                         {activeFiltersCount > 0 && (
                             <button
                                 onClick={clearAllFilters}
-                                className="mt-4 text-gold hover:text-gold-dark font-semibold"
+                                className="mt-4 text-gold hover:text-yellow-600 font-semibold"
                             >
                                 Limpar todos os filtros
                             </button>
@@ -570,14 +826,83 @@ export default function AdminAgendamentosPage() {
                     </div>
                 )}
 
-                {selectedAppointmentId && (
+                {/* Modal de Detalhes */}
+                {selectedAppointment && (
                     <AppointmentDetailsModal
-                        appointmentId={selectedAppointmentId}
+                        appointment={selectedAppointment}
                         onClose={() => setSelectedAppointmentId(null)}
-                        onUpdate={fetchAppointments}
+                        getStatusColor={getStatusColor}
+                        getStatusLabel={getStatusLabel}
                     />
                 )}
+
+                {/* Barra de Ações em Massa */}
+                <BulkActionsBar
+                    selectedCount={selectedIds.size}
+                    onConfirm={() => handleBulkAction('CONFIRMED')}
+                    onCancel={() => handleBulkAction('CANCELLED')}
+                    onComplete={() => handleBulkAction('COMPLETED')}
+                    onNoShow={() => handleBulkAction('NO_SHOW')}
+                    onClearSelection={clearSelection}
+                />
             </div>
+
+            <style jsx global>{`
+                @keyframes slide-up {
+                    from {
+                        transform: translate(-50%, 100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translate(-50%, 0);
+                        opacity: 1;
+                    }
+                }
+
+                .animate-slide-up {
+                    animation: slide-up 0.3s ease-out;
+                }
+
+                .text-gold {
+                    color: #D4AF37;
+                }
+
+                .bg-gold {
+                    background-color: #D4AF37;
+                }
+
+                .border-gold {
+                    border-color: #D4AF37;
+                }
+
+                .ring-gold {
+                    --tw-ring-color: #D4AF37;
+                }
+
+                .hover\:text-gold:hover {
+                    color: #D4AF37;
+                }
+
+                .hover\:bg-gold:hover {
+                    background-color: #D4AF37;
+                }
+
+                .focus\:ring-gold:focus {
+                    --tw-ring-color: #D4AF37;
+                }
+
+                .text-charcoal {
+                    color: #2C2C2C;
+                }
+
+                .bg-charcoal {
+                    background-color: #2C2C2C;
+                }
+
+                .bg-beige {
+                    background-color: #F5F5DC;
+                }
+            `}</style>
         </div>
     )
 }
