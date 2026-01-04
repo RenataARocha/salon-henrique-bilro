@@ -133,8 +133,6 @@ export default function RelatoriosPage() {
                             Excel/CSV
                         </button>
                     </div>
-
-
                 </div>
 
                 {/* Filtros */}
@@ -171,8 +169,8 @@ export default function RelatoriosPage() {
                                     key={opt.value}
                                     onClick={() => setPeriod(opt.value as any)}
                                     className={`px-4 py-2 rounded-lg font-semibold transition-all ${period === opt.value
-                                        ? 'bg-gold text-white'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            ? 'bg-gold text-white'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
                                     {opt.label}
@@ -234,7 +232,7 @@ export default function RelatoriosPage() {
                             <XAxis dataKey={period === 'daily' ? 'date' : period === 'weekly' ? 'week' : 'month'} />
                             <YAxis />
                             <Tooltip
-                                formatter={(value: number) => `R$ ${value.toFixed(2)}`}
+                                formatter={(value: number | undefined) => value ? `R$ ${value.toFixed(2)}` : 'R$ 0.00'}
                                 labelStyle={{ color: '#2C2C2C' }}
                             />
                             <Legend />
@@ -305,7 +303,7 @@ export default function RelatoriosPage() {
                                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
-                                <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
+                                <Tooltip formatter={(value: number | undefined) => value ? `R$ ${value.toFixed(2)}` : 'R$ 0.00'} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
