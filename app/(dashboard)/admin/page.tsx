@@ -3,7 +3,7 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { Calendar, Users, Settings, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle } from 'lucide-react'
+import { Calendar, Users, Settings, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminDashboard() {
@@ -23,6 +23,13 @@ export default function AdminDashboard() {
             icon: DollarSign,
             href: '/admin/financeiro',
             color: 'bg-emerald-500'
+        },
+        {
+            title: 'Relatórios',
+            description: 'Analytics completo e exportação de dados',
+            icon: BarChart3,
+            href: '/admin/relatorios',
+            color: 'bg-cyan-500'
         },
         {
             title: 'Clientes',

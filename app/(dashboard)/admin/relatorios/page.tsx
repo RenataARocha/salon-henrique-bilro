@@ -133,6 +133,8 @@ export default function RelatoriosPage() {
                             Excel/CSV
                         </button>
                     </div>
+
+
                 </div>
 
                 {/* Filtros */}
@@ -169,8 +171,8 @@ export default function RelatoriosPage() {
                                     key={opt.value}
                                     onClick={() => setPeriod(opt.value as any)}
                                     className={`px-4 py-2 rounded-lg font-semibold transition-all ${period === opt.value
-                                            ? 'bg-gold text-white'
-                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                        ? 'bg-gold text-white'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
                                     {opt.label}

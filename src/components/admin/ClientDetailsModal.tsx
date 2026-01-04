@@ -1,422 +1,443 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { Search, X, Filter, UserPlus, TrendingUp, Calendar, DollarSign, Star } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Calendar, DollarSign, TrendingUp, Star, Edit, Save, MessageCircle, Award } from 'lucide-react'
 
-interface Client {
-    id: string
-    name: string
-    email: string
-    phone: string
-    birthDate: string | null
-    image: string | null
-    createdAt: string
+interface ClientDetails {
+    client: {
+        id: string
+        name: string
+        email: string
+        phone: string
+        birthDate: string | null
+        image: string | null
+        createdAt: string
+    }
     stats: {
         totalAppointments: number
+        completedAppointments: number
+        cancelledAppointments: number
+        noShowAppointments: number
+        pendingAppointments: number
         totalSpent: number
         avgTicket: number
+        attendanceRate: number
+        avgRating: number
         lastAppointment: string | null
         daysSinceLastAppointment: number | null
-        favoriteService: string | null
-        attendanceRate: number
+        topServices: Array<{
+            name: string
+            count: number
+            revenue: number
+        }>
     }
-    segments: {
-        isVIP: boolean
-        isNew: boolean
-        isInactive: boolean
-        isBirthdayThisMonth: boolean
-    }
+    appointments: Array<{
+        id: string
+        date: string
+        time: string
+        status: string
+        finalPrice: number
+        service: {
+            name: string
+            price: number
+        }
+    }>
+    reviews: Array<{
+        id: string
+        rating: number
+        comment: string
+        createdAt: string
+        service: {
+            name: string
+        }
+    }>
 }
 
-type SortOption = 'name-asc' | 'name-desc' | 'visits-asc' | 'visits-desc' | 'spent-asc' | 'spent-desc' | 'recent-asc' | 'recent-desc'
-
-export default function ClientesPage() {
-    const [clients, setClients] = useState<Client[]>([])
+export default function ClientDetailsModal({
+    clientId,
+    onClose
+}: {
+    clientId: string
+    onClose: () => void
+}) {
+    const [data, setData] = useState<ClientDetails | null>(null)
     const [loading, setLoading] = useState(true)
-    const [searchTerm, setSearchTerm] = useState('')
-    const [sortBy, setSortBy] = useState<SortOption>('name-asc')
-    const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
-    const [showFilters, setShowFilters] = useState(false)
-
-    // Filtros avançados
-    const [filterByVisits, setFilterByVisits] = useState<'all' | 'new' | 'regular' | 'vip'>('all')
-    const [filterByStatus, setFilterByStatus] = useState<'all' | 'active' | 'inactive'>('all')
+    const [isEditing, setIsEditing] = useState(false)
+    const [editForm, setEditForm] = useState({
+        name: '',
+        email: '',
+        phone: '',
+        birthDate: ''
+    })
 
     useEffect(() => {
-        fetchClients()
-    }, [])
+        fetchClientDetails()
+    }, [clientId])
 
-    const fetchClients = async () => {
+    const fetchClientDetails = async () => {
         try {
             setLoading(true)
-            const res = await fetch('/api/admin/clients')
-            const data = await res.json()
+            const res = await fetch(`/api/admin/clients/${clientId}`)
+            const response = await res.json()
 
-            if (data.success) {
-                setClients(data.data)
+            if (response.success) {
+                setData(response.data)
+                setEditForm({
+                    name: response.data.client.name,
+                    email: response.data.client.email,
+                    phone: response.data.client.phone,
+                    birthDate: response.data.client.birthDate || ''
+                })
             }
         } catch (error) {
-            console.error('Erro ao buscar clientes:', error)
+            console.error('Erro ao buscar detalhes do cliente:', error)
         } finally {
             setLoading(false)
         }
     }
 
-    const filteredClients = useMemo(() => {
-        const filtered = clients.filter(client => {
-            // Busca por nome, email ou telefone
-            if (searchTerm) {
-                const search = searchTerm.toLowerCase()
-                const matchName = client.name.toLowerCase().includes(search)
-                const matchEmail = client.email.toLowerCase().includes(search)
-                const matchPhone = client.phone.includes(search)
+    const handleSave = async () => {
+        try {
+            const res = await fetch(`/api/admin/clients/${clientId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editForm)
+            })
 
-                if (!matchName && !matchEmail && !matchPhone) {
-                    return false
-                }
+            if (res.ok) {
+                await fetchClientDetails()
+                setIsEditing(false)
+                alert('Cliente atualizado com sucesso!')
             }
-
-            // Filtro por número de visitas
-            if (filterByVisits !== 'all') {
-                if (filterByVisits === 'new' && !client.segments.isNew) return false
-                if (filterByVisits === 'regular' && (client.segments.isNew || client.segments.isVIP)) return false
-                if (filterByVisits === 'vip' && !client.segments.isVIP) return false
-            }
-
-            // Filtro por status (ativo/inativo)
-            if (filterByStatus !== 'all') {
-                if (filterByStatus === 'active' && client.segments.isInactive) return false
-                if (filterByStatus === 'inactive' && !client.segments.isInactive) return false
-            }
-
-            return true
-        })
-
-        // Ordenação
-        filtered.sort((a, b) => {
-            switch (sortBy) {
-                case 'name-asc':
-                    return a.name.localeCompare(b.name)
-                case 'name-desc':
-                    return b.name.localeCompare(a.name)
-                case 'visits-asc':
-                    return a.stats.totalAppointments - b.stats.totalAppointments
-                case 'visits-desc':
-                    return b.stats.totalAppointments - a.stats.totalAppointments
-                case 'spent-asc':
-                    return a.stats.totalSpent - b.stats.totalSpent
-                case 'spent-desc':
-                    return b.stats.totalSpent - a.stats.totalSpent
-                case 'recent-asc':
-                    return new Date(a.stats.lastAppointment || 0).getTime() - new Date(b.stats.lastAppointment || 0).getTime()
-                case 'recent-desc':
-                    return new Date(b.stats.lastAppointment || 0).getTime() - new Date(a.stats.lastAppointment || 0).getTime()
-                default:
-                    return 0
-            }
-        })
-
-        return filtered
-    }, [clients, searchTerm, sortBy, filterByVisits, filterByStatus])
-
-    const stats = useMemo(() => ({
-        total: clients.length,
-        new: clients.filter(c => c._count.appointments <= 1).length,
-        regular: clients.filter(c => c._count.appointments > 1 && c._count.appointments <= 10).length,
-        vip: clients.filter(c => c._count.appointments > 10).length,
-        totalRevenue: clients.reduce((sum, c) => sum + (c.stats?.totalSpent || 0), 0),
-        averageSpent: clients.length > 0
-            ? clients.reduce((sum, c) => sum + (c.stats?.totalSpent || 0), 0) / clients.length
-            : 0
-    }), [clients])
-
-    const getClientBadge = (client: Client) => {
-        if (client.segments.isVIP) return { label: '👑 VIP', color: 'bg-purple-100 text-purple-700' }
-        if (client.segments.isNew) return { label: '🆕 Novo', color: 'bg-blue-100 text-blue-700' }
-        return { label: '⭐ Regular', color: 'bg-green-100 text-green-700' }
+        } catch (error) {
+            console.error('Erro ao atualizar cliente:', error)
+            alert('Erro ao atualizar cliente')
+        }
     }
 
-    const clearFilters = () => {
-        setSearchTerm('')
-        setFilterByVisits('all')
-        setFilterByStatus('all')
-        setSortBy('name-asc')
+    const getStatusColor = (status: string) => {
+        const colors: Record<string, string> = {
+            CONFIRMED: 'bg-green-100 text-green-700',
+            PENDING: 'bg-orange-100 text-orange-700',
+            CANCELLED: 'bg-red-100 text-red-700',
+            COMPLETED: 'bg-blue-100 text-blue-700',
+            NO_SHOW: 'bg-gray-100 text-gray-700'
+        }
+        return colors[status] || 'bg-gray-100 text-gray-700'
+    }
+
+    const getStatusLabel = (status: string) => {
+        const labels: Record<string, string> = {
+            CONFIRMED: 'Confirmado',
+            PENDING: 'Pendente',
+            CANCELLED: 'Cancelado',
+            COMPLETED: 'Concluído',
+            NO_SHOW: 'Não Compareceu'
+        }
+        return labels[status] || status
     }
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-beige py-8 px-4">
-                <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-center py-20">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-                            <p className="text-gray-600">Carregando clientes...</p>
-                        </div>
-                    </div>
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl p-8 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
+                    <p className="text-gray-600">Carregando...</p>
                 </div>
             </div>
         )
     }
 
+    if (!data) return null
+
+    const { client, stats, appointments, reviews } = data
+    const clientAge = client.birthDate
+        ? Math.floor((new Date().getTime() - new Date(client.birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365))
+        : null
+
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-5xl w-full my-8">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-charcoal mb-2">👥 Clientes</h1>
-                        <p className="text-gray-600">Gerencie todos os clientes do salão</p>
-                    </div>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold to-yellow-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
-                        <UserPlus size={20} />
-                        Novo Cliente
-                    </button>
-                </div>
-
-                {/* Estatísticas */}
-                <div className="grid md:grid-cols-6 gap-4">
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Total de Clientes</p>
-                        <p className="text-3xl font-bold text-charcoal">{stats.total}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Novos</p>
-                        <p className="text-3xl font-bold text-blue-600">{stats.new}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Regulares</p>
-                        <p className="text-3xl font-bold text-green-600">{stats.regular}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">VIP</p>
-                        <p className="text-3xl font-bold text-purple-600">{stats.vip}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Receita Total</p>
-                        <p className="text-2xl font-bold text-gold">R$ {stats.totalRevenue.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Ticket Médio</p>
-                        <p className="text-2xl font-bold text-gold">R$ {stats.averageSpent.toFixed(2)}</p>
-                    </div>
-                </div>
-
-                {/* Barra de Busca e Filtros */}
-                <div className="bg-white rounded-xl p-4 shadow space-y-4">
-                    <div className="flex gap-3">
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                            <input
-                                type="text"
-                                placeholder="🔍 Buscar por nome, email ou telefone..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
-                            />
-                            {searchTerm && (
-                                <button
-                                    onClick={() => setSearchTerm('')}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                >
-                                    <X size={20} />
-                                </button>
-                            )}
-                        </div>
-
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${showFilters ? 'bg-gold text-white border-gold' : 'hover:bg-gray-50'
-                                }`}
-                        >
-                            <Filter size={20} />
-                            Filtros
-                        </button>
-
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as SortOption)}
-                            className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
-                        >
-                            <option value="name-asc">Nome A-Z</option>
-                            <option value="name-desc">Nome Z-A</option>
-                            <option value="visits-desc">Mais Visitas</option>
-                            <option value="visits-asc">Menos Visitas</option>
-                            <option value="spent-desc">Maior Gasto</option>
-                            <option value="spent-asc">Menor Gasto</option>
-                            <option value="recent-desc">Mais Recente</option>
-                            <option value="recent-asc">Menos Recente</option>
-                        </select>
-                    </div>
-
-                    {/* Filtros Avançados */}
-                    {showFilters && (
-                        <div className="border-t pt-4 space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-charcoal">Filtros Avançados</h3>
-                                <button
-                                    onClick={clearFilters}
-                                    className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
-                                >
-                                    <X size={16} />
-                                    Limpar Todos
-                                </button>
+                <div className="p-6 border-b bg-gradient-to-r from-gold to-yellow-600 text-white rounded-t-2xl">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="w-20 h-20 rounded-full bg-white text-gold flex items-center justify-center text-3xl font-bold">
+                                {client.name.charAt(0).toUpperCase()}
                             </div>
+                            <div>
+                                <h2 className="text-2xl font-bold">{client.name}</h2>
+                                <p className="text-white/80">Cliente desde {new Date(client.createdAt).toLocaleDateString('pt-BR')}</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={onClose}
+                            className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                </div>
 
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Tipo de Cliente
-                                    </label>
-                                    <div className="flex gap-2">
-                                        {[
-                                            { value: 'all', label: 'Todos' },
-                                            { value: 'new', label: '🆕 Novos' },
-                                            { value: 'regular', label: '⭐ Regulares' },
-                                            { value: 'vip', label: '👑 VIP' }
-                                        ].map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => setFilterByVisits(option.value as any)}
-                                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterByVisits === option.value
-                                                        ? 'bg-gold text-white'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                    }`}
-                                            >
-                                                {option.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                <div className="p-6 max-h-[70vh] overflow-y-auto">
+                    {/* Estatísticas Principais */}
+                    <div className="grid md:grid-cols-4 gap-4 mb-8">
+                        <div className="bg-blue-50 rounded-xl p-4 text-center">
+                            <Calendar className="mx-auto mb-2 text-blue-600" size={24} />
+                            <p className="text-sm text-gray-600 mb-1">Total de Visitas</p>
+                            <p className="text-2xl font-bold text-blue-600">{stats.completedAppointments}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {stats.pendingAppointments} pendentes
+                            </p>
+                        </div>
+                        <div className="bg-green-50 rounded-xl p-4 text-center">
+                            <DollarSign className="mx-auto mb-2 text-green-600" size={24} />
+                            <p className="text-sm text-gray-600 mb-1">Total Gasto</p>
+                            <p className="text-2xl font-bold text-green-600">R$ {stats.totalSpent.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                Ticket: R$ {stats.avgTicket.toFixed(2)}
+                            </p>
+                        </div>
+                        <div className="bg-purple-50 rounded-xl p-4 text-center">
+                            <TrendingUp className="mx-auto mb-2 text-purple-600" size={24} />
+                            <p className="text-sm text-gray-600 mb-1">Taxa de Comparecimento</p>
+                            <p className="text-2xl font-bold text-purple-600">{stats.attendanceRate.toFixed(1)}%</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {stats.noShowAppointments} faltas
+                            </p>
+                        </div>
+                        <div className="bg-yellow-50 rounded-xl p-4 text-center">
+                            <Star className="mx-auto mb-2 text-yellow-600" size={24} />
+                            <p className="text-sm text-gray-600 mb-1">Avaliação Média</p>
+                            <p className="text-2xl font-bold text-yellow-600">
+                                {stats.avgRating > 0 ? stats.avgRating.toFixed(1) : 'N/A'} ⭐
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                                {reviews.length} avaliações
+                            </p>
+                        </div>
+                    </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Status de Atividade
-                                    </label>
-                                    <div className="flex gap-2">
-                                        {[
-                                            { value: 'all', label: 'Todos' },
-                                            { value: 'active', label: '✅ Ativos' },
-                                            { value: 'inactive', label: '💤 Inativos' }
-                                        ].map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => setFilterByStatus(option.value as any)}
-                                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterByStatus === option.value
-                                                        ? 'bg-gold text-white'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                    }`}
-                                            >
-                                                {option.label}
-                                            </button>
-                                        ))}
+                    {/* Top Serviços */}
+                    {stats.topServices.length > 0 && (
+                        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-6 mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Award className="text-purple-600" size={24} />
+                                <h3 className="text-lg font-bold text-charcoal">Serviços Favoritos</h3>
+                            </div>
+                            <div className="space-y-3">
+                                {stats.topServices.slice(0, 3).map((service, index) => (
+                                    <div key={index} className="flex items-center justify-between bg-white rounded-lg p-3">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl">{index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}</span>
+                                            <div>
+                                                <p className="font-semibold text-charcoal">{service.name}</p>
+                                                <p className="text-sm text-gray-600">{service.count} vezes</p>
+                                            </div>
+                                        </div>
+                                        <p className="font-bold text-gold">R$ {service.revenue.toFixed(2)}</p>
                                     </div>
-                                </div>
+                                ))}
                             </div>
                         </div>
                     )}
-                </div>
-
-                {/* Lista de Clientes */}
-                {filteredClients.length > 0 ? (
-                    <div className="grid gap-4">
-                        <p className="text-gray-600">
-                            {filteredClients.length} {filteredClients.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
-                        </p>
-
-                        {filteredClients.map((client) => {
-                            const badge = getClientBadge(client._count.appointments)
-                            return (
-                                <div
-                                    key={client.id}
-                                    className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer"
-                                    onClick={() => setSelectedClientId(client.id)}
+                    {/* Informações Pessoais */}
+                    <div className="bg-gray-50 rounded-xl p-6 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-bold text-charcoal">Informações Pessoais</h3>
+                            {!isEditing ? (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gold text-white rounded-lg hover:bg-yellow-600 transition-colors"
                                 >
-                                    <div className="flex items-start gap-4">
-                                        {/* Avatar */}
-                                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-gold to-yellow-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
-                                            {client.name.charAt(0).toUpperCase()}
-                                        </div>
+                                    <Edit size={16} />
+                                    Editar
+                                </button>
+                            ) : (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleSave}
+                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                        <Save size={16} />
+                                        Salvar
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setIsEditing(false)
+                                            setEditForm({
+                                                name: client.name,
+                                                email: client.email,
+                                                phone: client.phone,
+                                                birthDate: client.birthDate || ''
+                                            })
+                                        }}
+                                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            )}
+                        </div>
 
-                                        {/* Informações */}
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="text-xl font-bold text-charcoal">{client.name}</h3>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color}`}>
-                                                    {badge.label}
-                                                </span>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                                {isEditing ? (
+                                    <input
+                                        type="text"
+                                        value={editForm.name}
+                                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                                    />
+                                ) : (
+                                    <p className="text-charcoal font-semibold">{client.name}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                {isEditing ? (
+                                    <input
+                                        type="email"
+                                        value={editForm.email}
+                                        onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                                    />
+                                ) : (
+                                    <p className="text-charcoal font-semibold">{client.email}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Telefone</label>
+                                {isEditing ? (
+                                    <input
+                                        type="tel"
+                                        value={editForm.phone}
+                                        onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                                    />
+                                ) : (
+                                    <p className="text-charcoal font-semibold">{client.phone}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Data de Nascimento</label>
+                                {isEditing ? (
+                                    <input
+                                        type="date"
+                                        value={editForm.birthDate}
+                                        onChange={(e) => setEditForm({ ...editForm, birthDate: e.target.value })}
+                                        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-gold"
+                                    />
+                                ) : (
+                                    <p className="text-charcoal font-semibold">
+                                        {client.birthDate
+                                            ? `${new Date(client.birthDate).toLocaleDateString('pt-BR')} (${clientAge} anos)`
+                                            : 'Não informado'}
+                                    </p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Última Visita</label>
+                                <p className="text-charcoal font-semibold">
+                                    {stats.lastAppointment
+                                        ? `${new Date(stats.lastAppointment).toLocaleDateString('pt-BR')} (${stats.daysSinceLastAppointment} dias atrás)`
+                                        : 'Nunca'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Avaliações */}
+                    {reviews.length > 0 && (
+                        <div className="mb-6">
+                            <h3 className="text-lg font-bold text-charcoal mb-4 flex items-center gap-2">
+                                <Star className="text-yellow-600" size={20} />
+                                Avaliações ({reviews.length})
+                            </h3>
+                            <div className="space-y-3 max-h-60 overflow-y-auto">
+                                {reviews.map((review) => (
+                                    <div key={review.id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-semibold text-charcoal">{review.service.name}</span>
+                                            <div className="flex items-center gap-1">
+                                                {[...Array(5)].map((_, i) => (
+                                                    <Star
+                                                        key={i}
+                                                        size={16}
+                                                        className={i < review.rating ? 'fill-yellow-500 text-yellow-500' : 'text-gray-300'}
+                                                    />
+                                                ))}
                                             </div>
+                                        </div>
+                                        {review.comment && (
+                                            <p className="text-sm text-gray-700 mb-2">"{review.comment}"</p>
+                                        )}
+                                        <p className="text-xs text-gray-500">
+                                            {new Date(review.createdAt).toLocaleDateString('pt-BR')}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
-                                            <div className="grid md:grid-cols-4 gap-4 text-sm">
-                                                <div>
-                                                    <p className="text-gray-500 mb-1">Contato</p>
-                                                    <p className="font-semibold text-charcoal">{client.phone}</p>
-                                                    <p className="text-gray-600 text-xs">{client.email}</p>
+                    {/* Histórico de Agendamentos */}
+                    <div>
+                        <h3 className="text-lg font-bold text-charcoal mb-4">
+                            Histórico de Agendamentos ({appointments.length})
+                        </h3>
+
+                        {appointments.length > 0 ? (
+                            <div className="space-y-3 max-h-96 overflow-y-auto">
+                                {appointments.map((apt) => (
+                                    <div key={apt.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <p className="font-semibold text-charcoal">{apt.service.name}</p>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
+                                                        {getStatusLabel(apt.status)}
+                                                    </span>
                                                 </div>
-                                                <div>
-                                                    <p className="text-gray-500 mb-1">Total de Visitas</p>
-                                                    <p className="font-semibold text-charcoal">{client._count.appointments} agendamentos</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-gray-500 mb-1">Total Gasto</p>
-                                                    <p className="font-semibold text-gold">R$ {(client.stats?.totalSpent || 0).toFixed(2)}</p>
-                                                </div>
-                                                <div>
-                                                    <p className="text-gray-500 mb-1">Última Visita</p>
-                                                    <p className="font-semibold text-charcoal">
-                                                        {client.stats?.lastVisit
-                                                            ? new Date(client.stats.lastVisit).toLocaleDateString('pt-BR')
-                                                            : 'Nunca'}
-                                                    </p>
+                                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                    <span>📅 {new Date(apt.date).toLocaleDateString('pt-BR')}</span>
+                                                    <span>🕐 {apt.time}</span>
+                                                    <span className="font-semibold text-gold">
+                                                        R$ {(apt.finalPrice || apt.service.price).toFixed(2)}
+                                                    </span>
                                                 </div>
                                             </div>
-                                        </div>
-
-                                        {/* Ações Rápidas */}
-                                        <div className="flex flex-col gap-2">
-                                            <button className="px-4 py-2 bg-gold text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-semibold">
-                                                Ver Detalhes
-                                            </button>
-                                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold">
-                                                Novo Agendamento
-                                            </button>
                                         </div>
                                     </div>
-                                </div>
-                            )
-                        })}
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                <p className="text-gray-500">Nenhum agendamento encontrado</p>
+                            </div>
+                        )}
                     </div>
-                ) : (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <p className="text-6xl mb-4">👥</p>
-                        <h3 className="text-2xl font-bold text-charcoal mb-2">Nenhum cliente encontrado</h3>
-                        <p className="text-gray-600">
-                            {searchTerm
-                                ? `Nenhum resultado para "${searchTerm}"`
-                                : 'Não há clientes cadastrados ainda'
-                            }
-                        </p>
-                        <button
-                            onClick={clearFilters}
-                            className="mt-4 text-gold hover:text-yellow-600 font-semibold"
-                        >
-                            Limpar filtros
-                        </button>
-                    </div>
-                )}
+                </div>
+
+                {/* Footer com ações */}
+                <div className="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-between">
+                    <button className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                        <MessageCircle size={20} />
+                        Enviar WhatsApp
+                    </button>
+                    <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+                        <Calendar size={20} />
+                        Novo Agendamento
+                    </button>
+                </div>
             </div>
 
             <style jsx global>{`
-                .text-gold { color: #D4AF37; }
-                .bg-gold { background-color: #D4AF37; }
-                .border-gold { border-color: #D4AF37; }
-                .ring-gold { --tw-ring-color: #D4AF37; }
-                .hover\\:text-gold:hover { color: #D4AF37; }
-                .hover\\:bg-gold:hover { background-color: #D4AF37; }
-                .focus\\:ring-gold:focus { --tw-ring-color: #D4AF37; }
-                .text-charcoal { color: #2C2C2C; }
-                .bg-charcoal { background-color: #2C2C2C; }
-                .bg-beige { background-color: #F5F5DC; }
-            `}</style>
+            .text-gold { color: #D4AF37; }
+            .bg-gold { background-color: #D4AF37; }
+            .text-charcoal { color: #2C2C2C; }
+        `}</style>
         </div>
     )
 }
