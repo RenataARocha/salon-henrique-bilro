@@ -1,12 +1,15 @@
-// app/api/auth/forgot-password/route.ts - COM RESEND
+// app/api/auth/forgot-password/route.ts - COM FILA OTIMIZADA
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ADMIN_CREDENTIALS } from '@/lib/admin-auth'
 import crypto from 'crypto'
-import { sendPasswordResetEmail } from '@/lib/email'
+import { queuePasswordResetEmail } from '@/lib/email/emailQueue'
+import { checkRateLimit } from '@/lib/redis'
 
 export async function POST(request: Request) {
+    const startTime = Date.now()
+
     try {
         const { email } = await request.json()
 
@@ -17,8 +20,10 @@ export async function POST(request: Request) {
             )
         }
 
+        const normalizedEmail = email.toLowerCase().trim()
+
         // ⛔ BLOQUEAR SE FOR EMAIL DO ADMIN
-        if (email === ADMIN_CREDENTIALS.email) {
+        if (normalizedEmail === ADMIN_CREDENTIALS.email.toLowerCase()) {
             return NextResponse.json(
                 {
                     success: false,
@@ -28,22 +33,57 @@ export async function POST(request: Request) {
             )
         }
 
+        // ============================================
+        // 1. RATE LIMITING (Prevenir abuso)
+        // ============================================
+        const rateLimitKey = `forgot-password:${normalizedEmail}`
+        const { allowed, remaining } = await checkRateLimit(
+            rateLimitKey,
+            3, // Máximo 3 tentativas
+            300 // Em 5 minutos (300 segundos)
+        )
 
-        // Buscar usuário
+        if (!allowed) {
+            console.warn(`⚠️ Rate limit atingido para: ${normalizedEmail}`)
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: 'Muitas tentativas. Tente novamente em alguns minutos.',
+                },
+                { status: 429 }
+            )
+        }
+
+        console.log(`🔍 Buscando usuário: ${normalizedEmail} (${remaining} tentativas restantes)`)
+
+        // ============================================
+        // 2. BUSCAR USUÁRIO
+        // ============================================
         const user = await prisma.user.findUnique({
-            where: { email: email.toLowerCase().trim() }
+            where: { email: normalizedEmail },
+            select: { id: true, name: true, email: true },
         })
 
         // IMPORTANTE: Sempre retornar sucesso (segurança)
-        // Não revelar se o email existe ou não
+        const responseMessage = 'Se o email existir, você receberá instruções para redefinir sua senha.'
+
+        // Se usuário não existe, retornar sucesso mas não fazer nada
         if (!user) {
+            const responseTime = Date.now() - startTime
+            console.log(`⚠️ Email não encontrado: ${normalizedEmail} (${responseTime}ms)`)
+
+            // Adicionar delay artificial para evitar timing attack
+            await new Promise(resolve => setTimeout(resolve, 500))
+
             return NextResponse.json({
                 success: true,
-                message: 'Se o email existir, você receberá instruções para redefinir sua senha.'
+                message: responseMessage
             })
         }
 
-        // Invalidar tokens anteriores deste usuário
+        // ============================================
+        // 3. INVALIDAR TOKENS ANTERIORES
+        // ============================================
         await prisma.passwordReset.updateMany({
             where: {
                 userId: user.id,
@@ -57,34 +97,43 @@ export async function POST(request: Request) {
             }
         })
 
-        // Gerar token único
+        // ============================================
+        // 4. GERAR NOVO TOKEN
+        // ============================================
         const token = crypto.randomBytes(32).toString('hex')
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000) // 1 hora
 
-        // Criar registro de reset (válido por 1 hora)
         await prisma.passwordReset.create({
             data: {
                 token,
                 userId: user.id,
-                expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hora
+                expiresAt
             }
         })
 
-        // URL de reset
+        console.log(`🔑 Token gerado para ${normalizedEmail}`)
+
+        // ============================================
+        // 5. ADICIONAR EMAIL À FILA (Não esperar)
+        // ============================================
         const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
 
-        // Enviar email
-        const emailResult = await sendPasswordResetEmail({
-            to: user.email,
-            name: user.name,
-            resetUrl
+        // Adicionar à fila de forma assíncrona (não bloqueia resposta)
+        queuePasswordResetEmail({
+            email: user.email,
+            resetUrl,
+            userName: user.name,
+        }).catch((error) => {
+            // Log do erro mas não falhar a requisição
+            console.error('❌ Erro ao adicionar email à fila:', error)
         })
 
-        if (!emailResult.success) {
-            console.error('Falha ao enviar email, mas não revelar ao usuário')
-            // Mesmo com falha no email, retornar sucesso por segurança
-        }
+        const totalTime = Date.now() - startTime
+        console.log(`✅ Solicitação processada em ${totalTime}ms para ${normalizedEmail}`)
 
-        // Log no console (desenvolvimento)
+        // ============================================
+        // 6. LOG DE DESENVOLVIMENTO
+        // ============================================
         if (process.env.NODE_ENV === 'development') {
             console.log('='.repeat(60))
             console.log('🔐 RESET DE SENHA (DEV MODE)')
@@ -93,27 +142,35 @@ export async function POST(request: Request) {
             console.log(`Nome: ${user.name}`)
             console.log(`Link: ${resetUrl}`)
             console.log(`Token: ${token}`)
-            console.log(`Email enviado: ${emailResult.success ? '✅ Sim' : '❌ Não'}`)
+            console.log(`Tempo total: ${totalTime}ms`)
             console.log('='.repeat(60))
         }
 
+        // ============================================
+        // 7. RETORNAR RESPOSTA IMEDIATA
+        // ============================================
         return NextResponse.json({
             success: true,
-            message: 'Se o email existir, você receberá instruções para redefinir sua senha.',
-            // REMOVER ISSO EM PRODUÇÃO (apenas para desenvolvimento):
+            message: responseMessage,
+            // APENAS EM DESENVOLVIMENTO - Link direto para testes
             ...(process.env.NODE_ENV === 'development' && {
                 devOnly: {
                     resetUrl,
                     token,
-                    emailSent: emailResult.success
-                }
-            })
+                    note: 'Este link é apenas para desenvolvimento. Remover em produção.',
+                },
+            }),
         })
 
-    } catch (error) {
-        console.error('Erro ao solicitar reset de senha:', error)
+    } catch (error: any) {
+        const errorTime = Date.now() - startTime
+        console.error(`❌ Erro em forgot-password (${errorTime}ms):`, error)
+
         return NextResponse.json(
-            { success: false, error: 'Erro ao processar solicitação' },
+            {
+                success: false,
+                error: 'Erro ao processar solicitação',
+            },
             { status: 500 }
         )
     }

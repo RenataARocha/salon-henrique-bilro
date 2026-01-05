@@ -94,7 +94,7 @@ export default function ServiceCard({
 
                 <SmartBookingButton
                     variant="button"
-                    className="w-full bg-gradient-gold text-white py-3 rounded-md font-semibold hover:shadow-lg transition-all duration-200"
+                    className="w-full bg-gradient-gold text-white py-3 rounded-md font-semibold hover:shadow-lg transition-all duration-200 cursor-pointer"
                 >
                     Agendar Agora
                 </SmartBookingButton>

@@ -64,7 +64,7 @@ export default function Home() {
             <div className="text-center mt-12">
               <SmartBookingButton
                 variant="link"
-                className="inline-block bg-gradient-gold text-white px-8 py-3 rounded-md hover:shadow-lg transition-all font-semibold"
+                className="inline-block bg-gradient-gold text-white px-8 py-3 rounded-md hover:shadow-lg transition-all font-semibold cursor-pointer"
               >
                 Ver Todos os Serviços
               </SmartBookingButton>

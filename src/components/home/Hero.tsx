@@ -19,7 +19,7 @@ export default function Hero() {
                     >
                         Agendar Agora
                     </SmartBookingButton>
-                    <a href="#servicos" className="bg-transparent border-2 border-gold text-gold px-10 py-4 rounded-md hover-bg-gold hover:text-white transition-all text-lg font-semibold">
+                    <a href="#servicos" className="bg-transparent border-2 border-gold text-gold px-10 py-4 rounded-md hover-bg-gold hover:text-white transition-all text-lg font-semibold cursor-pointer">
                         Ver Serviços
                     </a>
                 </div>
