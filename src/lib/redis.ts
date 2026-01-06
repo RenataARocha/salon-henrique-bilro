@@ -7,21 +7,39 @@ let redisClient: Redis | null = null
 
 export function getRedisClient(): Redis {
     if (!redisClient) {
-        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
+        // Configuração para Upstash (precisa de TLS)
+        const host = process.env.REDIS_HOST || 'localhost'
+        const port = parseInt(process.env.REDIS_PORT || '6379')
+        const password = process.env.REDIS_PASSWORD
 
-        redisClient = new Redis(redisUrl, {
-            maxRetriesPerRequest: 3,
-            enableReadyCheck: true,
-            // Para Upstash ou Redis Cloud, use TLS:
-            // tls: process.env.NODE_ENV === 'production' ? {} : undefined,
+        redisClient = new Redis({
+            host,
+            port,
+            password,
+            maxRetriesPerRequest: null, // IMPORTANTE: null para BullMQ
+            enableReadyCheck: false,
+            // TLS é obrigatório para Upstash
+            tls: host.includes('upstash.io') ? {} : undefined,
+            // Não tentar reconectar infinitamente
+            retryStrategy: (times) => {
+                if (times > 3) {
+                    console.error('❌ Redis: Máximo de tentativas atingido')
+                    return null // Para de tentar
+                }
+                return Math.min(times * 200, 2000) // Espera crescente
+            },
         })
 
         redisClient.on('error', (err) => {
-            console.error('❌ Redis Client Error:', err)
+            console.error('❌ Redis Client Error:', err.message)
         })
 
         redisClient.on('connect', () => {
             console.log('✅ Redis Connected')
+        })
+
+        redisClient.on('ready', () => {
+            console.log('✅ Redis Ready')
         })
     }
 

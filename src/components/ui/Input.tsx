@@ -2,20 +2,22 @@
 
 'use client'
 
-import { InputHTMLAttributes, forwardRef, useState } from 'react'
+import { InputHTMLAttributes, forwardRef, useState, ReactNode } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
     label?: string
     error?: string
     helperText?: string
+    icon?: ReactNode
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-    ({ label, error, helperText, className = '', type = 'text', ...props }, ref) => {
+    ({ label, error, helperText, icon, className = '', type = 'text', ...props }, ref) => {
         const [showPassword, setShowPassword] = useState(false)
         const isPasswordField = type === 'password'
         const inputType = isPasswordField && showPassword ? 'text' : type
+        const hasIcon = !!icon
 
         return (
             <div className="w-full">
@@ -30,6 +32,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                 )}
 
                 <div className="relative">
+                    {/* Ícone à esquerda (se fornecido) */}
+                    {icon && !isPasswordField && (
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                            {icon}
+                        </div>
+                    )}
+
                     <input
                         ref={ref}
                         type={inputType}
@@ -42,12 +51,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
                                 ? 'border-red-500 bg-red-50'
                                 : 'border-gray-300 bg-white hover:border-gray-400'
                             }
+                            ${hasIcon && !isPasswordField ? 'pl-10' : ''}
                             ${isPasswordField ? 'pr-12' : ''}
                             ${className}
                         `}
                         {...props}
                     />
 
+                    {/* Toggle de senha (apenas para password) */}
                     {isPasswordField && (
                         <button
                             type="button"

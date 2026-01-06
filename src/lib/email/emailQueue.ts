@@ -1,6 +1,6 @@
-// lib/email/emailQueue.ts
+// src/lib/email/emailQueue.ts - VERSÃO BULLMQ (compatível Next.js)
 
-import Bull, { Queue, Job } from 'bull'
+import { Queue, Worker, Job } from 'bullmq'
 import { sendPasswordResetEmail } from './resend'
 
 // Tipos de jobs de email
@@ -12,108 +12,160 @@ export interface PasswordResetEmailJob {
 
 export type EmailJob = PasswordResetEmailJob
 
-// Criar fila de emails
+// Configuração de conexão Redis
+const connection = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    // TLS obrigatório para Upstash
+    tls: process.env.REDIS_HOST?.includes('upstash.io') ? {} : undefined,
+    maxRetriesPerRequest: null, // IMPORTANTE para BullMQ
+}
+
+// Fila de emails
 let emailQueue: Queue<EmailJob> | null = null
+let emailWorker: Worker<EmailJob> | null = null
 
 export function getEmailQueue(): Queue<EmailJob> {
     if (!emailQueue) {
-        const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379'
-
-        emailQueue = new Bull<EmailJob>('email-queue', redisUrl, {
+        emailQueue = new Queue<EmailJob>('email-queue', {
+            connection,
             defaultJobOptions: {
-                attempts: 3, // Tentar 3 vezes em caso de falha
+                attempts: 3,
                 backoff: {
                     type: 'exponential',
-                    delay: 2000, // 2s, 4s, 8s
+                    delay: 2000,
                 },
-                removeOnComplete: 100, // Manter últimos 100 jobs completos
-                removeOnFail: 500, // Manter últimos 500 jobs com falha
+                removeOnComplete: {
+                    count: 100,
+                },
+                removeOnFail: {
+                    count: 500,
+                },
             },
         })
 
-        // Processar jobs da fila
-        emailQueue.process(async (job: Job<EmailJob>) => {
-            const startTime = Date.now()
-            console.log(`📧 Processando email job #${job.id}`)
-
-            try {
-                // Identificar tipo de email e enviar
-                const jobData = job.data as PasswordResetEmailJob
-
-                await sendPasswordResetEmail({
-                    to: jobData.email,
-                    resetUrl: jobData.resetUrl,
-                    userName: jobData.userName,
-                })
-
-                const duration = Date.now() - startTime
-                console.log(`✅ Email enviado com sucesso em ${duration}ms - Job #${job.id}`)
-
-                return { success: true, duration }
-            } catch (error) {
-                const duration = Date.now() - startTime
-                console.error(`❌ Erro ao enviar email - Job #${job.id}:`, error)
-                console.error(`⏱️ Falha após ${duration}ms`)
-
-                throw error // Re-lançar para Bull tentar novamente
-            }
-        })
-
-        // Event listeners para monitoramento
-        emailQueue.on('completed', (job, result) => {
-            console.log(`✅ Job #${job.id} completado:`, result)
-        })
-
-        emailQueue.on('failed', (job, err) => {
-            console.error(`❌ Job #${job?.id} falhou após todas tentativas:`, err.message)
-        })
-
-        emailQueue.on('error', (error) => {
-            console.error('❌ Erro na fila de emails:', error)
-        })
-
-        console.log('✅ Fila de emails inicializada')
+        console.log('✅ Fila de emails inicializada (BullMQ)')
     }
 
     return emailQueue
 }
 
+// Worker para processar jobs (só no servidor)
+export function getEmailWorker(): Worker<EmailJob> {
+    if (!emailWorker) {
+        emailWorker = new Worker<EmailJob>(
+            'email-queue',
+            async (job: Job<EmailJob>) => {
+                const startTime = Date.now()
+                console.log(`📧 Processando email job #${job.id}`)
+
+                try {
+                    const jobData = job.data
+
+                    await sendPasswordResetEmail({
+                        to: jobData.email,
+                        resetUrl: jobData.resetUrl,
+                        userName: jobData.userName,
+                    })
+
+                    const duration = Date.now() - startTime
+                    console.log(`✅ Email enviado com sucesso em ${duration}ms - Job #${job.id}`)
+
+                    return { success: true, duration }
+                } catch (error) {
+                    const duration = Date.now() - startTime
+                    console.error(`❌ Erro ao enviar email - Job #${job.id}:`, error)
+                    console.error(`⏱️ Falha após ${duration}ms`)
+
+                    throw error
+                }
+            },
+            { connection }
+        )
+
+        // Event listeners
+        emailWorker.on('completed', (job) => {
+            console.log(`✅ Job #${job.id} completado`)
+        })
+
+        emailWorker.on('failed', (job, err) => {
+            console.error(`❌ Job #${job?.id} falhou:`, err.message)
+        })
+
+        console.log('✅ Worker de emails inicializado')
+    }
+
+    return emailWorker
+}
+
 // Adicionar email à fila
 export async function queuePasswordResetEmail(data: PasswordResetEmailJob) {
-    const queue = getEmailQueue()
+    try {
+        const queue = getEmailQueue()
 
-    const job = await queue.add(data, {
-        priority: 1, // Alta prioridade
-        jobId: `reset-${data.email}-${Date.now()}`, // ID único
-    })
+        const job = await queue.add('password-reset', data, {
+            priority: 1,
+            jobId: `reset-${data.email}-${Date.now()}`,
+        })
 
-    console.log(`📬 Email de reset adicionado à fila - Job #${job.id}`)
+        console.log(`📬 Email de reset adicionado à fila - Job #${job.id}`)
 
-    return job.id
+        // Iniciar worker se não estiver rodando
+        if (!emailWorker) {
+            getEmailWorker()
+        }
+
+        return job.id
+    } catch (error) {
+        console.error('❌ Erro ao adicionar job à fila:', error)
+        throw error
+    }
 }
 
 // Verificar status de um job
 export async function getJobStatus(jobId: string) {
-    const queue = getEmailQueue()
-    const job = await queue.getJob(jobId)
+    try {
+        const queue = getEmailQueue()
+        const job = await queue.getJob(jobId)
 
-    if (!job) {
-        return { status: 'not_found' }
-    }
+        if (!job) {
+            return { status: 'not_found' }
+        }
 
-    const state = await job.getState()
+        const state = await job.getState()
 
-    return {
-        status: state,
-        progress: job.progress(),
-        attempts: job.attemptsMade,
-        data: job.data,
+        return {
+            status: state,
+            progress: job.progress,
+            attempts: job.attemptsMade,
+            data: job.data,
+        }
+    } catch (error) {
+        console.error('Erro ao buscar status do job:', error)
+        return { status: 'error' }
     }
 }
 
-// Limpar fila (útil para desenvolvimento)
+// Limpar fila (desenvolvimento)
 export async function clearQueue() {
-    const queue = getEmailQueue()
-    await queue.empty()
-    console.log('🗑️ Fila de emails limpa')
+    try {
+        const queue = getEmailQueue()
+        await queue.obliterate({ force: true })
+        console.log('🗑️ Fila de emails limpa')
+    } catch (error) {
+        console.error('Erro ao limpar fila:', error)
+    }
+}
+
+// Fechar conexões (cleanup)
+export async function closeQueue() {
+    if (emailQueue) {
+        await emailQueue.close()
+        emailQueue = null
+    }
+    if (emailWorker) {
+        await emailWorker.close()
+        emailWorker = null
+    }
 }
