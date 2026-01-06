@@ -1,5 +1,4 @@
 // src/components/SmartBookingButton.tsx
-// Botão que redireciona para /agendar se logado, ou /register se não logado
 
 'use client'
 
@@ -9,40 +8,42 @@ import { ReactNode } from 'react'
 
 interface SmartBookingButtonProps {
     children: ReactNode
+    variant?: 'button' | 'link'
     className?: string
-    variant?: 'link' | 'button'
 }
 
 export default function SmartBookingButton({
     children,
+    variant = 'button',
     className = '',
-    variant = 'button'
 }: SmartBookingButtonProps) {
     const { data: session, status } = useSession()
     const router = useRouter()
 
-    const handleClick = (e: React.MouseEvent) => {
-        e.preventDefault()
-
+    const handleClick = () => {
+        // Se está carregando, não faz nada
         if (status === 'loading') {
-            return // Aguarda carregar
+            return
         }
 
-        // Se estiver logado, vai para agendar
-        // Se não, vai para cadastro
-        const destination = session ? '/agendar' : '/register'
-        router.push(destination)
+        // Se está logado, vai para agendamento
+        if (session) {
+            router.push('/agendar')
+        } else {
+            // Se NÃO está logado, vai para login
+            router.push('/login')
+        }
     }
 
     if (variant === 'link') {
         return (
-            <a
-                href="#"
+            <button
                 onClick={handleClick}
                 className={className}
+                disabled={status === 'loading'}
             >
-                {children}
-            </a>
+                {status === 'loading' ? 'Carregando...' : children}
+            </button>
         )
     }
 
@@ -50,8 +51,9 @@ export default function SmartBookingButton({
         <button
             onClick={handleClick}
             className={className}
+            disabled={status === 'loading'}
         >
-            {children}
+            {status === 'loading' ? 'Carregando...' : children}
         </button>
     )
 }

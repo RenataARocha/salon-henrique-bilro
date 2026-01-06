@@ -1,83 +1,28 @@
-// app/page.tsx - Home completa com Carrossel
+// app/page.tsx - Server Component (sem 'use client')
 
-'use client'
+import { prisma } from '@/lib/prisma'
+import HomeClient from '@/components/home/HomeClient'
 
-import Navbar from '@/components/NavBar'
-import Hero from '@/components/home/Hero'
-import Features from '@/components/home/Feactures'
-import About from '@/components/home/About'
-import Location from '@/components/home/Location'
-import ReviewsCarousel from '@/components/home/ReviewsCarousel'
-import CTA from '@/components/home/CTA'
-import ServiceCard from '@/components/ServiceCard'
-import SmartBookingButton from '@/components/SmartBookingButton'
+export default async function Home() {
+  // Buscar serviços REAIS do banco de dados (Server Side)
+  const services = await prisma.service.findMany({
+    where: {
+      active: true, // Apenas serviços ativos
+    },
+    orderBy: {
+      createdAt: 'desc', // Mais recentes primeiro
+    },
+    take: 3, // Pegar apenas 3 para mostrar na home
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      price: true,
+      duration: true,
+      images: true,
+    },
+  })
 
-export default function Home() {
-  return (
-    <>
-      <Navbar />
-
-      <div className="h-20" />
-
-      <main className="min-h-screen bg-beige">
-
-        <Hero />
-        <Features />
-        <About />
-
-        {/* SEÇÃO — Serviços (única) */}
-        <section id="servicos" className="py-20 bg-beige">
-          <div className="max-w-7xl mx-auto px-4">
-            <h2 className="text-4xl md:text-5xl font-bold text-center mb-4 text-charcoal">
-              Nossos Serviços
-            </h2>
-            <p className="text-center text-gray-600 mb-12 text-lg">
-              Conheça nossos serviços em destaque
-            </p>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <ServiceCard
-                name="Loiro Milhões"
-                description="Loiro radiante e luminoso"
-                price={580}
-                duration={180}
-                images={['https://images.unsplash.com/photo-1560869713-7d0a29430803?w=600']}
-              />
-
-              <ServiceCard
-                name="Iluminados"
-                description="Loiros ou morenas iluminadas"
-                price={480}
-                duration={150}
-                images={['https://images.unsplash.com/photo-1562322140-8baeececf3df?w=600']}
-              />
-
-              <ServiceCard
-                name="Corte Feminino"
-                description="Corte completo com finalização"
-                price={120}
-                duration={60}
-                images={['https://images.unsplash.com/photo-1580618672591-eb180b1a973f?w=600']}
-              />
-            </div>
-
-            <div className="text-center mt-12">
-              <SmartBookingButton
-                variant="link"
-                className="inline-block bg-gradient-gold text-white px-8 py-3 rounded-md hover:shadow-lg transition-all font-semibold cursor-pointer"
-              >
-                Ver Todos os Serviços
-              </SmartBookingButton>
-            </div>
-          </div>
-        </section>
-
-        {/* 🆕 CARROSSEL DE AVALIAÇÕES */}
-        <ReviewsCarousel />
-
-        <Location />
-        <CTA />
-      </main>
-    </>
-  )
+  // Passar dados para componente Client
+  return <HomeClient services={services} />
 }
