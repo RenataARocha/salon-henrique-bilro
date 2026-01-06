@@ -1,11 +1,36 @@
-// app/api/auth/forgot-password/route.ts - COM FILA OTIMIZADA
+// app/api/auth/forgot-password/route.ts - COM FALLBACK PARA PRODUÇÃO
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ADMIN_CREDENTIALS } from '@/lib/admin-auth'
 import crypto from 'crypto'
-import { queuePasswordResetEmail } from '@/lib/email/emailQueue'
-import { checkRateLimit } from '@/lib/redis'
+
+// Importar funções com try/catch para evitar erro em produção
+let queuePasswordResetEmail: any = null
+let checkRateLimit: any = null
+let sendPasswordResetEmail: any = null
+
+// Tentar importar (funciona local, falha na Vercel)
+try {
+    const emailQueue = require('@/lib/email/emailQueue')
+    queuePasswordResetEmail = emailQueue.queuePasswordResetEmail
+} catch (e) {
+    console.log('⚠️ Fila de emails não disponível (modo produção)')
+}
+
+try {
+    const redis = require('@/lib/redis')
+    checkRateLimit = redis.checkRateLimit
+} catch (e) {
+    console.log('⚠️ Redis não disponível (modo produção)')
+}
+
+try {
+    const resend = require('@/lib/email/resend')
+    sendPasswordResetEmail = resend.sendPasswordResetEmail
+} catch (e) {
+    console.log('⚠️ Resend não disponível')
+}
 
 export async function POST(request: Request) {
     const startTime = Date.now()
@@ -34,27 +59,31 @@ export async function POST(request: Request) {
         }
 
         // ============================================
-        // 1. RATE LIMITING (Prevenir abuso)
+        // 1. RATE LIMITING (Apenas se Redis disponível)
         // ============================================
-        const rateLimitKey = `forgot-password:${normalizedEmail}`
-        const { allowed, remaining } = await checkRateLimit(
-            rateLimitKey,
-            3, // Máximo 3 tentativas
-            300 // Em 5 minutos (300 segundos)
-        )
-
-        if (!allowed) {
-            console.warn(`⚠️ Rate limit atingido para: ${normalizedEmail}`)
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: 'Muitas tentativas. Tente novamente em alguns minutos.',
-                },
-                { status: 429 }
+        if (checkRateLimit) {
+            const rateLimitKey = `forgot-password:${normalizedEmail}`
+            const { allowed, remaining } = await checkRateLimit(
+                rateLimitKey,
+                3,
+                300
             )
-        }
 
-        console.log(`🔍 Buscando usuário: ${normalizedEmail} (${remaining} tentativas restantes)`)
+            if (!allowed) {
+                console.warn(`⚠️ Rate limit atingido para: ${normalizedEmail}`)
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: 'Muitas tentativas. Tente novamente em alguns minutos.',
+                    },
+                    { status: 429 }
+                )
+            }
+
+            console.log(`🔍 Buscando usuário: ${normalizedEmail} (${remaining} tentativas restantes)`)
+        } else {
+            console.log(`🔍 Buscando usuário: ${normalizedEmail} (rate limit desabilitado)`)
+        }
 
         // ============================================
         // 2. BUSCAR USUÁRIO
@@ -64,15 +93,11 @@ export async function POST(request: Request) {
             select: { id: true, name: true, email: true },
         })
 
-        // IMPORTANTE: Sempre retornar sucesso (segurança)
         const responseMessage = 'Se o email existir, você receberá instruções para redefinir sua senha.'
 
-        // Se usuário não existe, retornar sucesso mas não fazer nada
         if (!user) {
             const responseTime = Date.now() - startTime
             console.log(`⚠️ Email não encontrado: ${normalizedEmail} (${responseTime}ms)`)
-
-            // Adicionar delay artificial para evitar timing attack
             await new Promise(resolve => setTimeout(resolve, 500))
 
             return NextResponse.json({
@@ -114,19 +139,38 @@ export async function POST(request: Request) {
         console.log(`🔑 Token gerado para ${normalizedEmail}`)
 
         // ============================================
-        // 5. ADICIONAR EMAIL À FILA (Não esperar)
+        // 5. ENVIAR EMAIL (Fila ou Direto)
         // ============================================
         const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}`
 
-        // Adicionar à fila de forma assíncrona (não bloqueia resposta)
-        queuePasswordResetEmail({
-            email: user.email,
-            resetUrl,
-            userName: user.name,
-        }).catch((error) => {
-            // Log do erro mas não falhar a requisição
-            console.error('❌ Erro ao adicionar email à fila:', error)
-        })
+        // TENTAR USAR FILA (local), FALLBACK PARA ENVIO DIRETO (produção)
+        if (queuePasswordResetEmail) {
+            // Ambiente local com Redis
+            console.log('📬 Usando fila de emails (modo local)')
+            queuePasswordResetEmail({
+                email: user.email,
+                resetUrl,
+                userName: user.name,
+            }).catch((error: any) => {
+                console.error('❌ Erro ao adicionar email à fila:', error)
+            })
+        } else if (sendPasswordResetEmail) {
+            // Ambiente produção sem Redis - envio direto
+            console.log('📧 Enviando email direto (modo produção)')
+            try {
+                await sendPasswordResetEmail({
+                    to: user.email,
+                    resetUrl,
+                    userName: user.name,
+                })
+                console.log('✅ Email enviado com sucesso')
+            } catch (error) {
+                console.error('❌ Erro ao enviar email:', error)
+                // Não falhar a requisição por causa do email
+            }
+        } else {
+            console.warn('⚠️ Nenhum método de envio de email disponível')
+        }
 
         const totalTime = Date.now() - startTime
         console.log(`✅ Solicitação processada em ${totalTime}ms para ${normalizedEmail}`)
@@ -147,17 +191,16 @@ export async function POST(request: Request) {
         }
 
         // ============================================
-        // 7. RETORNAR RESPOSTA IMEDIATA
+        // 7. RETORNAR RESPOSTA
         // ============================================
         return NextResponse.json({
             success: true,
             message: responseMessage,
-            // APENAS EM DESENVOLVIMENTO - Link direto para testes
             ...(process.env.NODE_ENV === 'development' && {
                 devOnly: {
                     resetUrl,
                     token,
-                    note: 'Este link é apenas para desenvolvimento. Remover em produção.',
+                    note: 'Este link é apenas para desenvolvimento.',
                 },
             }),
         })
