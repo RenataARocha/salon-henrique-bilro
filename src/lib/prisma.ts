@@ -1,13 +1,31 @@
-// src/lib/prisma.ts
+// src/lib/prisma.ts - SINGLETON OTIMIZADO PARA VERCEL
 
 import { PrismaClient } from '@prisma/client'
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient }
+// Declaração global para evitar múltiplas instâncias
+declare global {
+    var prisma: PrismaClient | undefined
+}
 
+// Singleton: Criar apenas UMA instância do Prisma
 export const prisma =
-    globalForPrisma.prisma ||
+    global.prisma ||
     new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+        // IMPORTANTE: Configurações para Vercel
+        datasources: {
+            db: {
+                url: process.env.DATABASE_URL,
+            },
+        },
     })
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+// Em desenvolvimento, salvar na variável global para hot-reload
+if (process.env.NODE_ENV !== 'production') {
+    global.prisma = prisma
+}
+
+// Fechar conexões ao finalizar (importante para serverless)
+process.on('beforeExit', async () => {
+    await prisma.$disconnect()
+})
