@@ -11,6 +11,18 @@ export async function GET() {
             },
             orderBy: {
                 price: 'asc'
+            },
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                price: true,
+                duration: true,
+                active: true,
+                images: true,      // ← ADICIONADO
+                featured: true,    // ← ADICIONADO
+                createdAt: true,
+                updatedAt: true,
             }
         })
 

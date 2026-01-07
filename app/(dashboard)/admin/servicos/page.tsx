@@ -12,6 +12,7 @@ import {
     Clock,
     X,
     Image as ImageIcon,
+    Star, // ← ADICIONADO
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -25,6 +26,7 @@ interface Service {
     price: number;
     duration: number;
     active: boolean;
+    featured?: boolean; // ← ADICIONADO
     images?: string[];
 }
 
@@ -133,7 +135,6 @@ export default function AdminServicosPage() {
         showToast("Imagem removida", "info");
     };
 
-    // Substitua a função handleFileUpload por esta:
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
@@ -149,12 +150,11 @@ export default function AdminServicosPage() {
         });
 
         try {
-            setUploadLoading(true); // ← ADICIONAR
+            setUploadLoading(true);
             showToast(
-                `Fazendo upload de ${files.length} ${files.length === 1 ? "imagem" : "imagens"
-                }...`,
+                `Fazendo upload de ${files.length} ${files.length === 1 ? "imagem" : "imagens"}...`,
                 "info"
-            ); // ← ADICIONAR
+            );
 
             const res = await fetch("/api/upload", {
                 method: "POST",
@@ -169,8 +169,7 @@ export default function AdminServicosPage() {
                     images: [...formData.images, ...data.urls],
                 });
                 showToast(
-                    `✅ ${data.urls.length} ${data.urls.length === 1 ? "imagem adicionada" : "imagens adicionadas"
-                    }!`,
+                    `✅ ${data.urls.length} ${data.urls.length === 1 ? "imagem adicionada" : "imagens adicionadas"}!`,
                     "success"
                 );
             } else {
@@ -180,8 +179,7 @@ export default function AdminServicosPage() {
             console.error("Erro:", error);
             showToast("Erro ao fazer upload das imagens", "error");
         } finally {
-            setUploadLoading(false); // ← ADICIONAR
-            // Limpar o input para permitir selecionar os mesmos arquivos novamente
+            setUploadLoading(false);
             e.target.value = "";
         }
     };
@@ -256,6 +254,34 @@ export default function AdminServicosPage() {
         }
     };
 
+    // ← NOVA FUNÇÃO: Toggle Featured
+    const handleToggleFeatured = async (service: Service) => {
+        try {
+            const res = await fetch(`/api/admin/services?id=${service.id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ featured: !service.featured }),
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                showToast(
+                    service.featured
+                        ? "Serviço removido da home"
+                        : "Serviço destacado na home!",
+                    "success"
+                );
+                fetchServices();
+            } else {
+                showToast(data.error || "Erro ao atualizar serviço", "error");
+            }
+        } catch (error) {
+            console.error("Erro:", error);
+            showToast("Erro ao atualizar serviço", "error");
+        }
+    };
+
     const handleDelete = async (id: string) => {
         if (!confirm("Tem certeza que deseja excluir este serviço?")) return;
 
@@ -296,7 +322,6 @@ export default function AdminServicosPage() {
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto space-y-8">
-                {/* Novo Header */}
                 <AdminHeader
                     title="Serviços"
                     description="Gerencie os serviços oferecidos pelo salão"
@@ -315,8 +340,17 @@ export default function AdminServicosPage() {
                             <div
                                 key={service.id}
                                 className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow ${!service.active ? "opacity-60" : ""
+                                    } ${service.featured ? "ring-2 ring-yellow-400" : ""
                                     }`}
                             >
+                                {/* ← Badge de Featured */}
+                                {service.featured && (
+                                    <div className="mb-3 flex items-center gap-2 text-yellow-600 text-sm font-bold">
+                                        <Star size={16} className="fill-yellow-400" />
+                                        <span>Destaque na Home</span>
+                                    </div>
+                                )}
+
                                 {service.images && service.images.length > 0 && (
                                     <div className="mb-4 h-48 rounded-lg overflow-hidden bg-gray-100">
                                         <img
@@ -333,8 +367,8 @@ export default function AdminServicosPage() {
                                     </h3>
                                     <span
                                         className={`px-3 py-1 rounded-full text-xs font-semibold ${service.active
-                                            ? "bg-green-100 text-green-700"
-                                            : "bg-red-100 text-red-700"
+                                                ? "bg-green-100 text-green-700"
+                                                : "bg-red-100 text-red-700"
                                             }`}
                                     >
                                         {service.active ? "Ativo" : "Inativo"}
@@ -362,7 +396,8 @@ export default function AdminServicosPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-2">
+                                {/* ← BOTÕES ATUALIZADOS */}
+                                <div className="flex gap-2 mb-2">
                                     <button
                                         onClick={() => openModal(service)}
                                         className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all flex items-center justify-center gap-1"
@@ -373,8 +408,8 @@ export default function AdminServicosPage() {
                                     <button
                                         onClick={() => handleToggleActive(service)}
                                         className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 ${service.active
-                                            ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                                            : "bg-green-100 text-green-700 hover:bg-green-200"
+                                                ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                                                : "bg-green-100 text-green-700 hover:bg-green-200"
                                             }`}
                                     >
                                         <Power size={16} />
@@ -386,6 +421,18 @@ export default function AdminServicosPage() {
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
+
+                                {/* ← NOVO BOTÃO: Toggle Featured */}
+                                <button
+                                    onClick={() => handleToggleFeatured(service)}
+                                    className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${service.featured
+                                            ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        }`}
+                                >
+                                    <Star size={16} className={service.featured ? "fill-yellow-400" : ""} />
+                                    {service.featured ? "Remover da Home" : "Destacar na Home"}
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -404,6 +451,7 @@ export default function AdminServicosPage() {
                     </div>
                 )}
 
+                {/* MODAL - Mantém igual, já está correto */}
                 {showModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                         <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -479,7 +527,6 @@ export default function AdminServicosPage() {
                                     />
                                 </div>
 
-                                {/* Upload de Imagens */}
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
                                         <ImageIcon size={16} className="inline mr-1" />
@@ -511,11 +558,10 @@ export default function AdminServicosPage() {
                                     )}
 
                                     <div className="space-y-3">
-                                        {/* Botão de Upload */}
                                         <label
                                             className={`w-full px-4 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 font-semibold ${uploadLoading
-                                                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                                : "bg-gold text-white hover:bg-gold-dark"
+                                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                                    : "bg-gold text-white hover:bg-gold-dark"
                                                 }`}
                                         >
                                             <input
@@ -539,7 +585,6 @@ export default function AdminServicosPage() {
                                             )}
                                         </label>
 
-                                        {/* OU URL Manual */}
                                         <div>
                                             <p className="text-xs text-gray-500 text-center mb-2">
                                                 ou cole uma URL
@@ -569,8 +614,7 @@ export default function AdminServicosPage() {
                                     </div>
 
                                     <p className="text-xs text-gray-500 mt-2">
-                                        {formData.images.length}/5 imagens • Você pode adicionar até
-                                        5 imagens
+                                        {formData.images.length}/5 imagens • Você pode adicionar até 5 imagens
                                     </p>
                                 </div>
 
