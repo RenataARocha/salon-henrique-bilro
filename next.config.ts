@@ -22,7 +22,7 @@ const nextConfig: NextConfig = {
     },
   },
 
-  // Config vazio para Turbopack (silencia o warning)
+  // Silenciar warning do Turbopack
   turbopack: {},
 }
 
