@@ -1,4 +1,4 @@
-// app/api/admin/blocked-times/route.ts
+// app/api/admin/blocked-times/route.ts - CORREÇÃO FINAL
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -93,6 +93,18 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        // ✅ CORREÇÃO: Buscar usuário completo do banco para pegar o ID real
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email! }
+        })
+
+        if (!user) {
+            return NextResponse.json(
+                { success: false, message: 'Usuário não encontrado no banco de dados' },
+                { status: 404 }
+            )
+        }
+
         const body = await request.json()
         const {
             type,
@@ -124,13 +136,8 @@ export async function POST(request: NextRequest) {
                 )
             }
         } else {
-            // Bloqueio pontual precisa de data
-            if (!date) {
-                return NextResponse.json(
-                    { success: false, message: 'Data é obrigatória para bloqueios pontuais' },
-                    { status: 400 }
-                )
-            }
+            // ✅ CORREÇÃO: Data é OPCIONAL para bloqueios pontuais
+            // Permite bloquear "qualquer data" se não especificar
         }
 
         // Verificar conflitos com agendamentos existentes
@@ -184,15 +191,15 @@ export async function POST(request: NextRequest) {
             data: {
                 type,
                 date: date ? new Date(date) : null,
-                startTime,
-                endTime,
+                startTime: startTime || null,
+                endTime: endTime || null,
                 dayOfWeek: dayOfWeek !== undefined ? parseInt(dayOfWeek) : null,
                 isRecurring: isRecurring || false,
                 reason,
-                description,
+                description: description || null,
                 startDate: startDate ? new Date(startDate) : null,
                 endDate: endDate ? new Date(endDate) : null,
-                createdBy: session.user.id
+                createdBy: user.id // ✅ CORREÇÃO: Usar user.id do banco, não session.user.id
             },
             include: {
                 creator: {

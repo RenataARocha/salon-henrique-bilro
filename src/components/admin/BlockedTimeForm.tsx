@@ -1,23 +1,39 @@
-// src/components/admin/BlockedTimeForm.tsx 
+// components/admin/BlockedTimeForm.tsx - CORRIGIDO
 
+'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Calendar, Clock, AlertCircle } from 'lucide-react'
+import Button from '@/components/ui/Button'
 
-interface BlockedTimeFormProps {
-    onClose: () => void
-    onSuccess: () => void
-    editData?: any
+interface BlockedTime {
+    id: string
+    type: string
+    date?: string
+    startTime?: string
+    endTime?: string
+    dayOfWeek?: number
+    isRecurring: boolean
+    reason: string
+    description?: string
+    startDate?: string
+    endDate?: string
 }
 
-const BLOCKED_TIME_TYPES = [
-    { value: 'LUNCH_BREAK', label: '🍽️ Horário de Almoço', icon: '🍽️' },
-    { value: 'DAY_OFF', label: '📅 Folga/Descanso', icon: '📅' },
-    { value: 'HOLIDAY', label: '🎉 Feriado', icon: '🎉' },
-    { value: 'VACATION', label: '✈️ Férias', icon: '✈️' },
-    { value: 'MAINTENANCE', label: '🔧 Manutenção', icon: '🔧' },
-    { value: 'SPECIAL_EVENT', label: '📚 Evento Especial', icon: '📚' },
-    { value: 'OTHER', label: '📝 Outro', icon: '📝' }
+interface Props {
+    onClose: () => void
+    onSuccess: () => void
+    editData?: BlockedTime | null
+}
+
+const BLOCK_TYPES = [
+    { value: 'LUNCH_BREAK', label: '🍽️ Horário de Almoço' },
+    { value: 'DAY_OFF', label: '📅 Folga/Descanso' },
+    { value: 'HOLIDAY', label: '🎉 Feriado' },
+    { value: 'VACATION', label: '✈️ Férias' },
+    { value: 'MAINTENANCE', label: '🔧 Manutenção' },
+    { value: 'SPECIAL_EVENT', label: '📚 Evento Especial' },
+    { value: 'OTHER', label: '📝 Outro Motivo' }
 ]
 
 const DAYS_OF_WEEK = [
@@ -30,79 +46,83 @@ const DAYS_OF_WEEK = [
     { value: 6, label: 'Sábado' }
 ]
 
-export default function BlockedTimeForm({ onClose, onSuccess, editData }: BlockedTimeFormProps) {
+export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    const [conflictingAppointments, setConflictingAppointments] = useState<any[]>([])
 
-    const [formData, setFormData] = useState({
-        type: editData?.type || 'DAY_OFF',
-        isRecurring: editData?.isRecurring || false,
-        date: editData?.date ? new Date(editData.date).toISOString().split('T')[0] : '',
-        dayOfWeek: editData?.dayOfWeek ?? '',
-        startTime: editData?.startTime || '',
-        endTime: editData?.endTime || '',
-        reason: editData?.reason || '',
-        description: editData?.description || '',
-        startDate: editData?.startDate ? new Date(editData.startDate).toISOString().split('T')[0] : '',
-        endDate: editData?.endDate ? new Date(editData.endDate).toISOString().split('T')[0] : ''
-    })
+    // Form State
+    const [type, setType] = useState(editData?.type || 'DAY_OFF')
+    const [isRecurring, setIsRecurring] = useState(editData?.isRecurring || false)
+    const [reason, setReason] = useState(editData?.reason || '')
+    const [description, setDescription] = useState(editData?.description || '')
+
+    // Pontual
+    const [date, setDate] = useState(editData?.date?.split('T')[0] || '')
+    const [startTime, setStartTime] = useState(editData?.startTime || '')
+    const [endTime, setEndTime] = useState(editData?.endTime || '')
+
+    // Recorrente
+    const [dayOfWeek, setDayOfWeek] = useState<number>(editData?.dayOfWeek ?? 0)
+    const [recurringStartTime, setRecurringStartTime] = useState(editData?.startTime || '')
+    const [recurringEndTime, setRecurringEndTime] = useState(editData?.endTime || '')
+    const [startDate, setStartDate] = useState(editData?.startDate?.split('T')[0] || '')
+    const [endDate, setEndDate] = useState(editData?.endDate?.split('T')[0] || '')
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
-        setConflictingAppointments([])
 
-        // Validações
-        if (!formData.type || !formData.reason) {
-            setError('Tipo e motivo são obrigatórios')
+        // ✅ VALIDAÇÃO SIMPLIFICADA - Apenas motivo obrigatório
+        if (!reason.trim()) {
+            setError('Por favor, informe o motivo do bloqueio')
             return
         }
 
-        if (formData.isRecurring && formData.dayOfWeek === '') {
-            setError('Selecione o dia da semana para bloqueios recorrentes')
-            return
-        }
-
-        if (!formData.isRecurring && !formData.date) {
-            setError('Selecione a data para bloqueios pontuais')
-            return
-        }
+        setLoading(true)
 
         try {
-            setLoading(true)
+            const payload: any = {
+                type,
+                reason: reason.trim(),
+                description: description.trim() || undefined,
+                isRecurring
+            }
+
+            if (isRecurring) {
+                // Bloqueio Recorrente
+                payload.dayOfWeek = dayOfWeek
+                payload.startTime = recurringStartTime || undefined
+                payload.endTime = recurringEndTime || undefined
+                payload.startDate = startDate || undefined
+                payload.endDate = endDate || undefined
+            } else {
+                // Bloqueio Pontual
+                payload.date = date || undefined
+                payload.startTime = startTime || undefined
+                payload.endTime = endTime || undefined
+            }
 
             const url = editData
                 ? `/api/admin/blocked-times/${editData.id}`
                 : '/api/admin/blocked-times'
 
-            const method = editData ? 'PUT' : 'POST'
-
             const res = await fetch(url, {
-                method,
+                method: editData ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...formData,
-                    dayOfWeek: formData.dayOfWeek !== '' ? parseInt(formData.dayOfWeek) : null
-                })
+                body: JSON.stringify(payload)
             })
 
             const data = await res.json()
 
-            if (!res.ok) {
-                if (data.conflictingAppointments) {
-                    setConflictingAppointments(data.conflictingAppointments)
-                    setError(data.message)
-                } else {
-                    setError(data.message || 'Erro ao salvar bloqueio')
+            if (data.success) {
+                alert(editData ? 'Bloqueio atualizado!' : 'Bloqueio criado!')
+                if (onSuccess) {
+                    onSuccess() // Recarrega a lista
                 }
-                return
+                onClose() // Fecha o modal
+            } else {
+                setError(data.error || 'Erro ao salvar bloqueio')
             }
-
-            alert(editData ? 'Bloqueio atualizado!' : 'Bloqueio criado com sucesso!')
-            onSuccess()
-            onClose()
-
         } catch (err) {
             console.error('Erro:', err)
             setError('Erro ao salvar bloqueio')
@@ -111,273 +131,265 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Blocke
         }
     }
 
-    const handleCancelConflictingAppointments = async () => {
-        if (!confirm(`Deseja cancelar ${conflictingAppointments.length} agendamento(s) conflitante(s)?`)) {
-            return
-        }
-
-        try {
-            setLoading(true)
-
-            // Cancelar cada agendamento
-            for (const apt of conflictingAppointments) {
-                await fetch(`/api/admin/appointments/${apt.id}/update-status`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        status: 'CANCELLED',
-                        cancelReason: `Horário bloqueado: ${formData.reason}`
-                    })
-                })
-            }
-
-            // Tentar criar o bloqueio novamente
-            await handleSubmit(new Event('submit') as any)
-
-        } catch (err) {
-            console.error('Erro ao cancelar agendamentos:', err)
-            setError('Erro ao cancelar agendamentos')
-        } finally {
-            setLoading(false)
-        }
-    }
-
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8">
-                {/* Header */}
-                <div className="bg-gradient-to-r from-gold to-yellow-600 text-white p-6 rounded-t-2xl">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h2 className="text-2xl font-bold mb-2">
-                                {editData ? 'Editar Bloqueio' : 'Novo Bloqueio de Horário'}
-                            </h2>
-                            <p className="text-white/90">Configure horários indisponíveis</p>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
-                        >
-                            <X size={24} />
-                        </button>
+        <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            onClick={onClose}
+        >
+            <div
+                className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* ✅ HEADER FIXO */}
+                <div className="sticky top-0 bg-gradient-gold text-white p-6 rounded-t-2xl flex items-center justify-between shadow-lg z-10">
+                    <div>
+                        <h2 className="text-2xl font-bold">
+                            {editData ? 'Editar Bloqueio' : 'Novo Bloqueio de Horário'}
+                        </h2>
+                        <p className="text-white/90 text-sm mt-1">
+                            Configure horários indisponíveis
+                        </p>
                     </div>
+                    <button
+                        onClick={onClose}
+                        className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                        type="button"
+                    >
+                        <X size={24} />
+                    </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
                     {/* Erro */}
                     {error && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 flex items-start gap-3">
                             <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
-                            <div className="flex-1">
-                                <p className="text-red-800 font-semibold">{error}</p>
-
-                                {conflictingAppointments.length > 0 && (
-                                    <div className="mt-3">
-                                        <p className="text-sm text-red-700 mb-2">
-                                            Agendamentos conflitantes:
-                                        </p>
-                                        <div className="space-y-2">
-                                            {conflictingAppointments.map(apt => (
-                                                <div key={apt.id} className="bg-white rounded p-2 text-sm">
-                                                    <p className="font-semibold">{apt.clientName}</p>
-                                                    <p className="text-gray-600">{apt.serviceName} - {apt.time}</p>
-                                                    <p className="text-gray-500">{apt.clientPhone}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={handleCancelConflictingAppointments}
-                                            className="mt-3 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-                                        >
-                                            Cancelar Agendamentos e Bloquear
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
+                            <p className="text-red-800 text-sm">{error}</p>
                         </div>
                     )}
 
                     {/* Tipo de Bloqueio */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-charcoal mb-2">
                             Tipo de Bloqueio *
                         </label>
                         <select
-                            value={formData.type}
-                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
+                            value={type}
+                            onChange={(e) => setType(e.target.value)}
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
                             required
                         >
-                            {BLOCKED_TIME_TYPES.map(type => (
-                                <option key={type.value} value={type.value}>
-                                    {type.label}
+                            {BLOCK_TYPES.map(t => (
+                                <option key={t.value} value={t.value}>
+                                    {t.label}
                                 </option>
                             ))}
                         </select>
                     </div>
 
-                    {/* Bloqueio Recorrente */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                        <label className="flex items-center gap-3 cursor-pointer">
+                    {/* Recorrente? */}
+                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                        <label className="flex items-start gap-3 cursor-pointer">
                             <input
                                 type="checkbox"
-                                checked={formData.isRecurring}
-                                onChange={(e) => setFormData({
-                                    ...formData,
-                                    isRecurring: e.target.checked,
-                                    date: e.target.checked ? '' : formData.date,
-                                    dayOfWeek: e.target.checked ? formData.dayOfWeek : ''
-                                })}
-                                className="rounded text-gold focus:ring-gold w-5 h-5"
+                                checked={isRecurring}
+                                onChange={(e) => setIsRecurring(e.target.checked)}
+                                className="mt-1 w-5 h-5 text-gold rounded focus:ring-gold"
                             />
                             <div>
-                                <p className="font-semibold text-gray-900">Bloqueio Recorrente</p>
+                                <p className="font-semibold text-charcoal">Bloqueio Recorrente</p>
                                 <p className="text-sm text-gray-600">
-                                    Se repetir toda semana (ex: toda segunda-feira)
+                                    Se repete toda semana no mesmo dia (ex: almoço toda terça-feira)
                                 </p>
                             </div>
                         </label>
                     </div>
 
-                    {/* Data ou Dia da Semana */}
-                    {formData.isRecurring ? (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Dia da Semana *
-                            </label>
-                            <select
-                                value={formData.dayOfWeek}
-                                onChange={(e) => setFormData({ ...formData, dayOfWeek: e.target.value })}
-                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
-                                required
-                            >
-                                <option value="">Selecione o dia</option>
-                                {DAYS_OF_WEEK.map(day => (
-                                    <option key={day.value} value={day.value}>
-                                        {day.label}
-                                    </option>
-                                ))}
-                            </select>
+                    {!isRecurring ? (
+                        // ===== BLOQUEIO PONTUAL =====
+                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                            <h3 className="font-bold text-charcoal flex items-center gap-2">
+                                <Calendar size={20} className="text-gold" />
+                                Bloqueio Pontual (Data Específica)
+                            </h3>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-charcoal mb-2">
+                                    Data (opcional)
+                                </label>
+                                <input
+                                    type="date"
+                                    value={date}
+                                    onChange={(e) => setDate(e.target.value)}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                    Deixe vazio para bloquear o dia inteiro
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Horário Início (opcional)
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={startTime}
+                                        onChange={(e) => setStartTime(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Horário Fim (opcional)
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={endTime}
+                                        onChange={(e) => setEndTime(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                                Deixe vazio para bloquear o dia inteiro (00:00 - 23:59)
+                            </p>
                         </div>
                     ) : (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                <Calendar size={16} className="inline mr-1" />
-                                Data *
-                            </label>
-                            <input
-                                type="date"
-                                value={formData.date}
-                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
-                                required
-                            />
-                        </div>
-                    )}
+                        // ===== BLOQUEIO RECORRENTE =====
+                        <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                            <h3 className="font-bold text-charcoal flex items-center gap-2">
+                                <Clock size={20} className="text-gold" />
+                                Bloqueio Recorrente (Repete Toda Semana)
+                            </h3>
 
-                    {/* Horário */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                <Clock size={16} className="inline mr-1" />
-                                Horário Início
-                            </label>
-                            <input
-                                type="time"
-                                value={formData.startTime}
-                                onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">Deixe vazio para dia todo</p>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Horário Fim
-                            </label>
-                            <input
-                                type="time"
-                                value={formData.endTime}
-                                onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                                className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Período de Validade (para recorrentes) */}
-                    {formData.isRecurring && (
-                        <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Válido de
+                                <label className="block text-sm font-semibold text-charcoal mb-2">
+                                    Dia da Semana *
                                 </label>
-                                <input
-                                    type="date"
-                                    value={formData.startDate}
-                                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
-                                />
+                                <select
+                                    value={dayOfWeek}
+                                    onChange={(e) => setDayOfWeek(Number(e.target.value))}
+                                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                    required
+                                >
+                                    {DAYS_OF_WEEK.map(d => (
+                                        <option key={d.value} value={d.value}>
+                                            {d.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Até
-                                </label>
-                                <input
-                                    type="date"
-                                    value={formData.endDate}
-                                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
-                                />
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Horário Início (opcional)
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={recurringStartTime}
+                                        onChange={(e) => setRecurringStartTime(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Horário Fim (opcional)
+                                    </label>
+                                    <input
+                                        type="time"
+                                        value={recurringEndTime}
+                                        onChange={(e) => setRecurringEndTime(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3">
+                                <p className="text-xs font-semibold text-blue-900 mb-2">
+                                    📅 Período de Validade (opcional)
+                                </p>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs text-blue-800 mb-1">
+                                            Válido de:
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={startDate}
+                                            onChange={(e) => setStartDate(e.target.value)}
+                                            className="w-full px-3 py-2 border-2 border-blue-200 rounded-lg text-sm focus:border-blue-400 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs text-blue-800 mb-1">
+                                            Até:
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={endDate}
+                                            onChange={(e) => setEndDate(e.target.value)}
+                                            className="w-full px-3 py-2 border-2 border-blue-200 rounded-lg text-sm focus:border-blue-400 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                                <p className="text-xs text-blue-700 mt-2">
+                                    Se não preencher, o bloqueio vale para sempre
+                                </p>
                             </div>
                         </div>
                     )}
 
                     {/* Motivo */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-charcoal mb-2">
                             Motivo *
                         </label>
                         <input
                             type="text"
-                            value={formData.reason}
-                            onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                            placeholder="Ex: Horário de almoço, Feriado, Manutenção..."
-                            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
+                            value={reason}
+                            onChange={(e) => setReason(e.target.value)}
+                            placeholder="Ex: Folga, Feriado de Natal, Almoço..."
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
                             required
                         />
                     </div>
 
                     {/* Descrição */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-charcoal mb-2">
                             Descrição (opcional)
                         </label>
                         <textarea
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
                             placeholder="Detalhes adicionais..."
                             rows={3}
-                            className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
+                            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none resize-none"
                         />
                     </div>
 
                     {/* Botões */}
                     <div className="flex gap-3 pt-4 border-t">
-                        <button
+                        <Button
                             type="button"
+                            variant="secondary"
                             onClick={onClose}
-                            className="flex-1 px-6 py-3 border rounded-lg hover:bg-gray-50 font-semibold"
+                            className="flex-1"
                             disabled={loading}
                         >
                             Cancelar
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                             type="submit"
-                            className="flex-1 px-6 py-3 bg-gold text-white rounded-lg hover:bg-gold-dark font-semibold disabled:opacity-50"
+                            variant="primary"
+                            className="flex-1"
                             disabled={loading}
                         >
-                            {loading ? 'Salvando...' : (editData ? 'Atualizar' : 'Criar Bloqueio')}
-                        </button>
+                            {loading ? 'Salvando...' : editData ? 'Atualizar' : 'Criar Bloqueio'}
+                        </Button>
                     </div>
                 </form>
             </div>

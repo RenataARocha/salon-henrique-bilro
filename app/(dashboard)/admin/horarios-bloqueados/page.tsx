@@ -1,5 +1,4 @@
-// app/(dashboard)/admin/horarios-bloqueados/page.tsx 
-
+// app/(dashboard)/admin/horarios-bloqueados/page.tsx - CORRIGIDO
 
 'use client'
 
@@ -92,6 +91,18 @@ export default function BlockedTimesPage() {
         setShowForm(true)
     }
 
+    // ✅ CORREÇÃO: Função para fechar o modal e limpar estado
+    const handleCloseForm = () => {
+        setShowForm(false)
+        setEditingBlock(null)
+    }
+
+    // ✅ CORREÇÃO: Função para quando salvar com sucesso
+    const handleFormSuccess = () => {
+        fetchBlockedTimes() // Recarrega a lista
+        handleCloseForm()   // Fecha o modal
+    }
+
     const filteredBlocks = blockedTimes.filter(block => {
         if (filter === 'recurring') return block.isRecurring
         if (filter === 'punctual') return !block.isRecurring
@@ -139,8 +150,8 @@ export default function BlockedTimesPage() {
                         <button
                             onClick={() => setFilter('all')}
                             className={`px-6 py-3 rounded-lg font-semibold transition-all ${filter === 'all'
-                                    ? 'bg-gradient-gold text-white shadow-lg'
-                                    : 'bg-white text-charcoal hover:shadow-md'
+                                ? 'bg-gradient-gold text-white shadow-lg'
+                                : 'bg-white text-charcoal hover:shadow-md'
                                 }`}
                         >
                             📋 Todos ({blockedTimes.length})
@@ -148,8 +159,8 @@ export default function BlockedTimesPage() {
                         <button
                             onClick={() => setFilter('recurring')}
                             className={`px-6 py-3 rounded-lg font-semibold transition-all ${filter === 'recurring'
-                                    ? 'bg-gradient-gold text-white shadow-lg'
-                                    : 'bg-white text-charcoal hover:shadow-md'
+                                ? 'bg-gradient-gold text-white shadow-lg'
+                                : 'bg-white text-charcoal hover:shadow-md'
                                 }`}
                         >
                             🔄 Recorrentes ({recurringBlocks.length})
@@ -157,8 +168,8 @@ export default function BlockedTimesPage() {
                         <button
                             onClick={() => setFilter('punctual')}
                             className={`px-6 py-3 rounded-lg font-semibold transition-all ${filter === 'punctual'
-                                    ? 'bg-gradient-gold text-white shadow-lg'
-                                    : 'bg-white text-charcoal hover:shadow-md'
+                                ? 'bg-gradient-gold text-white shadow-lg'
+                                : 'bg-white text-charcoal hover:shadow-md'
                                 }`}
                         >
                             📅 Pontuais ({punctualBlocks.length})
@@ -346,14 +357,11 @@ export default function BlockedTimesPage() {
                 )}
             </div>
 
-            {/* Modal Form */}
+            {/* Modal Form - ✅ CORREÇÃO: Passar funções corretas */}
             {showForm && (
                 <BlockedTimeForm
-                    onClose={() => {
-                        setShowForm(false)
-                        setEditingBlock(null)
-                    }}
-                    onSuccess={fetchBlockedTimes}
+                    onClose={handleCloseForm}
+                    onSuccess={handleFormSuccess}
                     editData={editingBlock}
                 />
             )}

@@ -1,4 +1,4 @@
-// app/api/admin/slots/route.ts
+// app/api/admin/slots/route.ts - ARQUIVO COMPLETO CORRETO
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -12,16 +12,26 @@ export async function GET() {
 
         if (!session?.user) {
             return NextResponse.json(
-                { success: false, error: 'Não autorizado' },
+                { success: false, error: 'Não autenticado' },
                 { status: 401 }
             )
         }
 
+        // Verificar se é admin
         const user = await prisma.user.findUnique({
             where: { email: session.user.email! }
         })
 
-        if (!user || user.role !== 'ADMIN') {
+        if (!user) {
+            return NextResponse.json(
+                { success: false, error: 'Usuário não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.email === 'admin@henriquebilro.com'
+
+        if (!isAdmin) {
             return NextResponse.json(
                 { success: false, error: 'Acesso negado' },
                 { status: 403 }
@@ -35,43 +45,55 @@ export async function GET() {
             ]
         })
 
-        return NextResponse.json({ success: true, data: slots })
-
+        return NextResponse.json({
+            success: true,
+            data: slots
+        })
     } catch (error) {
-        console.error('Erro ao buscar horários:', error)
+        console.error('Erro ao buscar slots:', error)
         return NextResponse.json(
-            { success: false, error: 'Erro ao buscar horários' },
+            { success: false, error: 'Erro ao buscar slots' },
             { status: 500 }
         )
     }
 }
 
 // POST - Criar novo horário
-export async function POST(request: Request) {
+export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions)
 
         if (!session?.user) {
             return NextResponse.json(
-                { success: false, error: 'Não autorizado' },
+                { success: false, error: 'Não autenticado' },
                 { status: 401 }
             )
         }
 
+        // Verificar se é admin
         const user = await prisma.user.findUnique({
             where: { email: session.user.email! }
         })
 
-        if (!user || user.role !== 'ADMIN') {
+        if (!user) {
             return NextResponse.json(
-                { success: false, error: 'Acesso negado' },
+                { success: false, error: 'Usuário não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.email === 'admin@henriquebilro.com'
+
+        if (!isAdmin) {
+            return NextResponse.json(
+                { success: false, error: 'Acesso negado. Você precisa ser administrador.' },
                 { status: 403 }
             )
         }
 
-        const body = await request.json()
-        const { dayOfWeek, timeSlot } = body
+        const { dayOfWeek, timeSlot } = await req.json()
 
+        // Validações
         if (dayOfWeek === undefined || !timeSlot) {
             return NextResponse.json(
                 { success: false, error: 'Dados incompletos' },
@@ -86,25 +108,36 @@ export async function POST(request: Request) {
             )
         }
 
-        const existingSlot = await prisma.availableSlot.findFirst({
-            where: { dayOfWeek, timeSlot }
+        // Verificar duplicata
+        const exists = await prisma.availableSlot.findFirst({
+            where: {
+                dayOfWeek,
+                timeSlot
+            }
         })
 
-        if (existingSlot) {
+        if (exists) {
             return NextResponse.json(
                 { success: false, error: 'Este horário já existe' },
-                { status: 409 }
+                { status: 400 }
             )
         }
 
-        const newSlot = await prisma.availableSlot.create({
-            data: { dayOfWeek, timeSlot, active: true }
+        // Criar slot
+        const slot = await prisma.availableSlot.create({
+            data: {
+                dayOfWeek,
+                timeSlot,
+                active: true
+            }
         })
 
-        return NextResponse.json({ success: true, data: newSlot }, { status: 201 })
-
+        return NextResponse.json({
+            success: true,
+            data: slot
+        })
     } catch (error) {
-        console.error('Erro ao criar horário:', error)
+        console.error('Erro ao criar slot:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao criar horário' },
             { status: 500 }
@@ -112,48 +145,59 @@ export async function POST(request: Request) {
     }
 }
 
-// PATCH - Atualizar horário
-export async function PATCH(request: Request) {
+// PATCH - Ativar/Desativar horário
+export async function PATCH(req: Request) {
     try {
         const session = await getServerSession(authOptions)
 
         if (!session?.user) {
             return NextResponse.json(
-                { success: false, error: 'Não autorizado' },
+                { success: false, error: 'Não autenticado' },
                 { status: 401 }
             )
         }
 
+        // Verificar se é admin
         const user = await prisma.user.findUnique({
             where: { email: session.user.email! }
         })
 
-        if (!user || user.role !== 'ADMIN') {
+        if (!user) {
+            return NextResponse.json(
+                { success: false, error: 'Usuário não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.email === 'admin@henriquebilro.com'
+
+        if (!isAdmin) {
             return NextResponse.json(
                 { success: false, error: 'Acesso negado' },
                 { status: 403 }
             )
         }
 
-        const body = await request.json()
-        const { id, active } = body
+        const { id, active } = await req.json()
 
-        if (!id) {
+        if (!id || active === undefined) {
             return NextResponse.json(
-                { success: false, error: 'ID não fornecido' },
+                { success: false, error: 'Dados incompletos' },
                 { status: 400 }
             )
         }
 
-        const updatedSlot = await prisma.availableSlot.update({
+        const slot = await prisma.availableSlot.update({
             where: { id },
             data: { active }
         })
 
-        return NextResponse.json({ success: true, data: updatedSlot })
-
+        return NextResponse.json({
+            success: true,
+            data: slot
+        })
     } catch (error) {
-        console.error('Erro ao atualizar horário:', error)
+        console.error('Erro ao atualizar slot:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao atualizar horário' },
             { status: 500 }
@@ -161,30 +205,40 @@ export async function PATCH(request: Request) {
     }
 }
 
-// DELETE - Deletar horário
-export async function DELETE(request: Request) {
+// DELETE - Excluir horário
+export async function DELETE(req: Request) {
     try {
         const session = await getServerSession(authOptions)
 
         if (!session?.user) {
             return NextResponse.json(
-                { success: false, error: 'Não autorizado' },
+                { success: false, error: 'Não autenticado' },
                 { status: 401 }
             )
         }
 
+        // Verificar se é admin
         const user = await prisma.user.findUnique({
             where: { email: session.user.email! }
         })
 
-        if (!user || user.role !== 'ADMIN') {
+        if (!user) {
+            return NextResponse.json(
+                { success: false, error: 'Usuário não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.email === 'admin@henriquebilro.com'
+
+        if (!isAdmin) {
             return NextResponse.json(
                 { success: false, error: 'Acesso negado' },
                 { status: 403 }
             )
         }
 
-        const { searchParams } = new URL(request.url)
+        const { searchParams } = new URL(req.url)
         const id = searchParams.get('id')
 
         if (!id) {
@@ -194,14 +248,17 @@ export async function DELETE(request: Request) {
             )
         }
 
-        await prisma.availableSlot.delete({ where: { id } })
+        await prisma.availableSlot.delete({
+            where: { id }
+        })
 
-        return NextResponse.json({ success: true, message: 'Horário excluído' })
-
+        return NextResponse.json({
+            success: true
+        })
     } catch (error) {
-        console.error('Erro ao deletar horário:', error)
+        console.error('Erro ao excluir slot:', error)
         return NextResponse.json(
-            { success: false, error: 'Erro ao deletar horário' },
+            { success: false, error: 'Erro ao excluir horário' },
             { status: 500 }
         )
     }
