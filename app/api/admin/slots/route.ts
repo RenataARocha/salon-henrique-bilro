@@ -5,15 +5,26 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// GET - Listar todos os slots
-export async function GET(request: Request) {
+// GET - Listar todos os horários
+export async function GET() {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session?.user || session.user.role !== 'ADMIN') {
+        if (!session?.user) {
             return NextResponse.json(
                 { success: false, error: 'Não autorizado' },
                 { status: 401 }
+            )
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email! }
+        })
+
+        if (!user || user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, error: 'Acesso negado' },
+                { status: 403 }
             )
         }
 
@@ -27,7 +38,7 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: true, data: slots })
 
     } catch (error) {
-        console.error('Erro ao buscar slots:', error)
+        console.error('Erro ao buscar horários:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao buscar horários' },
             { status: 500 }
@@ -35,25 +46,35 @@ export async function GET(request: Request) {
     }
 }
 
-// POST - Criar novo slot
+// POST - Criar novo horário
 export async function POST(request: Request) {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session?.user || session.user.role !== 'ADMIN') {
+        if (!session?.user) {
             return NextResponse.json(
                 { success: false, error: 'Não autorizado' },
                 { status: 401 }
             )
         }
 
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email! }
+        })
+
+        if (!user || user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, error: 'Acesso negado' },
+                { status: 403 }
+            )
+        }
+
         const body = await request.json()
         const { dayOfWeek, timeSlot } = body
 
-        // Validações
         if (dayOfWeek === undefined || !timeSlot) {
             return NextResponse.json(
-                { success: false, error: 'Preencha todos os campos' },
+                { success: false, error: 'Dados incompletos' },
                 { status: 400 }
             )
         }
@@ -65,82 +86,74 @@ export async function POST(request: Request) {
             )
         }
 
-        // Verificar se já existe
-        const existing = await prisma.availableSlot.findUnique({
-            where: {
-                dayOfWeek_timeSlot: {
-                    dayOfWeek,
-                    timeSlot
-                }
-            }
+        const existingSlot = await prisma.availableSlot.findFirst({
+            where: { dayOfWeek, timeSlot }
         })
 
-        if (existing) {
+        if (existingSlot) {
             return NextResponse.json(
                 { success: false, error: 'Este horário já existe' },
-                { status: 400 }
+                { status: 409 }
             )
         }
 
-        // Criar slot
-        const slot = await prisma.availableSlot.create({
-            data: {
-                dayOfWeek,
-                timeSlot,
-                active: true
-            }
+        const newSlot = await prisma.availableSlot.create({
+            data: { dayOfWeek, timeSlot, active: true }
         })
 
-        return NextResponse.json({
-            success: true,
-            data: slot,
-            message: 'Horário adicionado com sucesso!'
-        })
+        return NextResponse.json({ success: true, data: newSlot }, { status: 201 })
 
     } catch (error) {
-        console.error('Erro ao criar slot:', error)
+        console.error('Erro ao criar horário:', error)
         return NextResponse.json(
-            { success: false, error: 'Erro ao adicionar horário' },
+            { success: false, error: 'Erro ao criar horário' },
             { status: 500 }
         )
     }
 }
 
-// PATCH - Atualizar slot (ativar/desativar)
+// PATCH - Atualizar horário
 export async function PATCH(request: Request) {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session?.user || session.user.role !== 'ADMIN') {
+        if (!session?.user) {
             return NextResponse.json(
                 { success: false, error: 'Não autorizado' },
                 { status: 401 }
             )
         }
 
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email! }
+        })
+
+        if (!user || user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, error: 'Acesso negado' },
+                { status: 403 }
+            )
+        }
+
         const body = await request.json()
         const { id, active } = body
 
-        if (!id || active === undefined) {
+        if (!id) {
             return NextResponse.json(
-                { success: false, error: 'Dados inválidos' },
+                { success: false, error: 'ID não fornecido' },
                 { status: 400 }
             )
         }
 
-        const slot = await prisma.availableSlot.update({
+        const updatedSlot = await prisma.availableSlot.update({
             where: { id },
             data: { active }
         })
 
-        return NextResponse.json({
-            success: true,
-            data: slot,
-            message: 'Horário atualizado!'
-        })
+        return NextResponse.json({ success: true, data: updatedSlot })
 
     } catch (error) {
-        console.error('Erro ao atualizar slot:', error)
+        console.error('Erro ao atualizar horário:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao atualizar horário' },
             { status: 500 }
@@ -148,15 +161,26 @@ export async function PATCH(request: Request) {
     }
 }
 
-// DELETE - Excluir slot
+// DELETE - Deletar horário
 export async function DELETE(request: Request) {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session?.user || session.user.role !== 'ADMIN') {
+        if (!session?.user) {
             return NextResponse.json(
                 { success: false, error: 'Não autorizado' },
                 { status: 401 }
+            )
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email! }
+        })
+
+        if (!user || user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, error: 'Acesso negado' },
+                { status: 403 }
             )
         }
 
@@ -170,19 +194,14 @@ export async function DELETE(request: Request) {
             )
         }
 
-        await prisma.availableSlot.delete({
-            where: { id }
-        })
+        await prisma.availableSlot.delete({ where: { id } })
 
-        return NextResponse.json({
-            success: true,
-            message: 'Horário excluído com sucesso!'
-        })
+        return NextResponse.json({ success: true, message: 'Horário excluído' })
 
     } catch (error) {
-        console.error('Erro ao excluir slot:', error)
+        console.error('Erro ao deletar horário:', error)
         return NextResponse.json(
-            { success: false, error: 'Erro ao excluir horário' },
+            { success: false, error: 'Erro ao deletar horário' },
             { status: 500 }
         )
     }
