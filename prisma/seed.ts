@@ -1,4 +1,4 @@
-// prisma/seed.ts
+// prisma/seed.ts - ATUALIZADO
 
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
@@ -13,12 +13,13 @@ async function main() {
     await prisma.user.deleteMany()
     await prisma.availableSlot.deleteMany()
 
+    // ✅ MUDANÇA: Criar com seu email
     const hashedPassword = await bcrypt.hash('admin123', 10)
 
     const admin = await prisma.user.create({
         data: {
-            name: 'Rosie', // ← MUDADO AQUI
-            email: 'admin@henriquebilro.com',
+            name: 'Renata Rocha',
+            email: 'renatabolos12@gmail.com', // ✅ SEU EMAIL
             password: hashedPassword,
             phone: '(84) 99999-9999',
             role: 'ADMIN'
@@ -26,6 +27,21 @@ async function main() {
     })
 
     console.log('✅ Admin criado:', admin.email)
+
+    // ✅ OPCIONAL: Criar também o email do salão
+    const salonPassword = await bcrypt.hash('admin123', 10)
+
+    const salonAdmin = await prisma.user.create({
+        data: {
+            name: 'Rosie Bilro',
+            email: 'admin@henriquebilro.com',
+            password: salonPassword,
+            phone: '(84) 99999-9999',
+            role: 'ADMIN'
+        }
+    })
+
+    console.log('✅ Admin do salão criado:', salonAdmin.email)
 
     const clientPassword = await bcrypt.hash('cliente123', 10)
 

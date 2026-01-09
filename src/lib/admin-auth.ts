@@ -1,7 +1,7 @@
 // lib/admin-auth.ts
 
 export const ADMIN_CREDENTIALS = {
-    email: process.env.ADMIN_EMAIL || 'admin@henriquebilro.com',
+    email: process.env.ADMIN_EMAIL || 'renatabolos12@gmail.com',
     password: process.env.ADMIN_PASSWORD || 'admin123',
     name: process.env.ADMIN_NAME || 'Rosie'
 }
