@@ -1,54 +1,32 @@
-// app/api/admin/blocked-times/route.ts - CORREÇÃO FINAL
-
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// LISTAR todos os bloqueios
-export async function GET(request: NextRequest) {
+// GET - Listar todos os bloqueios
+export async function GET() {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || session.user.role !== 'ADMIN') {
+        if (!session?.user?.email) {
             return NextResponse.json(
-                { success: false, message: 'Não autorizado' },
+                { success: false, error: 'Não autorizado' },
                 { status: 401 }
             )
         }
 
-        const { searchParams } = new URL(request.url)
-        const startDate = searchParams.get('startDate')
-        const endDate = searchParams.get('endDate')
-        const type = searchParams.get('type')
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email }
+        })
 
-        const where: any = {}
-
-        // Filtrar por tipo
-        if (type) {
-            where.type = type
-        }
-
-        // Filtrar por período (para bloqueios pontuais)
-        if (startDate && endDate) {
-            where.OR = [
-                // Bloqueios pontuais no período
-                {
-                    isRecurring: false,
-                    date: {
-                        gte: new Date(startDate),
-                        lte: new Date(endDate)
-                    }
-                },
-                // Bloqueios recorrentes (sempre retornar)
-                {
-                    isRecurring: true
-                }
-            ]
+        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+            return NextResponse.json(
+                { success: false, error: 'Acesso negado' },
+                { status: 403 }
+            )
         }
 
         const blockedTimes = await prisma.blockedTime.findMany({
-            where,
             include: {
                 creator: {
                     select: {
@@ -69,39 +47,34 @@ export async function GET(request: NextRequest) {
         })
 
     } catch (error) {
-        console.error('❌ Erro ao buscar horários bloqueados:', error)
+        console.error('❌ Erro ao buscar bloqueios:', error)
         return NextResponse.json(
-            {
-                success: false,
-                message: 'Erro ao buscar horários bloqueados',
-                error: error instanceof Error ? error.message : String(error)
-            },
+            { success: false, error: 'Erro ao buscar bloqueios' },
             { status: 500 }
         )
     }
 }
 
-// CRIAR novo bloqueio
-export async function POST(request: NextRequest) {
+// POST - Criar novo bloqueio
+export async function POST(request: Request) {
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || session.user.role !== 'ADMIN') {
+        if (!session?.user?.email) {
             return NextResponse.json(
-                { success: false, message: 'Não autorizado' },
+                { success: false, error: 'Não autorizado' },
                 { status: 401 }
             )
         }
 
-        // ✅ CORREÇÃO: Buscar usuário completo do banco para pegar o ID real
         const user = await prisma.user.findUnique({
-            where: { email: session.user.email! }
+            where: { email: session.user.email }
         })
 
-        if (!user) {
+        if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
             return NextResponse.json(
-                { success: false, message: 'Usuário não encontrado no banco de dados' },
-                { status: 404 }
+                { success: false, error: 'Acesso negado' },
+                { status: 403 }
             )
         }
 
@@ -119,74 +92,20 @@ export async function POST(request: NextRequest) {
             endDate
         } = body
 
-        // Validações
         if (!type || !reason) {
             return NextResponse.json(
-                { success: false, message: 'Tipo e motivo são obrigatórios' },
+                { success: false, error: 'Tipo e motivo são obrigatórios' },
                 { status: 400 }
             )
         }
 
-        if (isRecurring) {
-            // Bloqueio recorrente precisa de dayOfWeek
-            if (dayOfWeek === undefined || dayOfWeek === null) {
-                return NextResponse.json(
-                    { success: false, message: 'Dia da semana é obrigatório para bloqueios recorrentes' },
-                    { status: 400 }
-                )
-            }
-        } else {
-            // ✅ CORREÇÃO: Data é OPCIONAL para bloqueios pontuais
-            // Permite bloquear "qualquer data" se não especificar
+        if (isRecurring && (dayOfWeek === undefined || dayOfWeek === null)) {
+            return NextResponse.json(
+                { success: false, error: 'Dia da semana é obrigatório para bloqueios recorrentes' },
+                { status: 400 }
+            )
         }
 
-        // Verificar conflitos com agendamentos existentes
-        if (!isRecurring && date) {
-            const conflictingAppointments = await prisma.appointment.findMany({
-                where: {
-                    date: new Date(date),
-                    status: {
-                        in: ['PENDING', 'CONFIRMED']
-                    },
-                    ...(startTime && endTime ? {
-                        time: {
-                            gte: startTime,
-                            lte: endTime
-                        }
-                    } : {})
-                },
-                include: {
-                    user: {
-                        select: {
-                            name: true,
-                            phone: true
-                        }
-                    },
-                    service: {
-                        select: {
-                            name: true
-                        }
-                    }
-                }
-            })
-
-            if (conflictingAppointments.length > 0) {
-                return NextResponse.json({
-                    success: false,
-                    message: 'Existem agendamentos confirmados neste horário',
-                    conflictingAppointments: conflictingAppointments.map(apt => ({
-                        id: apt.id,
-                        clientName: apt.user.name,
-                        clientPhone: apt.user.phone,
-                        serviceName: apt.service.name,
-                        time: apt.time,
-                        status: apt.status
-                    }))
-                }, { status: 409 })
-            }
-        }
-
-        // Criar bloqueio
         const blockedTime = await prisma.blockedTime.create({
             data: {
                 type,
@@ -199,7 +118,7 @@ export async function POST(request: NextRequest) {
                 description: description || null,
                 startDate: startDate ? new Date(startDate) : null,
                 endDate: endDate ? new Date(endDate) : null,
-                createdBy: user.id // ✅ CORREÇÃO: Usar user.id do banco, não session.user.id
+                createdBy: user.id
             },
             include: {
                 creator: {
@@ -213,18 +132,13 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            data: blockedTime,
-            message: 'Horário bloqueado com sucesso'
-        }, { status: 201 })
+            data: blockedTime
+        })
 
     } catch (error) {
         console.error('❌ Erro ao criar bloqueio:', error)
         return NextResponse.json(
-            {
-                success: false,
-                message: 'Erro ao criar bloqueio',
-                error: error instanceof Error ? error.message : String(error)
-            },
+            { success: false, error: 'Erro ao criar bloqueio' },
             { status: 500 }
         )
     }
