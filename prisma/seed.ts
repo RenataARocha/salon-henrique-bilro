@@ -1,4 +1,4 @@
-// prisma/seed.ts - ATUALIZADO
+// prisma/seed.ts - CORRIGIDO (apenas renatabolos12@gmail.com)
 
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
@@ -8,42 +8,30 @@ const prisma = new PrismaClient()
 async function main() {
     console.log('🌱 Iniciando seed...')
 
+    // Limpar dados existentes
     await prisma.appointment.deleteMany()
     await prisma.service.deleteMany()
     await prisma.user.deleteMany()
     await prisma.availableSlot.deleteMany()
 
-    // ✅ MUDANÇA: Criar com seu email
-    const hashedPassword = await bcrypt.hash('admin123', 10)
+    // ✅ CRIAR ADMIN ÚNICO
+    const hashedPassword = await bcrypt.hash('MinhaSenh@123!', 12)
 
     const admin = await prisma.user.create({
         data: {
-            name: 'Renata Rocha',
-            email: 'renatabolos12@gmail.com', // ✅ SEU EMAIL
+            name: 'Rosie',
+            email: 'renatabolos12@gmail.com',
             password: hashedPassword,
             phone: '(84) 99999-9999',
-            role: 'ADMIN'
+            role: 'ADMIN',
+            emailVerified: new Date()
         }
     })
 
     console.log('✅ Admin criado:', admin.email)
 
-    // ✅ OPCIONAL: Criar também o email do salão
-    const salonPassword = await bcrypt.hash('admin123', 10)
-
-    const salonAdmin = await prisma.user.create({
-        data: {
-            name: 'Rosie Bilro',
-            email: 'admin@henriquebilro.com',
-            password: salonPassword,
-            phone: '(84) 99999-9999',
-            role: 'ADMIN'
-        }
-    })
-
-    console.log('✅ Admin do salão criado:', salonAdmin.email)
-
-    const clientPassword = await bcrypt.hash('cliente123', 10)
+    // Cliente de teste
+    const clientPassword = await bcrypt.hash('cliente123', 12)
 
     const client = await prisma.user.create({
         data: {
@@ -57,6 +45,7 @@ async function main() {
 
     console.log('✅ Cliente criado:', client.email)
 
+    // Serviços
     await prisma.service.createMany({
         data: [
             {
@@ -100,6 +89,7 @@ async function main() {
 
     console.log('✅ Serviços criados')
 
+    // Horários disponíveis (Terça a Sábado)
     const timeSlots = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00']
     const availableSlots = []
 
@@ -119,24 +109,9 @@ async function main() {
 
     console.log('✅ Horários criados:', availableSlots.length)
 
-    const servicesCreated = await prisma.service.findMany()
-
-    if (servicesCreated.length > 0) {
-        await prisma.appointment.create({
-            data: {
-                userId: client.id,
-                serviceId: servicesCreated[0].id,
-                date: new Date('2024-12-15'),
-                time: '14:00',
-                status: 'CONFIRMED',
-                notes: 'Primeiro agendamento de teste'
-            }
-        })
-
-        console.log('✅ Agendamento criado')
-    }
-
     console.log('🎉 Seed concluído!')
+    console.log('\n📧 Login: renatabolos12@gmail.com')
+    console.log('🔑 Senha: MinhaSenh@123!')
 }
 
 main()

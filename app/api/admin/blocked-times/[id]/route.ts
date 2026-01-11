@@ -1,5 +1,4 @@
-// app/api/admin/blocked-times/[id]/route.ts
-
+// app/api/admin/blocked-times/[id]/route.ts - CORRIGIDO
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -14,10 +13,31 @@ export async function GET(
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || session.user.role !== 'ADMIN') {
+        if (!session?.user?.email) {
             return NextResponse.json(
                 { success: false, message: 'Não autorizado' },
                 { status: 401 }
+            )
+        }
+
+        // ✅ CORREÇÃO: Buscar usuário do banco
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email }
+        })
+
+        if (!user) {
+            return NextResponse.json(
+                { success: false, message: 'Usuário não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+
+        if (!isAdmin) {
+            return NextResponse.json(
+                { success: false, message: 'Acesso negado' },
+                { status: 403 }
             )
         }
 
@@ -69,10 +89,31 @@ export async function PUT(
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || session.user.role !== 'ADMIN') {
+        if (!session?.user?.email) {
             return NextResponse.json(
                 { success: false, message: 'Não autorizado' },
                 { status: 401 }
+            )
+        }
+
+        // ✅ CORREÇÃO: Buscar usuário do banco
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email }
+        })
+
+        if (!user) {
+            return NextResponse.json(
+                { success: false, message: 'Usuário não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+
+        if (!isAdmin) {
+            return NextResponse.json(
+                { success: false, message: 'Acesso negado' },
+                { status: 403 }
             )
         }
 
@@ -144,10 +185,31 @@ export async function DELETE(
     try {
         const session = await getServerSession(authOptions)
 
-        if (!session || session.user.role !== 'ADMIN') {
+        if (!session?.user?.email) {
             return NextResponse.json(
                 { success: false, message: 'Não autorizado' },
                 { status: 401 }
+            )
+        }
+
+        // ✅ CORREÇÃO: Buscar usuário do banco
+        const user = await prisma.user.findUnique({
+            where: { email: session.user.email }
+        })
+
+        if (!user) {
+            return NextResponse.json(
+                { success: false, message: 'Usuário não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
+
+        if (!isAdmin) {
+            return NextResponse.json(
+                { success: false, message: 'Acesso negado' },
+                { status: 403 }
             )
         }
 

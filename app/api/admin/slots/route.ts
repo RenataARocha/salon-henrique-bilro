@@ -1,4 +1,4 @@
-// app/api/admin/slots/route.ts - ARQUIVO COMPLETO CORRETO
+// app/api/admin/slots/route.ts - CORRIGIDO (sem email antigo)
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -17,7 +17,6 @@ export async function GET() {
             )
         }
 
-        // Verificar se é admin
         const user = await prisma.user.findUnique({
             where: { email: session.user.email! }
         })
@@ -29,7 +28,8 @@ export async function GET() {
             )
         }
 
-        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.email === 'admin@henriquebilro.com'
+        // ✅ CORREÇÃO: Removido verificação do email antigo
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
 
         if (!isAdmin) {
             return NextResponse.json(
@@ -70,7 +70,6 @@ export async function POST(req: Request) {
             )
         }
 
-        // Verificar se é admin
         const user = await prisma.user.findUnique({
             where: { email: session.user.email! }
         })
@@ -82,7 +81,8 @@ export async function POST(req: Request) {
             )
         }
 
-        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.email === 'admin@henriquebilro.com'
+        // ✅ CORREÇÃO: Removido verificação do email antigo
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
 
         if (!isAdmin) {
             return NextResponse.json(
@@ -93,7 +93,6 @@ export async function POST(req: Request) {
 
         const { dayOfWeek, timeSlot } = await req.json()
 
-        // Validações
         if (dayOfWeek === undefined || !timeSlot) {
             return NextResponse.json(
                 { success: false, error: 'Dados incompletos' },
@@ -108,7 +107,6 @@ export async function POST(req: Request) {
             )
         }
 
-        // Verificar duplicata
         const exists = await prisma.availableSlot.findFirst({
             where: {
                 dayOfWeek,
@@ -123,7 +121,6 @@ export async function POST(req: Request) {
             )
         }
 
-        // Criar slot
         const slot = await prisma.availableSlot.create({
             data: {
                 dayOfWeek,
@@ -157,7 +154,6 @@ export async function PATCH(req: Request) {
             )
         }
 
-        // Verificar se é admin
         const user = await prisma.user.findUnique({
             where: { email: session.user.email! }
         })
@@ -169,7 +165,8 @@ export async function PATCH(req: Request) {
             )
         }
 
-        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.email === 'admin@henriquebilro.com'
+        // ✅ CORREÇÃO: Removido verificação do email antigo
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
 
         if (!isAdmin) {
             return NextResponse.json(
@@ -217,7 +214,6 @@ export async function DELETE(req: Request) {
             )
         }
 
-        // Verificar se é admin
         const user = await prisma.user.findUnique({
             where: { email: session.user.email! }
         })
@@ -229,7 +225,8 @@ export async function DELETE(req: Request) {
             )
         }
 
-        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' || user.email === 'admin@henriquebilro.com'
+        // ✅ CORREÇÃO: Removido verificação do email antigo
+        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
 
         if (!isAdmin) {
             return NextResponse.json(

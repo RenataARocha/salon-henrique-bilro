@@ -1,8 +1,7 @@
-// app/api/available-slots/route.ts
+// app/api/available-slots/route.ts - CORRIGIDO
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getBlockedTimesForDate, isTimeBlocked } from '@/lib/blocked-times-utils'
 
 export async function GET(request: Request) {
     try {
@@ -19,16 +18,67 @@ export async function GET(request: Request) {
         const selectedDate = new Date(dateParam)
         const dayOfWeek = selectedDate.getDay()
 
-        // Verificar se é domingo (0) - Fechado
-        if (dayOfWeek === 0) {
+        // ✅ REMOVIDO: Verificação hardcoded de domingo
+        // Agora usa os bloqueios do banco!
+
+        // 1️⃣ Buscar bloqueios que afetam esta data
+        const blockedTimes = await prisma.blockedTime.findMany({
+            where: {
+                OR: [
+                    // Bloqueio recorrente deste dia da semana
+                    {
+                        isRecurring: true,
+                        dayOfWeek,
+                        OR: [
+                            // Sem período de validade (vale para sempre)
+                            {
+                                AND: [
+                                    { startDate: null },
+                                    { endDate: null }
+                                ]
+                            },
+                            // Dentro do período de validade
+                            {
+                                AND: [
+                                    { startDate: { lte: selectedDate } },
+                                    {
+                                        OR: [
+                                            { endDate: null },
+                                            { endDate: { gte: selectedDate } }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    // Bloqueio pontual desta data específica
+                    {
+                        isRecurring: false,
+                        date: {
+                            gte: new Date(selectedDate.setHours(0, 0, 0, 0)),
+                            lte: new Date(selectedDate.setHours(23, 59, 59, 999))
+                        }
+                    }
+                ]
+            }
+        })
+
+        // 2️⃣ Verificar se o dia inteiro está bloqueado
+        const isDayFullyBlocked = blockedTimes.some(block => {
+            // Bloqueio sem horário específico = bloqueia o dia inteiro
+            return !block.startTime && !block.endTime
+        })
+
+        if (isDayFullyBlocked) {
+            const blockReason = blockedTimes.find(b => !b.startTime && !b.endTime)
             return NextResponse.json({
                 success: true,
                 data: [],
-                message: 'Não abrimos aos domingos'
+                message: blockReason?.reason || 'Este dia não está disponível para agendamentos'
             })
         }
 
-        // Buscar horários disponíveis para este dia da semana
+        // 3️⃣ Buscar horários disponíveis para este dia da semana
         const availableSlots = await prisma.availableSlot.findMany({
             where: {
                 dayOfWeek: dayOfWeek,
@@ -47,7 +97,7 @@ export async function GET(request: Request) {
             })
         }
 
-        // Buscar agendamentos já marcados para esta data
+        // 4️⃣ Buscar agendamentos já marcados para esta data
         const bookedAppointments = await prisma.appointment.findMany({
             where: {
                 date: selectedDate,
@@ -62,15 +112,13 @@ export async function GET(request: Request) {
 
         const bookedTimes = bookedAppointments.map(apt => apt.time)
 
-        // 🆕 BUSCAR HORÁRIOS BLOQUEADOS
-        const blockedTimes = await getBlockedTimesForDate(selectedDate)
-
-        // Verificar se a data selecionada já passou
+        // 5️⃣ Verificar se a data selecionada já passou
         const today = new Date()
         today.setHours(0, 0, 0, 0)
-        selectedDate.setHours(0, 0, 0, 0)
+        const checkDate = new Date(dateParam)
+        checkDate.setHours(0, 0, 0, 0)
 
-        if (selectedDate < today) {
+        if (checkDate < today) {
             return NextResponse.json({
                 success: true,
                 data: [],
@@ -78,7 +126,7 @@ export async function GET(request: Request) {
             })
         }
 
-        // Filtrar horários
+        // 6️⃣ Filtrar horários considerando bloqueios e agendamentos
         let availableTimes = availableSlots
             .map(slot => slot.timeSlot)
             .filter(time => {
@@ -87,16 +135,29 @@ export async function GET(request: Request) {
                     return false
                 }
 
-                // 🆕 Está bloqueado?
-                if (isTimeBlocked(time, blockedTimes)) {
+                // Está bloqueado por horário específico?
+                const isTimeBlocked = blockedTimes.some(block => {
+                    // Se o bloqueio não tem horário específico, já foi tratado acima
+                    if (!block.startTime && !block.endTime) {
+                        return false
+                    }
+
+                    const blockStart = block.startTime || '00:00'
+                    const blockEnd = block.endTime || '23:59'
+
+                    // Verificar se o horário está dentro do range de bloqueio
+                    return time >= blockStart && time <= blockEnd
+                })
+
+                if (isTimeBlocked) {
                     return false
                 }
 
                 return true
             })
 
-        // Se for hoje, filtrar horários que já passaram
-        if (selectedDate.getTime() === today.getTime()) {
+        // 7️⃣ Se for hoje, filtrar horários que já passaram
+        if (checkDate.getTime() === today.getTime()) {
             const now = new Date()
             const currentHour = now.getHours()
             const currentMinute = now.getMinutes()
@@ -109,7 +170,12 @@ export async function GET(request: Request) {
 
         return NextResponse.json({
             success: true,
-            data: availableTimes
+            data: availableTimes,
+            blockedRanges: blockedTimes.map(b => ({
+                startTime: b.startTime,
+                endTime: b.endTime,
+                reason: b.reason
+            }))
         })
 
     } catch (error) {

@@ -1,3 +1,5 @@
+// app/(dashboard)/admin/calendario/page.tsx
+
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -335,8 +337,8 @@ export default function CalendarViewPage() {
                                     </span>
                                     {dayApts.length > 0 && (
                                         <span className={`text-xs px-2 py-1 rounded-full ${occupancy > 80 ? 'bg-red-100 text-red-700' :
-                                                occupancy > 50 ? 'bg-orange-100 text-orange-700' :
-                                                    'bg-green-100 text-green-700'
+                                            occupancy > 50 ? 'bg-orange-100 text-orange-700' :
+                                                'bg-green-100 text-green-700'
                                             }`}>
                                             {dayApts.length}
                                         </span>
@@ -362,8 +364,8 @@ export default function CalendarViewPage() {
                                         <div className="w-full bg-gray-200 rounded-full h-1.5">
                                             <div
                                                 className={`h-1.5 rounded-full ${occupancy > 80 ? 'bg-red-500' :
-                                                        occupancy > 50 ? 'bg-orange-500' :
-                                                            'bg-green-500'
+                                                    occupancy > 50 ? 'bg-orange-500' :
+                                                        'bg-green-500'
                                                     }`}
                                                 style={{ width: `${occupancy}%` }}
                                             />

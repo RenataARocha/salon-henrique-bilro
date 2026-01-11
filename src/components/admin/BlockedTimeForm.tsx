@@ -1,9 +1,9 @@
-// components/admin/BlockedTimeForm.tsx - CORRIGIDO
+// components/admin/BlockedTimeForm.tsx - MELHORADO
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Clock, AlertCircle } from 'lucide-react'
+import { X, Calendar, Clock, AlertCircle, Info } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
 interface BlockedTime {
@@ -27,13 +27,13 @@ interface Props {
 }
 
 const BLOCK_TYPES = [
-    { value: 'LUNCH_BREAK', label: '🍽️ Horário de Almoço' },
-    { value: 'DAY_OFF', label: '📅 Folga/Descanso' },
-    { value: 'HOLIDAY', label: '🎉 Feriado' },
-    { value: 'VACATION', label: '✈️ Férias' },
-    { value: 'MAINTENANCE', label: '🔧 Manutenção' },
-    { value: 'SPECIAL_EVENT', label: '📚 Evento Especial' },
-    { value: 'OTHER', label: '📝 Outro Motivo' }
+    { value: 'DAY_OFF', label: '📅 Folga/Descanso', needsHours: false },
+    { value: 'LUNCH_BREAK', label: '🍽️ Horário de Almoço', needsHours: true },
+    { value: 'HOLIDAY', label: '🎉 Feriado', needsHours: false },
+    { value: 'VACATION', label: '✈️ Férias', needsHours: false },
+    { value: 'MAINTENANCE', label: '🔧 Manutenção', needsHours: false },
+    { value: 'SPECIAL_EVENT', label: '📚 Evento Especial', needsHours: false },
+    { value: 'OTHER', label: '📝 Outro Motivo', needsHours: true }
 ]
 
 const DAYS_OF_WEEK = [
@@ -68,14 +68,60 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
     const [startDate, setStartDate] = useState(editData?.startDate?.split('T')[0] || '')
     const [endDate, setEndDate] = useState(editData?.endDate?.split('T')[0] || '')
 
+    const selectedBlockType = BLOCK_TYPES.find(t => t.value === type)
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setError('')
 
-        // ✅ VALIDAÇÃO SIMPLIFICADA - Apenas motivo obrigatório
+        // Validação do motivo
         if (!reason.trim()) {
             setError('Por favor, informe o motivo do bloqueio')
             return
+        }
+
+        // Validação pontual
+        if (!isRecurring) {
+            if (!date) {
+                setError('Por favor, selecione uma data para o bloqueio pontual')
+                return
+            }
+
+            // Se o tipo requer horário específico
+            if (selectedBlockType?.needsHours) {
+                if (!startTime || !endTime) {
+                    setError(`${selectedBlockType.label} requer horário de início e fim`)
+                    return
+                }
+            }
+
+            // Validar ordem dos horários se ambos foram fornecidos
+            if (startTime && endTime && startTime >= endTime) {
+                setError('O horário de início deve ser antes do horário de fim')
+                return
+            }
+        }
+
+        // Validação recorrente
+        if (isRecurring) {
+            if (selectedBlockType?.needsHours) {
+                if (!recurringStartTime || !recurringEndTime) {
+                    setError(`${selectedBlockType.label} requer horário de início e fim`)
+                    return
+                }
+            }
+
+            // Validar ordem dos horários se ambos foram fornecidos
+            if (recurringStartTime && recurringEndTime && recurringStartTime >= recurringEndTime) {
+                setError('O horário de início deve ser antes do horário de fim')
+                return
+            }
+
+            // Validar período de validade se fornecido
+            if (startDate && endDate && startDate > endDate) {
+                setError('A data inicial deve ser antes da data final')
+                return
+            }
         }
 
         setLoading(true)
@@ -97,7 +143,7 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                 payload.endDate = endDate || undefined
             } else {
                 // Bloqueio Pontual
-                payload.date = date || undefined
+                payload.date = date
                 payload.startTime = startTime || undefined
                 payload.endTime = endTime || undefined
             }
@@ -116,10 +162,8 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
 
             if (data.success) {
                 alert(editData ? 'Bloqueio atualizado!' : 'Bloqueio criado!')
-                if (onSuccess) {
-                    onSuccess() // Recarrega a lista
-                }
-                onClose() // Fecha o modal
+                onSuccess()
+                onClose()
             } else {
                 setError(data.error || 'Erro ao salvar bloqueio')
             }
@@ -140,7 +184,7 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                 className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* ✅ HEADER FIXO */}
+                {/* Header */}
                 <div className="sticky top-0 bg-gradient-gold text-white p-6 rounded-t-2xl flex items-center justify-between shadow-lg z-10">
                     <div>
                         <h2 className="text-2xl font-bold">
@@ -185,6 +229,12 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                                 </option>
                             ))}
                         </select>
+                        {selectedBlockType?.needsHours && (
+                            <div className="mt-2 flex items-start gap-2 text-sm text-blue-600 bg-blue-50 p-2 rounded">
+                                <Info size={16} className="flex-shrink-0 mt-0.5" />
+                                <p>Este tipo requer definição de horário específico</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Recorrente? */}
@@ -215,46 +265,48 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
 
                             <div>
                                 <label className="block text-sm font-semibold text-charcoal mb-2">
-                                    Data (opcional)
+                                    Data *
                                 </label>
                                 <input
                                     type="date"
                                     value={date}
                                     onChange={(e) => setDate(e.target.value)}
                                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                    required
                                 />
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Deixe vazio para bloquear o dia inteiro
-                                </p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
-                                        Horário Início (opcional)
+                                        Horário Início {selectedBlockType?.needsHours && '*'}
                                     </label>
                                     <input
                                         type="time"
                                         value={startTime}
                                         onChange={(e) => setStartTime(e.target.value)}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                        required={selectedBlockType?.needsHours}
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
-                                        Horário Fim (opcional)
+                                        Horário Fim {selectedBlockType?.needsHours && '*'}
                                     </label>
                                     <input
                                         type="time"
                                         value={endTime}
                                         onChange={(e) => setEndTime(e.target.value)}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                        required={selectedBlockType?.needsHours}
                                     />
                                 </div>
                             </div>
-                            <p className="text-xs text-gray-500">
-                                Deixe vazio para bloquear o dia inteiro (00:00 - 23:59)
-                            </p>
+                            {!selectedBlockType?.needsHours && (
+                                <p className="text-xs text-gray-500">
+                                    Deixe vazio para bloquear o dia inteiro (00:00 - 23:59)
+                                </p>
+                            )}
                         </div>
                     ) : (
                         // ===== BLOQUEIO RECORRENTE =====
@@ -285,24 +337,26 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
-                                        Horário Início (opcional)
+                                        Horário Início {selectedBlockType?.needsHours && '*'}
                                     </label>
                                     <input
                                         type="time"
                                         value={recurringStartTime}
                                         onChange={(e) => setRecurringStartTime(e.target.value)}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                        required={selectedBlockType?.needsHours}
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
-                                        Horário Fim (opcional)
+                                        Horário Fim {selectedBlockType?.needsHours && '*'}
                                     </label>
                                     <input
                                         type="time"
                                         value={recurringEndTime}
                                         onChange={(e) => setRecurringEndTime(e.target.value)}
                                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                        required={selectedBlockType?.needsHours}
                                     />
                                 </div>
                             </div>

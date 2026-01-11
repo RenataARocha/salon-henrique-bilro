@@ -1,0 +1,353 @@
+// lib/schedule-integration.ts
+// Integração entre Horários de Funcionamento e Bloqueios
+
+import { prisma } from './prisma'
+import { getBlockedTimesForDate, isTimeBlocked } from './blocked-times-utils'
+import { isHoliday, getHolidayWarning } from './holidays'
+
+/**
+ * Obtém todos os horários disponíveis para uma data específica
+ * Considera: horários recorrentes, bloqueios e feriados
+ */
+export async function getAvailableTimesForDate(date: Date): Promise<{
+    date: Date
+    times: string[]
+    isHoliday: boolean
+    holidayName?: string
+    isBlocked: boolean
+    blockReason?: string
+}> {
+    const dayOfWeek = date.getDay()
+
+    // 1. Verificar se é feriado
+    const holiday = isHoliday(date)
+    if (holiday) {
+        return {
+            date,
+            times: [],
+            isHoliday: true,
+            holidayName: holiday.name,
+            isBlocked: true,
+            blockReason: `Feriado: ${holiday.name}`
+        }
+    }
+
+    // 2. Buscar horários recorrentes deste dia da semana
+    const recurringSlots = await prisma.availableSlot.findMany({
+        where: {
+            dayOfWeek: dayOfWeek,
+            active: true
+        },
+        orderBy: {
+            timeSlot: 'asc'
+        }
+    })
+
+    if (recurringSlots.length === 0) {
+        return {
+            date,
+            times: [],
+            isHoliday: false,
+            isBlocked: true,
+            blockReason: 'Sem horários configurados para este dia'
+        }
+    }
+
+    // 3. Buscar bloqueios para esta data
+    const blockedTimes = await getBlockedTimesForDate(date)
+
+    // 4. Verificar se o dia inteiro está bloqueado
+    const fullDayBlocked = blockedTimes.some(block => !block.startTime && !block.endTime)
+    if (fullDayBlocked) {
+        const blockReason = blockedTimes.find(b => !b.startTime && !b.endTime)
+        return {
+            date,
+            times: [],
+            isHoliday: false,
+            isBlocked: true,
+            blockReason: blockReason?.reason || 'Dia bloqueado'
+        }
+    }
+
+    // 5. Filtrar horários que não estão bloqueados
+    const availableTimes = recurringSlots
+        .map(slot => slot.timeSlot)
+        .filter(time => !isTimeBlocked(time, blockedTimes))
+
+    return {
+        date,
+        times: availableTimes,
+        isHoliday: false,
+        isBlocked: availableTimes.length === 0,
+        blockReason: availableTimes.length === 0 ? 'Todos os horários estão bloqueados' : undefined
+    }
+}
+
+/**
+ * Verifica se um horário específico está disponível
+ */
+export async function isTimeAvailable(date: Date, time: string): Promise<{
+    available: boolean
+    reason?: string
+}> {
+    const { times, isBlocked, blockReason } = await getAvailableTimesForDate(date)
+
+    if (isBlocked) {
+        return {
+            available: false,
+            reason: blockReason
+        }
+    }
+
+    if (!times.includes(time)) {
+        return {
+            available: false,
+            reason: 'Horário não disponível'
+        }
+    }
+
+    // Verificar se já existe agendamento neste horário
+    const dateStart = new Date(date)
+    dateStart.setHours(0, 0, 0, 0)
+    const dateEnd = new Date(date)
+    dateEnd.setHours(23, 59, 59, 999)
+
+    const existingAppointment = await prisma.appointment.findFirst({
+        where: {
+            date: {
+                gte: dateStart,
+                lte: dateEnd
+            },
+            time: time,
+            status: {
+                in: ['PENDING', 'CONFIRMED']
+            }
+        }
+    })
+
+    if (existingAppointment) {
+        return {
+            available: false,
+            reason: 'Horário já agendado'
+        }
+    }
+
+    return {
+        available: true
+    }
+}
+
+/**
+ * Obtém status visual do dia para o calendário
+ */
+export async function getDayStatus(date: Date): Promise<{
+    status: 'available' | 'partial' | 'blocked' | 'holiday'
+    color: 'green' | 'yellow' | 'red' | 'purple'
+    message: string
+    availableCount: number
+    totalCount: number
+}> {
+    // Verificar feriado
+    const holiday = isHoliday(date)
+    if (holiday) {
+        return {
+            status: 'holiday',
+            color: 'purple',
+            message: `Feriado: ${holiday.name}`,
+            availableCount: 0,
+            totalCount: 0
+        }
+    }
+
+    const { times, isBlocked, blockReason } = await getAvailableTimesForDate(date)
+
+    // Buscar total de horários possíveis (sem filtro de bloqueio)
+    const dayOfWeek = date.getDay()
+    const totalSlots = await prisma.availableSlot.count({
+        where: {
+            dayOfWeek: dayOfWeek,
+            active: true
+        }
+    })
+
+    if (isBlocked || times.length === 0) {
+        return {
+            status: 'blocked',
+            color: 'red',
+            message: blockReason || 'Dia fechado',
+            availableCount: 0,
+            totalCount: totalSlots
+        }
+    }
+
+    if (times.length < totalSlots) {
+        return {
+            status: 'partial',
+            color: 'yellow',
+            message: `${times.length} de ${totalSlots} horários disponíveis`,
+            availableCount: times.length,
+            totalCount: totalSlots
+        }
+    }
+
+    return {
+        status: 'available',
+        color: 'green',
+        message: `${times.length} horários disponíveis`,
+        availableCount: times.length,
+        totalCount: totalSlots
+    }
+}
+
+/**
+ * Cria horários em lote para várias datas
+ */
+export async function createSlotsInBatch(
+    timeSlot: string,
+    dates: Date[]
+): Promise<{
+    success: boolean
+    created: number
+    skipped: number
+    errors: string[]
+}> {
+    let created = 0
+    let skipped = 0
+    const errors: string[] = []
+
+    for (const date of dates) {
+        try {
+            const dayOfWeek = date.getDay()
+
+            // Verificar se já existe
+            const existing = await prisma.availableSlot.findFirst({
+                where: {
+                    dayOfWeek: dayOfWeek,
+                    timeSlot: timeSlot
+                }
+            })
+
+            if (existing) {
+                skipped++
+                continue
+            }
+
+            // Criar
+            await prisma.availableSlot.create({
+                data: {
+                    dayOfWeek: dayOfWeek,
+                    timeSlot: timeSlot,
+                    active: true
+                }
+            })
+
+            created++
+        } catch (error) {
+            errors.push(`Erro ao criar horário para ${date.toLocaleDateString('pt-BR')}: ${error}`)
+        }
+    }
+
+    return {
+        success: errors.length === 0,
+        created,
+        skipped,
+        errors
+    }
+}
+
+/**
+ * Bloqueia automaticamente horários quando cria um bloqueio
+ */
+export async function autoBlockTimesForBlockedTime(
+    blockedTimeId: string
+): Promise<{
+    success: boolean
+    affectedSlots: number
+    affectedAppointments: number
+}> {
+    const blockedTime = await prisma.blockedTime.findUnique({
+        where: { id: blockedTimeId }
+    })
+
+    if (!blockedTime) {
+        return {
+            success: false,
+            affectedSlots: 0,
+            affectedAppointments: 0
+        }
+    }
+
+    let affectedSlots = 0
+    let affectedAppointments = 0
+
+    if (blockedTime.isRecurring) {
+        // Bloqueio recorrente: desativar slots do dia da semana
+        if (blockedTime.dayOfWeek !== null) {
+            const slots = await prisma.availableSlot.findMany({
+                where: {
+                    dayOfWeek: blockedTime.dayOfWeek,
+                    active: true
+                }
+            })
+
+            // Se tem horário específico, só desativar esses
+            const slotsToDisable = blockedTime.startTime && blockedTime.endTime
+                ? slots.filter(s =>
+                    s.timeSlot >= blockedTime.startTime! &&
+                    s.timeSlot <= blockedTime.endTime!
+                )
+                : slots // Sem horário = desativa todos
+
+            for (const slot of slotsToDisable) {
+                await prisma.availableSlot.update({
+                    where: { id: slot.id },
+                    data: { active: false }
+                })
+                affectedSlots++
+            }
+        }
+    } else if (blockedTime.date) {
+        // Bloqueio pontual: cancelar agendamentos da data
+        const dateStart = new Date(blockedTime.date)
+        dateStart.setHours(0, 0, 0, 0)
+        const dateEnd = new Date(blockedTime.date)
+        dateEnd.setHours(23, 59, 59, 999)
+
+        const where: any = {
+            date: {
+                gte: dateStart,
+                lte: dateEnd
+            },
+            status: {
+                in: ['PENDING', 'CONFIRMED']
+            }
+        }
+
+        // Se tem horário específico
+        if (blockedTime.startTime && blockedTime.endTime) {
+            where.time = {
+                gte: blockedTime.startTime,
+                lte: blockedTime.endTime
+            }
+        }
+
+        const appointments = await prisma.appointment.findMany({ where })
+
+        for (const apt of appointments) {
+            await prisma.appointment.update({
+                where: { id: apt.id },
+                data: {
+                    status: 'CANCELLED',
+                    justification: `Cancelado automaticamente: ${blockedTime.reason}`
+                }
+            })
+            affectedAppointments++
+        }
+    }
+
+    return {
+        success: true,
+        affectedSlots,
+        affectedAppointments
+    }
+}

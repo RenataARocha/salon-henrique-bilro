@@ -14,7 +14,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "backup": "node scripts/backup.js",
     "backup:full": "node scripts/backup.js",
-    "make-admin": "node scripts/make-admin.js"
+    "make-admin": "node scripts/make-admin.js",
+    "cleanup-admin": "node scripts/cleanup-admin.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
