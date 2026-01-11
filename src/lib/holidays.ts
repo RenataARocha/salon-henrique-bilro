@@ -1,353 +1,185 @@
-// lib/schedule-integration.ts
-// Integração entre Horários de Funcionamento e Bloqueios
-
-import { prisma } from './prisma'
-import { getBlockedTimesForDate, isTimeBlocked } from './blocked-times-utils'
-import { isHoliday, getHolidayWarning } from './holidays'
+// lib/holidays.ts - Sistema de Feriados Brasileiros
 
 /**
- * Obtém todos os horários disponíveis para uma data específica
- * Considera: horários recorrentes, bloqueios e feriados
+ * Feriados Nacionais e Estaduais do Rio Grande do Norte
+ * Atualizado para 2025-2026
  */
-export async function getAvailableTimesForDate(date: Date): Promise<{
-    date: Date
-    times: string[]
-    isHoliday: boolean
-    holidayName?: string
-    isBlocked: boolean
-    blockReason?: string
-}> {
-    const dayOfWeek = date.getDay()
 
-    // 1. Verificar se é feriado
+interface Holiday {
+    date: string // formato: "YYYY-MM-DD"
+    name: string
+    type: 'national' | 'state' | 'municipal'
+    description?: string
+}
+
+// Feriados fixos (mesmo dia todo ano)
+const FIXED_HOLIDAYS: Omit<Holiday, 'date'>[] = [
+    { name: 'Confraternização Universal', type: 'national', description: 'Ano Novo' },
+    { name: 'Tiradentes', type: 'national' },
+    { name: 'Dia do Trabalho', type: 'national' },
+    { name: 'Independência do Brasil', type: 'national' },
+    { name: 'Nossa Senhora Aparecida', type: 'national', description: 'Padroeira do Brasil' },
+    { name: 'Finados', type: 'national' },
+    { name: 'Proclamação da República', type: 'national' },
+    { name: 'Consciência Negra', type: 'national' },
+    { name: 'Natal', type: 'national' },
+
+    // RN
+    { name: 'Mártires de Cunhaú e Uruaçu', type: 'state', description: 'Feriado estadual RN' },
+    { name: 'Dia de São Pedro', type: 'municipal', description: 'Padroeiro de São Gonçalo do Amarante' }
+]
+
+// Feriados móveis (calculados com base na Páscoa)
+const MOVABLE_HOLIDAYS_2025: Holiday[] = [
+    { date: '2025-03-03', name: 'Carnaval', type: 'national', description: 'Segunda de Carnaval' },
+    { date: '2025-03-04', name: 'Carnaval', type: 'national', description: 'Terça de Carnaval' },
+    { date: '2025-04-18', name: 'Sexta-feira Santa', type: 'national' },
+    { date: '2025-04-20', name: 'Páscoa', type: 'national' },
+    { date: '2025-06-19', name: 'Corpus Christi', type: 'national' },
+]
+
+const MOVABLE_HOLIDAYS_2026: Holiday[] = [
+    { date: '2026-02-16', name: 'Carnaval', type: 'national', description: 'Segunda de Carnaval' },
+    { date: '2026-02-17', name: 'Carnaval', type: 'national', description: 'Terça de Carnaval' },
+    { date: '2026-04-03', name: 'Sexta-feira Santa', type: 'national' },
+    { date: '2026-04-05', name: 'Páscoa', type: 'national' },
+    { date: '2026-06-04', name: 'Corpus Christi', type: 'national' },
+]
+
+// Combinar todos os feriados
+export const ALL_HOLIDAYS: Holiday[] = [
+    // Fixos 2025
+    { date: '2025-01-01', name: 'Confraternização Universal', type: 'national', description: 'Ano Novo' },
+    { date: '2025-04-21', name: 'Tiradentes', type: 'national' },
+    { date: '2025-05-01', name: 'Dia do Trabalho', type: 'national' },
+    { date: '2025-09-07', name: 'Independência do Brasil', type: 'national' },
+    { date: '2025-10-03', name: 'Mártires de Cunhaú e Uruaçu', type: 'state', description: 'Feriado RN' },
+    { date: '2025-10-12', name: 'Nossa Senhora Aparecida', type: 'national' },
+    { date: '2025-11-02', name: 'Finados', type: 'national' },
+    { date: '2025-11-15', name: 'Proclamação da República', type: 'national' },
+    { date: '2025-11-20', name: 'Consciência Negra', type: 'national' },
+    { date: '2025-12-25', name: 'Natal', type: 'national' },
+    { date: '2025-06-29', name: 'Dia de São Pedro', type: 'municipal', description: 'São Gonçalo do Amarante' },
+
+    // Fixos 2026
+    { date: '2026-01-01', name: 'Confraternização Universal', type: 'national', description: 'Ano Novo' },
+    { date: '2026-04-21', name: 'Tiradentes', type: 'national' },
+    { date: '2026-05-01', name: 'Dia do Trabalho', type: 'national' },
+    { date: '2026-09-07', name: 'Independência do Brasil', type: 'national' },
+    { date: '2026-10-03', name: 'Mártires de Cunhaú e Uruaçu', type: 'state', description: 'Feriado RN' },
+    { date: '2026-10-12', name: 'Nossa Senhora Aparecida', type: 'national' },
+    { date: '2026-11-02', name: 'Finados', type: 'national' },
+    { date: '2026-11-15', name: 'Proclamação da República', type: 'national' },
+    { date: '2026-11-20', name: 'Consciência Negra', type: 'national' },
+    { date: '2026-12-25', name: 'Natal', type: 'national' },
+    { date: '2026-06-29', name: 'Dia de São Pedro', type: 'municipal', description: 'São Gonçalo do Amarante' },
+
+    // Móveis
+    ...MOVABLE_HOLIDAYS_2025,
+    ...MOVABLE_HOLIDAYS_2026
+]
+
+/**
+ * Verifica se uma data é feriado
+ * EXPORTADO CORRETAMENTE
+ */
+export function isHoliday(date: Date): Holiday | null {
+    const dateStr = date.toISOString().split('T')[0]
+    return ALL_HOLIDAYS.find(h => h.date === dateStr) || null
+}
+
+/**
+ * Obtém o nome do feriado se a data for feriado
+ */
+export function getHolidayName(date: Date): string | null {
     const holiday = isHoliday(date)
+    return holiday ? holiday.name : null
+}
+
+/**
+ * Verifica se uma data é feriado nacional
+ */
+export function isNationalHoliday(date: Date): boolean {
+    const holiday = isHoliday(date)
+    return holiday?.type === 'national'
+}
+
+/**
+ * Obtém todos os feriados de um mês específico
+ */
+export function getHolidaysInMonth(year: number, month: number): Holiday[] {
+    return ALL_HOLIDAYS.filter(holiday => {
+        const holidayDate = new Date(holiday.date)
+        return holidayDate.getFullYear() === year && holidayDate.getMonth() === month
+    })
+}
+
+/**
+ * Obtém todos os feriados entre duas datas
+ */
+export function getHolidaysBetween(startDate: Date, endDate: Date): Holiday[] {
+    const start = startDate.toISOString().split('T')[0]
+    const end = endDate.toISOString().split('T')[0]
+
+    return ALL_HOLIDAYS.filter(holiday => {
+        return holiday.date >= start && holiday.date <= end
+    })
+}
+
+/**
+ * Formata um feriado para exibição
+ */
+export function formatHoliday(holiday: Holiday): string {
+    const typeLabel = {
+        national: '🇧🇷 Nacional',
+        state: '📍 Estadual (RN)',
+        municipal: '🏙️ Municipal'
+    }
+
+    const date = new Date(holiday.date)
+    const dateStr = date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric'
+    })
+
+    return `${holiday.name} - ${dateStr} (${typeLabel[holiday.type]})`
+}
+
+/**
+ * Gera mensagem de aviso para feriado
+ */
+export function getHolidayWarning(date: Date): string | null {
+    const holiday = isHoliday(date)
+    if (!holiday) return null
+
+    const emoji = holiday.type === 'national' ? '🎉' :
+        holiday.type === 'state' ? '📍' : '🏙️'
+
+    return `${emoji} Feriado: ${holiday.name}${holiday.description ? ` (${holiday.description})` : ''}`
+}
+
+/**
+ * Verifica se deve mostrar alerta ao criar horário nesta data
+ */
+export function shouldWarnAboutDate(date: Date): {
+    shouldWarn: boolean
+    message: string | null
+    holiday: Holiday | null
+} {
+    const holiday = isHoliday(date)
+
     if (holiday) {
         return {
-            date,
-            times: [],
-            isHoliday: true,
-            holidayName: holiday.name,
-            isBlocked: true,
-            blockReason: `Feriado: ${holiday.name}`
-        }
-    }
-
-    // 2. Buscar horários recorrentes deste dia da semana
-    const recurringSlots = await prisma.availableSlot.findMany({
-        where: {
-            dayOfWeek: dayOfWeek,
-            active: true
-        },
-        orderBy: {
-            timeSlot: 'asc'
-        }
-    })
-
-    if (recurringSlots.length === 0) {
-        return {
-            date,
-            times: [],
-            isHoliday: false,
-            isBlocked: true,
-            blockReason: 'Sem horários configurados para este dia'
-        }
-    }
-
-    // 3. Buscar bloqueios para esta data
-    const blockedTimes = await getBlockedTimesForDate(date)
-
-    // 4. Verificar se o dia inteiro está bloqueado
-    const fullDayBlocked = blockedTimes.some(block => !block.startTime && !block.endTime)
-    if (fullDayBlocked) {
-        const blockReason = blockedTimes.find(b => !b.startTime && !b.endTime)
-        return {
-            date,
-            times: [],
-            isHoliday: false,
-            isBlocked: true,
-            blockReason: blockReason?.reason || 'Dia bloqueado'
-        }
-    }
-
-    // 5. Filtrar horários que não estão bloqueados
-    const availableTimes = recurringSlots
-        .map(slot => slot.timeSlot)
-        .filter(time => !isTimeBlocked(time, blockedTimes))
-
-    return {
-        date,
-        times: availableTimes,
-        isHoliday: false,
-        isBlocked: availableTimes.length === 0,
-        blockReason: availableTimes.length === 0 ? 'Todos os horários estão bloqueados' : undefined
-    }
-}
-
-/**
- * Verifica se um horário específico está disponível
- */
-export async function isTimeAvailable(date: Date, time: string): Promise<{
-    available: boolean
-    reason?: string
-}> {
-    const { times, isBlocked, blockReason } = await getAvailableTimesForDate(date)
-
-    if (isBlocked) {
-        return {
-            available: false,
-            reason: blockReason
-        }
-    }
-
-    if (!times.includes(time)) {
-        return {
-            available: false,
-            reason: 'Horário não disponível'
-        }
-    }
-
-    // Verificar se já existe agendamento neste horário
-    const dateStart = new Date(date)
-    dateStart.setHours(0, 0, 0, 0)
-    const dateEnd = new Date(date)
-    dateEnd.setHours(23, 59, 59, 999)
-
-    const existingAppointment = await prisma.appointment.findFirst({
-        where: {
-            date: {
-                gte: dateStart,
-                lte: dateEnd
-            },
-            time: time,
-            status: {
-                in: ['PENDING', 'CONFIRMED']
-            }
-        }
-    })
-
-    if (existingAppointment) {
-        return {
-            available: false,
-            reason: 'Horário já agendado'
+            shouldWarn: true,
+            message: `⚠️ Esta data é feriado (${holiday.name}). Tem certeza que deseja criar horários disponíveis?`,
+            holiday
         }
     }
 
     return {
-        available: true
-    }
-}
-
-/**
- * Obtém status visual do dia para o calendário
- */
-export async function getDayStatus(date: Date): Promise<{
-    status: 'available' | 'partial' | 'blocked' | 'holiday'
-    color: 'green' | 'yellow' | 'red' | 'purple'
-    message: string
-    availableCount: number
-    totalCount: number
-}> {
-    // Verificar feriado
-    const holiday = isHoliday(date)
-    if (holiday) {
-        return {
-            status: 'holiday',
-            color: 'purple',
-            message: `Feriado: ${holiday.name}`,
-            availableCount: 0,
-            totalCount: 0
-        }
-    }
-
-    const { times, isBlocked, blockReason } = await getAvailableTimesForDate(date)
-
-    // Buscar total de horários possíveis (sem filtro de bloqueio)
-    const dayOfWeek = date.getDay()
-    const totalSlots = await prisma.availableSlot.count({
-        where: {
-            dayOfWeek: dayOfWeek,
-            active: true
-        }
-    })
-
-    if (isBlocked || times.length === 0) {
-        return {
-            status: 'blocked',
-            color: 'red',
-            message: blockReason || 'Dia fechado',
-            availableCount: 0,
-            totalCount: totalSlots
-        }
-    }
-
-    if (times.length < totalSlots) {
-        return {
-            status: 'partial',
-            color: 'yellow',
-            message: `${times.length} de ${totalSlots} horários disponíveis`,
-            availableCount: times.length,
-            totalCount: totalSlots
-        }
-    }
-
-    return {
-        status: 'available',
-        color: 'green',
-        message: `${times.length} horários disponíveis`,
-        availableCount: times.length,
-        totalCount: totalSlots
-    }
-}
-
-/**
- * Cria horários em lote para várias datas
- */
-export async function createSlotsInBatch(
-    timeSlot: string,
-    dates: Date[]
-): Promise<{
-    success: boolean
-    created: number
-    skipped: number
-    errors: string[]
-}> {
-    let created = 0
-    let skipped = 0
-    const errors: string[] = []
-
-    for (const date of dates) {
-        try {
-            const dayOfWeek = date.getDay()
-
-            // Verificar se já existe
-            const existing = await prisma.availableSlot.findFirst({
-                where: {
-                    dayOfWeek: dayOfWeek,
-                    timeSlot: timeSlot
-                }
-            })
-
-            if (existing) {
-                skipped++
-                continue
-            }
-
-            // Criar
-            await prisma.availableSlot.create({
-                data: {
-                    dayOfWeek: dayOfWeek,
-                    timeSlot: timeSlot,
-                    active: true
-                }
-            })
-
-            created++
-        } catch (error) {
-            errors.push(`Erro ao criar horário para ${date.toLocaleDateString('pt-BR')}: ${error}`)
-        }
-    }
-
-    return {
-        success: errors.length === 0,
-        created,
-        skipped,
-        errors
-    }
-}
-
-/**
- * Bloqueia automaticamente horários quando cria um bloqueio
- */
-export async function autoBlockTimesForBlockedTime(
-    blockedTimeId: string
-): Promise<{
-    success: boolean
-    affectedSlots: number
-    affectedAppointments: number
-}> {
-    const blockedTime = await prisma.blockedTime.findUnique({
-        where: { id: blockedTimeId }
-    })
-
-    if (!blockedTime) {
-        return {
-            success: false,
-            affectedSlots: 0,
-            affectedAppointments: 0
-        }
-    }
-
-    let affectedSlots = 0
-    let affectedAppointments = 0
-
-    if (blockedTime.isRecurring) {
-        // Bloqueio recorrente: desativar slots do dia da semana
-        if (blockedTime.dayOfWeek !== null) {
-            const slots = await prisma.availableSlot.findMany({
-                where: {
-                    dayOfWeek: blockedTime.dayOfWeek,
-                    active: true
-                }
-            })
-
-            // Se tem horário específico, só desativar esses
-            const slotsToDisable = blockedTime.startTime && blockedTime.endTime
-                ? slots.filter(s =>
-                    s.timeSlot >= blockedTime.startTime! &&
-                    s.timeSlot <= blockedTime.endTime!
-                )
-                : slots // Sem horário = desativa todos
-
-            for (const slot of slotsToDisable) {
-                await prisma.availableSlot.update({
-                    where: { id: slot.id },
-                    data: { active: false }
-                })
-                affectedSlots++
-            }
-        }
-    } else if (blockedTime.date) {
-        // Bloqueio pontual: cancelar agendamentos da data
-        const dateStart = new Date(blockedTime.date)
-        dateStart.setHours(0, 0, 0, 0)
-        const dateEnd = new Date(blockedTime.date)
-        dateEnd.setHours(23, 59, 59, 999)
-
-        const where: any = {
-            date: {
-                gte: dateStart,
-                lte: dateEnd
-            },
-            status: {
-                in: ['PENDING', 'CONFIRMED']
-            }
-        }
-
-        // Se tem horário específico
-        if (blockedTime.startTime && blockedTime.endTime) {
-            where.time = {
-                gte: blockedTime.startTime,
-                lte: blockedTime.endTime
-            }
-        }
-
-        const appointments = await prisma.appointment.findMany({ where })
-
-        for (const apt of appointments) {
-            await prisma.appointment.update({
-                where: { id: apt.id },
-                data: {
-                    status: 'CANCELLED',
-                    justification: `Cancelado automaticamente: ${blockedTime.reason}`
-                }
-            })
-            affectedAppointments++
-        }
-    }
-
-    return {
-        success: true,
-        affectedSlots,
-        affectedAppointments
+        shouldWarn: false,
+        message: null,
+        holiday: null
     }
 }

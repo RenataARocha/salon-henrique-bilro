@@ -1,9 +1,118 @@
 // src/lib/schedule-integration.ts
 // Integração entre Horários de Funcionamento e Bloqueios
+// CORREÇÃO FINAL: Tipos corretos do BlockedTime
 
 import { prisma } from './prisma'
-import { getBlockedTimesForDate, isTimeBlocked } from './blocked-times-utils'
-import { isHoliday } from './holidays'
+import { isHoliday as checkIsHoliday } from './holidays'
+
+// Tipo correto do BlockedTime (mesma estrutura do Prisma)
+interface BlockedTime {
+    id: string
+    type: string
+    date?: Date | null
+    startTime?: string | null
+    endTime?: string | null
+    dayOfWeek?: number | null
+    isRecurring: boolean
+    startDate?: Date | null
+    endDate?: Date | null
+    reason: string
+    description?: string | null
+}
+
+/**
+ * Busca todos os horários bloqueados para uma data específica
+ */
+async function getBlockedTimesForDate(date: Date): Promise<BlockedTime[]> {
+    const dayOfWeek = date.getDay()
+    const dateStart = new Date(date)
+    dateStart.setHours(0, 0, 0, 0)
+    const dateEnd = new Date(date)
+    dateEnd.setHours(23, 59, 59, 999)
+
+    const blockedTimes = await prisma.blockedTime.findMany({
+        where: {
+            OR: [
+                // Bloqueios recorrentes para este dia da semana
+                {
+                    isRecurring: true,
+                    dayOfWeek: dayOfWeek,
+                    OR: [
+                        // Sem período de validade (sempre ativo)
+                        {
+                            AND: [
+                                { startDate: null },
+                                { endDate: null }
+                            ]
+                        },
+                        // Dentro do período de validade
+                        {
+                            AND: [
+                                {
+                                    OR: [
+                                        { startDate: null },
+                                        { startDate: { lte: date } }
+                                    ]
+                                },
+                                {
+                                    OR: [
+                                        { endDate: null },
+                                        { endDate: { gte: date } }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
+                // Bloqueios pontuais para esta data específica
+                {
+                    isRecurring: false,
+                    date: {
+                        gte: dateStart,
+                        lte: dateEnd
+                    }
+                }
+            ]
+        }
+    })
+
+    return blockedTimes as BlockedTime[]
+}
+
+/**
+ * Verifica se um horário específico está bloqueado
+ */
+function isTimeBlocked(time: string, blockedTimes: BlockedTime[]): boolean {
+    for (const block of blockedTimes) {
+        // Se não tem horário específico, bloqueia o dia todo
+        if (!block.startTime && !block.endTime) {
+            return true
+        }
+
+        // Se tem horário específico, verificar se está no intervalo
+        if (block.startTime && block.endTime) {
+            if (time >= block.startTime && time <= block.endTime) {
+                return true
+            }
+        }
+
+        // Se só tem início (bloqueia desse horário em diante)
+        if (block.startTime && !block.endTime) {
+            if (time >= block.startTime) {
+                return true
+            }
+        }
+
+        // Se só tem fim (bloqueia até esse horário)
+        if (!block.startTime && block.endTime) {
+            if (time <= block.endTime) {
+                return true
+            }
+        }
+    }
+
+    return false
+}
 
 /**
  * Obtém todos os horários disponíveis para uma data específica
@@ -20,7 +129,7 @@ export async function getAvailableTimesForDate(date: Date): Promise<{
     const dayOfWeek = date.getDay()
 
     // 1. Verificar se é feriado
-    const holiday = isHoliday(date)
+    const holiday = checkIsHoliday(date)
     if (holiday) {
         return {
             date,
@@ -59,13 +168,13 @@ export async function getAvailableTimesForDate(date: Date): Promise<{
     // 4. Verificar se o dia inteiro está bloqueado
     const fullDayBlocked = blockedTimes.some(block => !block.startTime && !block.endTime)
     if (fullDayBlocked) {
-        const blockReason = blockedTimes.find(b => !b.startTime && !b.endTime)
+        const block = blockedTimes.find(b => !b.startTime && !b.endTime)
         return {
             date,
             times: [],
             isHoliday: false,
             isBlocked: true,
-            blockReason: blockReason?.reason || 'Dia bloqueado'
+            blockReason: block?.reason || 'Dia bloqueado'
         }
     }
 
@@ -148,7 +257,7 @@ export async function getDayStatus(date: Date): Promise<{
     totalCount: number
 }> {
     // Verificar feriado
-    const holiday = isHoliday(date)
+    const holiday = checkIsHoliday(date)
     if (holiday) {
         return {
             status: 'holiday',
