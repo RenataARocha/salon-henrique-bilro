@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import Navbar from "@/components/NavBar";
 import { Tag, CheckCircle, XCircle, Loader2, Percent, DollarSign } from 'lucide-react';
 import Image from 'next/image';
+import SmartCalendar from "@/components/SmartCalendar";
+import { Calendar, AlertCircle } from 'lucide-react';
 
 interface Service {
     id: string;
@@ -49,6 +51,7 @@ function ServiceCardWithCarousel({
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const hasImages = service.images && service.images.length > 0;
 
+
     useEffect(() => {
         if (!hasImages || service.images!.length <= 1) return;
 
@@ -63,8 +66,8 @@ function ServiceCardWithCarousel({
         <div
             onClick={onSelect}
             className={`rounded-xl border-2 cursor-pointer transition-all overflow-hidden ${isSelected
-                    ? "border-gold shadow-lg"
-                    : "border-gray-200 hover:border-gold hover:shadow-md"
+                ? "border-gold shadow-lg"
+                : "border-gray-200 hover:border-gold hover:shadow-md"
                 }`}
         >
             {/* Carrossel de Imagens */}
@@ -98,8 +101,8 @@ function ServiceCardWithCarousel({
                                         setCurrentImageIndex(index);
                                     }}
                                     className={`h-1.5 rounded-full transition-all ${index === currentImageIndex
-                                            ? 'bg-white w-6'
-                                            : 'bg-white/50 w-1.5 hover:bg-white/80'
+                                        ? 'bg-white w-6'
+                                        : 'bg-white/50 w-1.5 hover:bg-white/80'
                                         }`}
                                     aria-label={`Ver imagem ${index + 1}`}
                                 />
@@ -153,10 +156,10 @@ function StepIndicator({
         <div className="flex flex-col items-center">
             <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center font-bold transition-all ${completed
+                    ? "bg-gold text-white"
+                    : active
                         ? "bg-gold text-white"
-                        : active
-                            ? "bg-gold text-white"
-                            : "bg-gray-300 text-gray-600"
+                        : "bg-gray-300 text-gray-600"
                     }`}
             >
                 {completed ? "✓" : number}
@@ -204,6 +207,11 @@ export default function AgendarPage() {
     const [validandoCupom, setValidandoCupom] = useState(false);
     const [cupomValidado, setCupomValidado] = useState<CupomValidado | null>(null);
     const [mostrarCampoCupom, setMostrarCampoCupom] = useState(false);
+    const [dateMessage, setDateMessage] = useState<{
+        type: 'info' | 'warning' | 'error';
+        text: string;
+    } | null>(null);
+
 
     // Buscar serviços ao carregar
     useEffect(() => {
@@ -232,18 +240,43 @@ export default function AgendarPage() {
     const fetchAvailableSlots = async (date: string) => {
         try {
             setLoading(true);
+            setDateMessage(null); // ← ADICIONAR
+
             const res = await fetch(`/api/available-slots?date=${date}`);
             const data = await res.json();
 
             if (data.success) {
                 setAvailableSlots(data.data);
-                if (data.data.length === 0) {
-                    alert(data.message || "Não há horários disponíveis para esta data");
+
+                // ← ADICIONAR ESTE BLOCO INTEIRO:
+                if (data.isHoliday) {
+                    setDateMessage({
+                        type: 'warning',
+                        text: data.message
+                    });
+                } else if (data.isBlocked) {
+                    setDateMessage({
+                        type: 'error',
+                        text: data.message
+                    });
+                } else if (data.data.length === 0) {
+                    setDateMessage({
+                        type: 'info',
+                        text: data.message || "Não há horários disponíveis para esta data"
+                    });
+                } else {
+                    setDateMessage({
+                        type: 'info',
+                        text: data.message
+                    });
                 }
             }
         } catch (error) {
             console.error("Erro ao buscar horários:", error);
-            alert("Erro ao buscar horários disponíveis");
+            setDateMessage({ // ← ADICIONAR
+                type: 'error',
+                text: "Erro ao buscar horários disponíveis"
+            });
         } finally {
             setLoading(false);
         }
@@ -596,16 +629,16 @@ export default function AgendarPage() {
 
                                 {/* Seletor de data */}
                                 <div className="space-y-2">
-                                    <label className="block text-sm font-semibold text-charcoal">
-                                        Data do Agendamento *
+                                    <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                        <Calendar size={20} className="text-gold" />
+                                        Selecione a Data *
                                     </label>
-                                    <input
-                                        type="date"
-                                        value={selectedDate}
-                                        onChange={(e) => handleDateChange(e.target.value)}
-                                        min={getMinDate()}
-                                        max={getMaxDate()}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+
+                                    <SmartCalendar
+                                        onDateSelect={handleDateChange}
+                                        selectedDate={selectedDate}
+                                        minDate={getMinDate()}
+                                        maxDate={getMaxDate()}
                                     />
                                 </div>
 
@@ -627,8 +660,8 @@ export default function AgendarPage() {
                                                         key={slot}
                                                         onClick={() => setSelectedTime(slot)}
                                                         className={`py-3 px-4 rounded-lg font-semibold transition-all ${selectedTime === slot
-                                                                ? "bg-gold text-white shadow-lg"
-                                                                : "bg-white border-2 border-gray-300 text-charcoal hover:border-gold"
+                                                            ? "bg-gold text-white shadow-lg"
+                                                            : "bg-white border-2 border-gray-300 text-charcoal hover:border-gold"
                                                             }`}
                                                     >
                                                         {slot}
@@ -640,6 +673,24 @@ export default function AgendarPage() {
                                                 <p className="text-gray-600">Nenhum horário disponível para esta data</p>
                                             </div>
                                         ) : null}
+                                    </div>
+                                )}
+
+                                {dateMessage && (
+                                    <div className={`rounded-lg p-4 flex items-start gap-3 ${dateMessage.type === 'error' ? 'bg-red-50 border-2 border-red-200' :
+                                        dateMessage.type === 'warning' ? 'bg-yellow-50 border-2 border-yellow-200' :
+                                            'bg-blue-50 border-2 border-blue-200'
+                                        }`}>
+                                        <AlertCircle className={`flex-shrink-0 mt-0.5 ${dateMessage.type === 'error' ? 'text-red-600' :
+                                            dateMessage.type === 'warning' ? 'text-yellow-600' :
+                                                'text-blue-600'
+                                            }`} size={20} />
+                                        <p className={`text-sm font-medium ${dateMessage.type === 'error' ? 'text-red-800' :
+                                            dateMessage.type === 'warning' ? 'text-yellow-800' :
+                                                'text-blue-800'
+                                            }`}>
+                                            {dateMessage.text}
+                                        </p>
                                     </div>
                                 )}
 
@@ -862,8 +913,8 @@ export default function AgendarPage() {
                                                 key={method}
                                                 onClick={() => setSelectedPaymentMethod(method)}
                                                 className={`py-3 px-4 rounded-lg font-semibold transition-all border-2 ${selectedPaymentMethod === method
-                                                        ? "bg-gold text-white border-gold shadow-lg"
-                                                        : "bg-white border-gray-300 text-charcoal hover:border-gold"
+                                                    ? "bg-gold text-white border-gold shadow-lg"
+                                                    : "bg-white border-gray-300 text-charcoal hover:border-gold"
                                                     }`}
                                             >
                                                 {method}

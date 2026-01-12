@@ -1,7 +1,8 @@
-// app/api/available-slots/route.ts - CORRIGIDO
+// app/api/available-slots/route.ts - VERSÃO FINAL COM FERIADOS
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { isHoliday } from '@/lib/holidays' // ← ADICIONAR IMPORT
 
 export async function GET(request: Request) {
     try {
@@ -15,13 +16,27 @@ export async function GET(request: Request) {
             )
         }
 
-        const selectedDate = new Date(dateParam)
+        const selectedDate = new Date(dateParam + 'T00:00:00') // ← FIX: Garantir timezone correto
         const dayOfWeek = selectedDate.getDay()
 
-        // ✅ REMOVIDO: Verificação hardcoded de domingo
-        // Agora usa os bloqueios do banco!
+        // 🎉 NOVO: Verificar se é feriado
+        const holiday = isHoliday(selectedDate)
+        if (holiday) {
+            return NextResponse.json({
+                success: true,
+                data: [],
+                message: `🎉 Feriado: ${holiday.name} - Salão fechado`,
+                isHoliday: true,
+                holidayName: holiday.name
+            })
+        }
 
         // 1️⃣ Buscar bloqueios que afetam esta data
+        const dateStart = new Date(selectedDate)
+        dateStart.setHours(0, 0, 0, 0)
+        const dateEnd = new Date(selectedDate)
+        dateEnd.setHours(23, 59, 59, 999)
+
         const blockedTimes = await prisma.blockedTime.findMany({
             where: {
                 OR: [
@@ -40,7 +55,12 @@ export async function GET(request: Request) {
                             // Dentro do período de validade
                             {
                                 AND: [
-                                    { startDate: { lte: selectedDate } },
+                                    {
+                                        OR: [
+                                            { startDate: null },
+                                            { startDate: { lte: selectedDate } }
+                                        ]
+                                    },
                                     {
                                         OR: [
                                             { endDate: null },
@@ -55,8 +75,8 @@ export async function GET(request: Request) {
                     {
                         isRecurring: false,
                         date: {
-                            gte: new Date(selectedDate.setHours(0, 0, 0, 0)),
-                            lte: new Date(selectedDate.setHours(23, 59, 59, 999))
+                            gte: dateStart,
+                            lte: dateEnd
                         }
                     }
                 ]
@@ -64,17 +84,14 @@ export async function GET(request: Request) {
         })
 
         // 2️⃣ Verificar se o dia inteiro está bloqueado
-        const isDayFullyBlocked = blockedTimes.some(block => {
-            // Bloqueio sem horário específico = bloqueia o dia inteiro
-            return !block.startTime && !block.endTime
-        })
-
-        if (isDayFullyBlocked) {
-            const blockReason = blockedTimes.find(b => !b.startTime && !b.endTime)
+        const fullDayBlock = blockedTimes.find(block => !block.startTime && !block.endTime)
+        if (fullDayBlock) {
             return NextResponse.json({
                 success: true,
                 data: [],
-                message: blockReason?.reason || 'Este dia não está disponível para agendamentos'
+                message: fullDayBlock.reason || 'Este dia não está disponível para agendamentos',
+                isBlocked: true,
+                blockReason: fullDayBlock.reason
             })
         }
 
@@ -93,14 +110,17 @@ export async function GET(request: Request) {
             return NextResponse.json({
                 success: true,
                 data: [],
-                message: 'Nenhum horário configurado para este dia'
+                message: 'Nenhum horário configurado para este dia da semana'
             })
         }
 
         // 4️⃣ Buscar agendamentos já marcados para esta data
         const bookedAppointments = await prisma.appointment.findMany({
             where: {
-                date: selectedDate,
+                date: {
+                    gte: dateStart,
+                    lte: dateEnd
+                },
                 status: {
                     in: ['PENDING', 'CONFIRMED']
                 }
@@ -115,7 +135,7 @@ export async function GET(request: Request) {
         // 5️⃣ Verificar se a data selecionada já passou
         const today = new Date()
         today.setHours(0, 0, 0, 0)
-        const checkDate = new Date(dateParam)
+        const checkDate = new Date(selectedDate)
         checkDate.setHours(0, 0, 0, 0)
 
         if (checkDate < today) {
@@ -149,11 +169,7 @@ export async function GET(request: Request) {
                     return time >= blockStart && time <= blockEnd
                 })
 
-                if (isTimeBlocked) {
-                    return false
-                }
-
-                return true
+                return !isTimeBlocked
             })
 
         // 7️⃣ Se for hoje, filtrar horários que já passaram
@@ -171,11 +187,16 @@ export async function GET(request: Request) {
         return NextResponse.json({
             success: true,
             data: availableTimes,
-            blockedRanges: blockedTimes.map(b => ({
-                startTime: b.startTime,
-                endTime: b.endTime,
-                reason: b.reason
-            }))
+            message: availableTimes.length > 0
+                ? `${availableTimes.length} horários disponíveis`
+                : 'Nenhum horário disponível para esta data',
+            blockedRanges: blockedTimes
+                .filter(b => b.startTime || b.endTime)
+                .map(b => ({
+                    startTime: b.startTime,
+                    endTime: b.endTime,
+                    reason: b.reason
+                }))
         })
 
     } catch (error) {
