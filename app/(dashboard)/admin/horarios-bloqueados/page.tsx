@@ -1,11 +1,12 @@
-// app/(dashboard)/admin/horarios-bloqueados/page.tsx - CORRIGIDO
+// app/(dashboard)/admin/horarios-bloqueados/page.tsx - COM ALMOÇO
 
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, Plus, Edit, Trash2, RefreshCw } from 'lucide-react'
+import { Calendar, Clock, Plus, Edit, Trash2, RefreshCw, UtensilsCrossed } from 'lucide-react' // ← ADICIONAR UtensilsCrossed
 import AdminHeader from '@/components/admin/AdminHeader'
 import BlockedTimeForm from '@/components/admin/BlockedTimeForm'
+import LunchBreakModal from '@/components/admin/LunchBreakModal' // ← ADICIONAR
 
 interface BlockedTime {
     id: string
@@ -41,6 +42,7 @@ export default function BlockedTimesPage() {
     const [blockedTimes, setBlockedTimes] = useState<BlockedTime[]>([])
     const [loading, setLoading] = useState(true)
     const [showForm, setShowForm] = useState(false)
+    const [showLunchModal, setShowLunchModal] = useState(false) // ← ADICIONAR
     const [editingBlock, setEditingBlock] = useState<BlockedTime | null>(null)
     const [filter, setFilter] = useState<'all' | 'recurring' | 'punctual'>('all')
 
@@ -91,16 +93,20 @@ export default function BlockedTimesPage() {
         setShowForm(true)
     }
 
-    // ✅ CORREÇÃO: Função para fechar o modal e limpar estado
     const handleCloseForm = () => {
         setShowForm(false)
         setEditingBlock(null)
     }
 
-    // ✅ CORREÇÃO: Função para quando salvar com sucesso
     const handleFormSuccess = () => {
-        fetchBlockedTimes() // Recarrega a lista
-        handleCloseForm()   // Fecha o modal
+        fetchBlockedTimes()
+        handleCloseForm()
+    }
+
+    // ← ADICIONAR
+    const handleLunchSuccess = () => {
+        fetchBlockedTimes()
+        setShowLunchModal(false)
     }
 
     const filteredBlocks = blockedTimes.filter(block => {
@@ -145,7 +151,7 @@ export default function BlockedTimesPage() {
                 />
 
                 {/* Ações */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-4">
                     <div className="flex gap-3">
                         <button
                             onClick={() => setFilter('all')}
@@ -184,6 +190,16 @@ export default function BlockedTimesPage() {
                             <RefreshCw size={20} />
                             Atualizar
                         </button>
+
+                        {/* ← BOTÃO ALMOÇO */}
+                        <button
+                            onClick={() => setShowLunchModal(true)}
+                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+                        >
+                            <UtensilsCrossed size={20} />
+                            Horário de Almoço
+                        </button>
+
                         <button
                             onClick={() => {
                                 setEditingBlock(null)
@@ -346,23 +362,40 @@ export default function BlockedTimesPage() {
                         <p className="text-gray-600 mb-6">
                             Configure horários indisponíveis para agendamento
                         </p>
-                        <button
-                            onClick={() => setShowForm(true)}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
-                        >
-                            <Plus size={20} />
-                            Criar Primeiro Bloqueio
-                        </button>
+                        <div className="flex gap-3 justify-center">
+                            <button
+                                onClick={() => setShowLunchModal(true)}
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+                            >
+                                <UtensilsCrossed size={20} />
+                                Horário de Almoço
+                            </button>
+                            <button
+                                onClick={() => setShowForm(true)}
+                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+                            >
+                                <Plus size={20} />
+                                Criar Bloqueio
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
 
-            {/* Modal Form - ✅ CORREÇÃO: Passar funções corretas */}
+            {/* Modal Form */}
             {showForm && (
                 <BlockedTimeForm
                     onClose={handleCloseForm}
                     onSuccess={handleFormSuccess}
                     editData={editingBlock}
+                />
+            )}
+
+            {/* ← MODAL ALMOÇO */}
+            {showLunchModal && (
+                <LunchBreakModal
+                    onClose={() => setShowLunchModal(false)}
+                    onSuccess={handleLunchSuccess}
                 />
             )}
         </div>

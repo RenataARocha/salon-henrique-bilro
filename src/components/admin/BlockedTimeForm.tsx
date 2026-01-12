@@ -1,8 +1,8 @@
-// components/admin/BlockedTimeForm.tsx - MELHORADO
+// components/admin/BlockedTimeForm.tsx - VERSÃO CORRIGIDA COMPLETA
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { X, Calendar, Clock, AlertCircle, Info } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
@@ -27,13 +27,13 @@ interface Props {
 }
 
 const BLOCK_TYPES = [
-    { value: 'DAY_OFF', label: '📅 Folga/Descanso', needsHours: false },
-    { value: 'LUNCH_BREAK', label: '🍽️ Horário de Almoço', needsHours: true },
-    { value: 'HOLIDAY', label: '🎉 Feriado', needsHours: false },
-    { value: 'VACATION', label: '✈️ Férias', needsHours: false },
-    { value: 'MAINTENANCE', label: '🔧 Manutenção', needsHours: false },
-    { value: 'SPECIAL_EVENT', label: '📚 Evento Especial', needsHours: false },
-    { value: 'OTHER', label: '📝 Outro Motivo', needsHours: true }
+    { value: 'DAY_OFF', label: '📅 Folga/Descanso', needsHours: false, needsDateRange: false },
+    { value: 'LUNCH_BREAK', label: '🍽️ Horário de Almoço', needsHours: true, needsDateRange: false },
+    { value: 'HOLIDAY', label: '🎉 Feriado', needsHours: false, needsDateRange: false },
+    { value: 'VACATION', label: '✈️ Férias', needsHours: false, needsDateRange: true }, // ← CORRIGIDO
+    { value: 'MAINTENANCE', label: '🔧 Manutenção', needsHours: false, needsDateRange: false },
+    { value: 'SPECIAL_EVENT', label: '📚 Evento Especial', needsHours: false, needsDateRange: false },
+    { value: 'OTHER', label: '📝 Outro Motivo', needsHours: true, needsDateRange: false }
 ]
 
 const DAYS_OF_WEEK = [
@@ -56,8 +56,18 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
     const [reason, setReason] = useState(editData?.reason || '')
     const [description, setDescription] = useState(editData?.description || '')
 
-    // Pontual
-    const [date, setDate] = useState(editData?.date?.split('T')[0] || '')
+    // ✅ CORREÇÃO: Ajustar datas para UTC ao carregar
+    const adjustDateForTimezone = (dateStr: string | undefined) => {
+        if (!dateStr) return ''
+        const date = new Date(dateStr)
+        // Adicionar offset do timezone para corrigir o problema
+        const offset = date.getTimezoneOffset()
+        date.setMinutes(date.getMinutes() + offset)
+        return date.toISOString().split('T')[0]
+    }
+
+    // Pontual - com correção de timezone
+    const [date, setDate] = useState(adjustDateForTimezone(editData?.date))
     const [startTime, setStartTime] = useState(editData?.startTime || '')
     const [endTime, setEndTime] = useState(editData?.endTime || '')
 
@@ -65,8 +75,10 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
     const [dayOfWeek, setDayOfWeek] = useState<number>(editData?.dayOfWeek ?? 0)
     const [recurringStartTime, setRecurringStartTime] = useState(editData?.startTime || '')
     const [recurringEndTime, setRecurringEndTime] = useState(editData?.endTime || '')
-    const [startDate, setStartDate] = useState(editData?.startDate?.split('T')[0] || '')
-    const [endDate, setEndDate] = useState(editData?.endDate?.split('T')[0] || '')
+
+    // ✅ NOVO: Período de validade para recorrentes E férias
+    const [startDate, setStartDate] = useState(adjustDateForTimezone(editData?.startDate))
+    const [endDate, setEndDate] = useState(adjustDateForTimezone(editData?.endDate))
 
     const selectedBlockType = BLOCK_TYPES.find(t => t.value === type)
 
@@ -74,31 +86,39 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
         e.preventDefault()
         setError('')
 
-        // Validação do motivo
         if (!reason.trim()) {
             setError('Por favor, informe o motivo do bloqueio')
             return
         }
 
-        // Validação pontual
-        if (!isRecurring) {
+        // ✅ VALIDAÇÃO ESPECIAL PARA FÉRIAS
+        if (type === 'VACATION' && !isRecurring) {
+            if (!date || !endDate) {
+                setError('Férias requerem data de início e fim')
+                return
+            }
+            if (date > endDate) {
+                setError('A data de início deve ser antes da data de fim')
+                return
+            }
+        }
+
+        // Validação pontual normal
+        if (!isRecurring && type !== 'VACATION') {
             if (!date) {
-                setError('Por favor, selecione uma data para o bloqueio pontual')
+                setError('Por favor, selecione uma data')
                 return
             }
 
-            // Se o tipo requer horário específico
             if (selectedBlockType?.needsHours) {
                 if (!startTime || !endTime) {
                     setError(`${selectedBlockType.label} requer horário de início e fim`)
                     return
                 }
-            }
-
-            // Validar ordem dos horários se ambos foram fornecidos
-            if (startTime && endTime && startTime >= endTime) {
-                setError('O horário de início deve ser antes do horário de fim')
-                return
+                if (startTime >= endTime) {
+                    setError('O horário de início deve ser antes do horário de fim')
+                    return
+                }
             }
         }
 
@@ -109,15 +129,12 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                     setError(`${selectedBlockType.label} requer horário de início e fim`)
                     return
                 }
+                if (recurringStartTime >= recurringEndTime) {
+                    setError('O horário de início deve ser antes do horário de fim')
+                    return
+                }
             }
 
-            // Validar ordem dos horários se ambos foram fornecidos
-            if (recurringStartTime && recurringEndTime && recurringStartTime >= recurringEndTime) {
-                setError('O horário de início deve ser antes do horário de fim')
-                return
-            }
-
-            // Validar período de validade se fornecido
             if (startDate && endDate && startDate > endDate) {
                 setError('A data inicial deve ser antes da data final')
                 return
@@ -135,15 +152,20 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
             }
 
             if (isRecurring) {
-                // Bloqueio Recorrente
                 payload.dayOfWeek = dayOfWeek
                 payload.startTime = recurringStartTime || undefined
                 payload.endTime = recurringEndTime || undefined
                 payload.startDate = startDate || undefined
                 payload.endDate = endDate || undefined
             } else {
-                // Bloqueio Pontual
+                // ✅ CORREÇÃO: Garantir formato correto da data (YYYY-MM-DD)
                 payload.date = date
+
+                // ✅ FÉRIAS: Enviar período
+                if (type === 'VACATION') {
+                    payload.endDate = endDate
+                }
+
                 payload.startTime = startTime || undefined
                 payload.endTime = endTime || undefined
             }
@@ -204,7 +226,6 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                    {/* Erro */}
                     {error && (
                         <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 flex items-start gap-3">
                             <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
@@ -235,28 +256,76 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                                 <p>Este tipo requer definição de horário específico</p>
                             </div>
                         )}
-                    </div>
-
-                    {/* Recorrente? */}
-                    <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                        <label className="flex items-start gap-3 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={isRecurring}
-                                onChange={(e) => setIsRecurring(e.target.checked)}
-                                className="mt-1 w-5 h-5 text-gold rounded focus:ring-gold"
-                            />
-                            <div>
-                                <p className="font-semibold text-charcoal">Bloqueio Recorrente</p>
-                                <p className="text-sm text-gray-600">
-                                    Se repete toda semana no mesmo dia (ex: almoço toda terça-feira)
-                                </p>
+                        {selectedBlockType?.needsDateRange && (
+                            <div className="mt-2 flex items-start gap-2 text-sm text-purple-600 bg-purple-50 p-2 rounded">
+                                <Info size={16} className="flex-shrink-0 mt-0.5" />
+                                <p>Férias requerem período (data de início e fim)</p>
                             </div>
-                        </label>
+                        )}
                     </div>
 
-                    {!isRecurring ? (
-                        // ===== BLOQUEIO PONTUAL =====
+                    {/* Recorrente? - OCULTAR PARA FÉRIAS */}
+                    {type !== 'VACATION' && (
+                        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={isRecurring}
+                                    onChange={(e) => setIsRecurring(e.target.checked)}
+                                    className="mt-1 w-5 h-5 text-gold rounded focus:ring-gold"
+                                />
+                                <div>
+                                    <p className="font-semibold text-charcoal">Bloqueio Recorrente</p>
+                                    <p className="text-sm text-gray-600">
+                                        Se repete toda semana no mesmo dia (ex: almoço toda terça-feira)
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+                    )}
+
+                    {/* ✅ CASO ESPECIAL: FÉRIAS (sempre pontual com período) */}
+                    {type === 'VACATION' && (
+                        <div className="space-y-4 bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
+                            <h3 className="font-bold text-charcoal flex items-center gap-2">
+                                <Calendar size={20} className="text-gold" />
+                                ✈️ Período de Férias
+                            </h3>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Data de Início *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={date}
+                                        onChange={(e) => setDate(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Data de Fim *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-xs text-purple-700">
+                                💡 Todos os dias neste período ficarão bloqueados
+                            </p>
+                        </div>
+                    )}
+
+                    {/* BLOQUEIO PONTUAL NORMAL (exceto férias) */}
+                    {!isRecurring && type !== 'VACATION' && (
                         <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
                             <h3 className="font-bold text-charcoal flex items-center gap-2">
                                 <Calendar size={20} className="text-gold" />
@@ -308,8 +377,10 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                                 </p>
                             )}
                         </div>
-                    ) : (
-                        // ===== BLOQUEIO RECORRENTE =====
+                    )}
+
+                    {/* BLOQUEIO RECORRENTE */}
+                    {isRecurring && type !== 'VACATION' && (
                         <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
                             <h3 className="font-bold text-charcoal flex items-center gap-2">
                                 <Clock size={20} className="text-gold" />
