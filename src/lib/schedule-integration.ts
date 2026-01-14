@@ -64,14 +64,27 @@ async function getBlockedTimesForDate(date: Date): Promise<BlockedTime[]> {
                         }
                     ]
                 },
-                // Bloqueios pontuais para esta data específica
+                // Bloqueios pontuais (inclui férias por intervalo)
                 {
                     isRecurring: false,
-                    date: {
-                        gte: dateStart,
-                        lte: dateEnd
-                    }
+                    OR: [
+                        // Bloqueio de um único dia
+                        {
+                            date: {
+                                gte: dateStart,
+                                lte: dateEnd
+                            }
+                        },
+                        // FÉRIAS / INTERVALO DE DATAS
+                        {
+                            AND: [
+                                { date: { lte: dateEnd } },
+                                { endDate: { gte: dateStart } }
+                            ]
+                        }
+                    ]
                 }
+
             ]
         }
     })

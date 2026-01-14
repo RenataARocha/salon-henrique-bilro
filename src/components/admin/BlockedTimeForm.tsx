@@ -1,4 +1,4 @@
-// components/admin/BlockedTimeForm.tsx - VERSÃO CORRIGIDA COMPLETA
+// src/components/admin/BlockedTimeForm.tsx - CORREÇÃO EDIÇÃO
 
 'use client'
 
@@ -30,7 +30,7 @@ const BLOCK_TYPES = [
     { value: 'DAY_OFF', label: '📅 Folga/Descanso', needsHours: false, needsDateRange: false },
     { value: 'LUNCH_BREAK', label: '🍽️ Horário de Almoço', needsHours: true, needsDateRange: false },
     { value: 'HOLIDAY', label: '🎉 Feriado', needsHours: false, needsDateRange: false },
-    { value: 'VACATION', label: '✈️ Férias', needsHours: false, needsDateRange: true }, // ← CORRIGIDO
+    { value: 'VACATION', label: '✈️ Férias', needsHours: false, needsDateRange: true },
     { value: 'MAINTENANCE', label: '🔧 Manutenção', needsHours: false, needsDateRange: false },
     { value: 'SPECIAL_EVENT', label: '📚 Evento Especial', needsHours: false, needsDateRange: false },
     { value: 'OTHER', label: '📝 Outro Motivo', needsHours: true, needsDateRange: false }
@@ -46,6 +46,17 @@ const DAYS_OF_WEEK = [
     { value: 6, label: 'Sábado' }
 ]
 
+// ✅ FUNÇÃO CORRETA: Extrair apenas YYYY-MM-DD da string ISO
+function extractDateOnly(dateStr: string | undefined): string {
+    if (!dateStr) return ''
+
+    // Se vier "2026-01-24T00:00:00.000Z", pegar só "2026-01-24"
+    // Se vier "2026-01-24", manter assim
+    const isoDate = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr
+
+    return isoDate
+}
+
 export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
@@ -56,18 +67,8 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
     const [reason, setReason] = useState(editData?.reason || '')
     const [description, setDescription] = useState(editData?.description || '')
 
-    // ✅ CORREÇÃO: Ajustar datas para UTC ao carregar
-    const adjustDateForTimezone = (dateStr: string | undefined) => {
-        if (!dateStr) return ''
-        const date = new Date(dateStr)
-        // Adicionar offset do timezone para corrigir o problema
-        const offset = date.getTimezoneOffset()
-        date.setMinutes(date.getMinutes() + offset)
-        return date.toISOString().split('T')[0]
-    }
-
-    // Pontual - com correção de timezone
-    const [date, setDate] = useState(adjustDateForTimezone(editData?.date))
+    // ✅ CORREÇÃO: Usar extractDateOnly ao invés de adjustDateForTimezone
+    const [date, setDate] = useState(extractDateOnly(editData?.date))
     const [startTime, setStartTime] = useState(editData?.startTime || '')
     const [endTime, setEndTime] = useState(editData?.endTime || '')
 
@@ -76,9 +77,9 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
     const [recurringStartTime, setRecurringStartTime] = useState(editData?.startTime || '')
     const [recurringEndTime, setRecurringEndTime] = useState(editData?.endTime || '')
 
-    // ✅ NOVO: Período de validade para recorrentes E férias
-    const [startDate, setStartDate] = useState(adjustDateForTimezone(editData?.startDate))
-    const [endDate, setEndDate] = useState(adjustDateForTimezone(editData?.endDate))
+    // ✅ CORREÇÃO: Usar extractDateOnly
+    const [startDate, setStartDate] = useState(extractDateOnly(editData?.startDate))
+    const [endDate, setEndDate] = useState(extractDateOnly(editData?.endDate))
 
     const selectedBlockType = BLOCK_TYPES.find(t => t.value === type)
 
@@ -158,7 +159,7 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                 payload.startDate = startDate || undefined
                 payload.endDate = endDate || undefined
             } else {
-                // ✅ CORREÇÃO: Garantir formato correto da data (YYYY-MM-DD)
+                // ✅ ENVIAR DATA PURA (YYYY-MM-DD)
                 payload.date = date
 
                 // ✅ FÉRIAS: Enviar período
@@ -284,7 +285,7 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                         </div>
                     )}
 
-                    {/* ✅ CASO ESPECIAL: FÉRIAS (sempre pontual com período) */}
+                    {/* ✅ CASO ESPECIAL: FÉRIAS */}
                     {type === 'VACATION' && (
                         <div className="space-y-4 bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
                             <h3 className="font-bold text-charcoal flex items-center gap-2">
@@ -324,7 +325,7 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
                         </div>
                     )}
 
-                    {/* BLOQUEIO PONTUAL NORMAL (exceto férias) */}
+                    {/* BLOQUEIO PONTUAL NORMAL */}
                     {!isRecurring && type !== 'VACATION' && (
                         <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
                             <h3 className="font-bold text-charcoal flex items-center gap-2">

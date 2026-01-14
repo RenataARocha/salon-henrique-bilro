@@ -583,8 +583,8 @@ export default function AgendaAdminPage() {
                                         <div
                                             key={slot.id}
                                             className={`p-4 rounded-xl border-2 ${slot.active
-                                                    ? 'border-green-200 bg-green-50'
-                                                    : 'border-gray-200 bg-gray-50 opacity-60'
+                                                ? 'border-green-200 bg-green-50'
+                                                : 'border-gray-200 bg-gray-50 opacity-60'
                                                 }`}
                                         >
                                             <div className="flex items-center justify-between">
@@ -611,8 +611,8 @@ export default function AgendaAdminPage() {
                                                     <button
                                                         onClick={() => handleToggleSlot(slot.id, slot.active)}
                                                         className={`p-2 rounded-lg transition-all ${slot.active
-                                                                ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-                                                                : 'bg-green-100 text-green-600 hover:bg-green-200'
+                                                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                                                            : 'bg-green-100 text-green-600 hover:bg-green-200'
                                                             }`}
                                                         title={slot.active ? 'Desativar (bloquear)' : 'Ativar (disponibilizar)'}
                                                     >

@@ -1,14 +1,13 @@
-// src/app/api/admin/blocked-times/route.ts - CORREÇÃO USER ID
-
+// src/app/api/admin/blocked-times/route.ts
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 
-// ✅ FUNÇÃO: Converter data string para Date UTC correto
+// ✅ Criar Date no timezone local (sem conversão UTC)
 function parseDate(dateStr: string): Date {
     const [year, month, day] = dateStr.split('-').map(Number)
-    return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0))
+    return new Date(year, month - 1, day, 12, 0, 0, 0) // Meio-dia evita problemas
 }
 
 export async function POST(request: Request) {
@@ -18,7 +17,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: 'Não autorizado' }, { status: 401 })
         }
 
-        // ✅ BUSCAR USUÁRIO PELO EMAIL
         const user = await prisma.user.findUnique({
             where: { email: session.user.email }
         })
@@ -37,8 +35,15 @@ export async function POST(request: Request) {
             )
         }
 
-        // ✅ CASO ESPECIAL: FÉRIAS (criar bloqueio para cada dia do período)
-        if (type === 'VACATION' && date && endDate) {
+        // ✅ SOLUÇÃO: FÉRIAS = 1 ÚNICO REGISTRO COM PERÍODO
+        if (type === 'VACATION' && !isRecurring) {
+            if (!date || !endDate) {
+                return NextResponse.json(
+                    { success: false, error: 'Férias requerem data de início e fim' },
+                    { status: 400 }
+                )
+            }
+
             const startDateParsed = parseDate(date)
             const endDateParsed = parseDate(endDate)
 
@@ -49,42 +54,37 @@ export async function POST(request: Request) {
                 )
             }
 
-            const blockedDates = []
-            const currentDate = new Date(startDateParsed)
-
-            while (currentDate <= endDateParsed) {
-                const blocked = await prisma.blockedTime.create({
-                    data: {
-                        type,
-                        reason,
-                        description: description || null,
-                        isRecurring: false,
-                        date: new Date(currentDate),
-                        startTime: startTime || null,
-                        endTime: endTime || null,
-                        creator: {
-                            connect: { id: user.id } // ✅ USAR user.id
-                        }
-                    },
-                    include: {
-                        creator: {
-                            select: { name: true }
-                        }
+            // ✅ CRIAR APENAS 1 REGISTRO
+            const vacation = await prisma.blockedTime.create({
+                data: {
+                    type,
+                    reason,
+                    description: description || null,
+                    isRecurring: false,
+                    date: startDateParsed,      // Data de início
+                    startDate: startDateParsed,  // Opcional: redundância para clareza
+                    endDate: endDateParsed,      // Data de fim
+                    startTime: null,
+                    endTime: null,
+                    creator: {
+                        connect: { id: user.id }
                     }
-                })
-
-                blockedDates.push(blocked)
-                currentDate.setDate(currentDate.getDate() + 1)
-            }
+                },
+                include: {
+                    creator: {
+                        select: { name: true }
+                    }
+                }
+            })
 
             return NextResponse.json({
                 success: true,
-                data: blockedDates,
-                message: `✈️ Férias criadas para ${blockedDates.length} dias`
+                data: vacation,
+                message: `✈️ Férias criadas de ${date} até ${endDate}`
             })
         }
 
-        // ✅ BLOQUEIO NORMAL (pontual ou recorrente)
+        // ✅ BLOQUEIO NORMAL (Pontual ou Recorrente)
         const data: any = {
             type,
             reason,
@@ -93,16 +93,28 @@ export async function POST(request: Request) {
             startTime: startTime || null,
             endTime: endTime || null,
             creator: {
-                connect: { id: user.id } // ✅ USAR user.id
+                connect: { id: user.id }
             }
         }
 
         if (isRecurring) {
+            if (dayOfWeek === undefined || dayOfWeek === null) {
+                return NextResponse.json(
+                    { success: false, error: 'Dia da semana é obrigatório para bloqueios recorrentes' },
+                    { status: 400 }
+                )
+            }
             data.dayOfWeek = dayOfWeek
             data.startDate = startDate ? parseDate(startDate) : null
             data.endDate = endDate ? parseDate(endDate) : null
         } else {
-            data.date = date ? parseDate(date) : null
+            if (!date) {
+                return NextResponse.json(
+                    { success: false, error: 'Data é obrigatória para bloqueios pontuais' },
+                    { status: 400 }
+                )
+            }
+            data.date = parseDate(date)
         }
 
         const blocked = await prisma.blockedTime.create({
@@ -119,6 +131,7 @@ export async function POST(request: Request) {
             data: blocked,
             message: 'Bloqueio criado com sucesso'
         })
+
     } catch (error) {
         console.error('❌ Erro ao criar bloqueio:', error)
         return NextResponse.json(
@@ -194,7 +207,11 @@ export async function PUT(request: Request) {
             data.date = null
         } else {
             data.date = date ? parseDate(date) : null
-            data.dayOfWeek = null
+
+            // ✅ Para férias na edição
+            if (type === 'VACATION' && endDate) {
+                data.endDate = parseDate(endDate)
+            }
         }
 
         const blocked = await prisma.blockedTime.update({

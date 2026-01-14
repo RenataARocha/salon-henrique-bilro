@@ -136,7 +136,7 @@ export default function SmartCalendar({
             case 'holiday':
                 return 'bg-red-100 text-red-600 cursor-not-allowed'
             case 'partial':
-                return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer'
+                return 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
             case 'available':
                 return 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
             default:

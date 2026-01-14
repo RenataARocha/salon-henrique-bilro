@@ -1,10 +1,8 @@
 // src/components/admin/LunchBreakModal.tsx
-// Modal para criar horário de almoço em múltiplos dias
-
 'use client'
 
-import { useState } from 'react'
-import { X, Clock, AlertTriangle } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, Clock, AlertTriangle, CheckCircle } from 'lucide-react'
 import Button from '@/components/ui/Button'
 
 interface Props {
@@ -24,12 +22,52 @@ const DAYS_OF_WEEK = [
 
 export default function LunchBreakModal({ onClose, onSuccess }: Props) {
     const [loading, setLoading] = useState(false)
+    const [loadingExisting, setLoadingExisting] = useState(true)
     const [error, setError] = useState('')
 
     const [startTime, setStartTime] = useState('12:00')
     const [endTime, setEndTime] = useState('13:00')
     const [selectedDays, setSelectedDays] = useState<number[]>([2, 3, 4, 5, 6]) // Ter-Sáb por padrão
     const [reason, setReason] = useState('Horário de Almoço')
+
+    // ✅ NOVO: Verificar bloqueios existentes
+    const [existingLunchDays, setExistingLunchDays] = useState<number[]>([])
+
+    // ✅ Buscar bloqueios de almoço existentes ao abrir o modal
+    useEffect(() => {
+        fetchExistingLunchBreaks()
+    }, [])
+
+    const fetchExistingLunchBreaks = async () => {
+        try {
+            setLoadingExisting(true)
+            const res = await fetch('/api/admin/blocked-times')
+            const data = await res.json()
+
+            if (data.success) {
+                // Filtrar apenas bloqueios de almoço recorrentes
+                const lunchBreaks = data.data.filter(
+                    (block: any) => block.type === 'LUNCH_BREAK' && block.isRecurring
+                )
+
+                // Pegar os dias da semana que já têm almoço
+                const existingDays = lunchBreaks.map((block: any) => block.dayOfWeek)
+                setExistingLunchDays(existingDays)
+
+                // Se encontrou bloqueios existentes, carregar o horário do primeiro
+                if (lunchBreaks.length > 0) {
+                    const first = lunchBreaks[0]
+                    if (first.startTime) setStartTime(first.startTime)
+                    if (first.endTime) setEndTime(first.endTime)
+                    if (first.reason) setReason(first.reason)
+                }
+            }
+        } catch (err) {
+            console.error('Erro ao buscar bloqueios existentes:', err)
+        } finally {
+            setLoadingExisting(false)
+        }
+    }
 
     const toggleDay = (day: number) => {
         if (selectedDays.includes(day)) {
@@ -58,11 +96,19 @@ export default function LunchBreakModal({ onClose, onSuccess }: Props) {
             return
         }
 
+        // ✅ FILTRAR: Apenas criar para dias que NÃO existem
+        const daysToCreate = selectedDays.filter(day => !existingLunchDays.includes(day))
+
+        if (daysToCreate.length === 0) {
+            setError('Todos os dias selecionados já possuem horário de almoço cadastrado!')
+            return
+        }
+
         setLoading(true)
 
         try {
-            // Criar bloqueio recorrente para cada dia selecionado
-            const promises = selectedDays.map(dayOfWeek =>
+            // Criar bloqueio recorrente para cada dia que NÃO existe
+            const promises = daysToCreate.map(dayOfWeek =>
                 fetch('/api/admin/blocked-times', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -79,10 +125,16 @@ export default function LunchBreakModal({ onClose, onSuccess }: Props) {
 
             const results = await Promise.all(promises)
             const successCount = results.filter(r => r.ok).length
-            const failCount = results.length - successCount
 
             if (successCount > 0) {
-                alert(`✅ Horário de almoço criado para ${successCount} dia(s)!${failCount > 0 ? `\n⚠️ ${failCount} já existiam.` : ''}`)
+                const skippedCount = selectedDays.length - daysToCreate.length
+                let message = `✅ Horário de almoço criado para ${successCount} dia(s)!`
+
+                if (skippedCount > 0) {
+                    message += `\n⚠️ ${skippedCount} dia(s) já tinha(m) horário cadastrado.`
+                }
+
+                alert(message)
                 onSuccess()
                 onClose()
             } else {
@@ -131,6 +183,26 @@ export default function LunchBreakModal({ onClose, onSuccess }: Props) {
                         </div>
                     )}
 
+                    {/* ✅ NOVO: Aviso de bloqueios existentes */}
+                    {existingLunchDays.length > 0 && !loadingExisting && (
+                        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                                <CheckCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+                                <div>
+                                    <p className="text-sm font-semibold text-blue-900 mb-1">
+                                        Horários de almoço já cadastrados:
+                                    </p>
+                                    <p className="text-sm text-blue-800">
+                                        {existingLunchDays.map(day => DAYS_OF_WEEK[day].short).join(', ')}
+                                    </p>
+                                    <p className="text-xs text-blue-700 mt-2">
+                                        💡 Você pode criar apenas para os dias que não têm horário
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Horários */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -172,28 +244,49 @@ export default function LunchBreakModal({ onClose, onSuccess }: Props) {
                             Aplicar nos Dias *
                         </label>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            {DAYS_OF_WEEK.map(day => (
-                                <label
-                                    key={day.value}
-                                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all ${selectedDays.includes(day.value)
+                            {DAYS_OF_WEEK.map(day => {
+                                const isSelected = selectedDays.includes(day.value)
+                                const alreadyExists = existingLunchDays.includes(day.value)
+
+                                return (
+                                    <label
+                                        key={day.value}
+                                        className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all relative ${isSelected
                                             ? 'bg-orange-500 text-white border-orange-500'
-                                            : 'bg-white text-gray-700 border-gray-200 hover:border-orange-300'
-                                        }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        checked={selectedDays.includes(day.value)}
-                                        onChange={() => toggleDay(day.value)}
-                                        className="sr-only"
-                                    />
-                                    <span className="font-semibold text-sm">
-                                        {day.short}
-                                    </span>
-                                </label>
-                            ))}
+                                            : isSelected
+                                                ? 'bg-orange-500 text-white border-orange-500'
+                                                : 'bg-white text-gray-700 border-gray-200 hover:border-orange-300'
+
+                                            }`}
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => toggleDay(day.value)}
+                                            className="sr-only"
+                                            disabled={false}
+
+                                        />
+                                        <span className="font-semibold text-sm">
+                                            {day.short}
+                                        </span>
+                                        {alreadyExists && (
+                                            <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                                ✓
+                                            </span>
+                                        )}
+                                    </label>
+                                )
+                            })}
                         </div>
                         <p className="text-xs text-gray-500 mt-2">
-                            {selectedDays.length} dia(s) selecionado(s)
+                            {selectedDays.length} dia(s) selecionado(s) •
+                            {existingLunchDays.length > 0 && ` ${existingLunchDays.length} já cadastrado(s)`}
+                        </p>
+
+                        <p className="text-xs text-gray-500 mt-2">
+                            ✔️ Dias com ✓ já possuem horário cadastrado
+                            ✏️ Você pode desmarcar se quiser removê-los depois
                         </p>
                     </div>
 
@@ -212,17 +305,19 @@ export default function LunchBreakModal({ onClose, onSuccess }: Props) {
                     </div>
 
                     {/* Preview */}
-                    {selectedDays.length > 0 && startTime && endTime && (
+                    {selectedDays.filter(d => !existingLunchDays.includes(d)).length > 0 && startTime && endTime && (
                         <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
                             <p className="text-sm font-semibold text-green-900 mb-2">
-                                ✅ Resumo do que será criado:
+                                ✅ Será criado para:
                             </p>
                             <div className="space-y-1">
-                                {selectedDays.map(day => (
-                                    <p key={day} className="text-sm text-green-800">
-                                        • {DAYS_OF_WEEK[day].label}: {startTime} - {endTime}
-                                    </p>
-                                ))}
+                                {selectedDays
+                                    .filter(d => !existingLunchDays.includes(d))
+                                    .map(day => (
+                                        <p key={day} className="text-sm text-green-800">
+                                            • {DAYS_OF_WEEK[day].label}: {startTime} - {endTime}
+                                        </p>
+                                    ))}
                             </div>
                             <p className="text-xs text-green-700 mt-3">
                                 🔄 Este bloqueio se repetirá automaticamente toda semana
@@ -280,7 +375,7 @@ export default function LunchBreakModal({ onClose, onSuccess }: Props) {
                             type="submit"
                             variant="primary"
                             className="flex-1 bg-orange-500 hover:bg-orange-600"
-                            disabled={loading}
+                            disabled={loading || loadingExisting}
                         >
                             {loading ? 'Criando...' : 'Criar Horário de Almoço'}
                         </Button>

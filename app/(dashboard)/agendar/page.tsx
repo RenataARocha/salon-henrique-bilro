@@ -15,7 +15,7 @@ interface Service {
     description: string;
     price: number;
     duration: number;
-    images?: string[]; // ← ADICIONADO
+    images?: string[];
 }
 
 interface CupomValidado {
@@ -36,9 +36,6 @@ interface CupomValidado {
     };
 }
 
-// ========================================
-// COMPONENTE: Card de Serviço com Carrossel
-// ========================================
 function ServiceCardWithCarousel({
     service,
     isSelected,
@@ -50,7 +47,6 @@ function ServiceCardWithCarousel({
 }) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const hasImages = service.images && service.images.length > 0;
-
 
     useEffect(() => {
         if (!hasImages || service.images!.length <= 1) return;
@@ -70,7 +66,6 @@ function ServiceCardWithCarousel({
                 : "border-gray-200 hover:border-gold hover:shadow-md"
                 }`}
         >
-            {/* Carrossel de Imagens */}
             {hasImages ? (
                 <div className="relative h-48 bg-gray-100">
                     {service.images!.map((image, index) => (
@@ -90,7 +85,6 @@ function ServiceCardWithCarousel({
                         </div>
                     ))}
 
-                    {/* Indicadores de imagem */}
                     {service.images!.length > 1 && (
                         <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 flex gap-1.5 z-10">
                             {service.images!.map((_, index) => (
@@ -116,7 +110,6 @@ function ServiceCardWithCarousel({
                 </div>
             )}
 
-            {/* Conteúdo do Card - CORRIGIDO PROBLEMA DE COR */}
             <div className={`p-6 ${isSelected ? 'bg-gold/5' : 'bg-white'}`}>
                 <h3 className="text-xl font-bold text-charcoal mb-2">
                     {service.name}
@@ -125,7 +118,6 @@ function ServiceCardWithCarousel({
                     {service.description}
                 </p>
                 <div className="flex justify-between items-center">
-                    {/* ← CORRIGIDO: Agora o preço sempre fica visível */}
                     <span className="text-2xl font-bold text-gold">
                         R$ {service.price.toFixed(2)}
                     </span>
@@ -138,9 +130,6 @@ function ServiceCardWithCarousel({
     );
 }
 
-// ========================================
-// COMPONENTE: StepIndicator
-// ========================================
 function StepIndicator({
     number,
     active,
@@ -171,9 +160,6 @@ function StepIndicator({
     );
 }
 
-// ========================================
-// COMPONENTE: InfoBox
-// ========================================
 function InfoBox({ label, value }: { label: string; value: string }) {
     return (
         <div className="bg-beige/50 p-4 rounded-lg">
@@ -183,9 +169,6 @@ function InfoBox({ label, value }: { label: string; value: string }) {
     );
 }
 
-// ========================================
-// COMPONENTE PRINCIPAL
-// ========================================
 export default function AgendarPage() {
     const { data: session, status } = useSession();
     const router = useRouter();
@@ -194,7 +177,6 @@ export default function AgendarPage() {
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(false);
 
-    // Dados do agendamento
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [selectedDate, setSelectedDate] = useState("");
     const [availableSlots, setAvailableSlots] = useState<string[]>([]);
@@ -202,7 +184,6 @@ export default function AgendarPage() {
     const [notes, setNotes] = useState("");
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("");
 
-    // Estados do cupom
     const [codigoCupom, setCodigoCupom] = useState('');
     const [validandoCupom, setValidandoCupom] = useState(false);
     const [cupomValidado, setCupomValidado] = useState<CupomValidado | null>(null);
@@ -212,13 +193,10 @@ export default function AgendarPage() {
         text: string;
     } | null>(null);
 
-
-    // Buscar serviços ao carregar
     useEffect(() => {
         fetchServices();
     }, []);
 
-    // Redirecionar se não estiver logado
     useEffect(() => {
         if (status === "unauthenticated") {
             router.push("/login");
@@ -240,7 +218,7 @@ export default function AgendarPage() {
     const fetchAvailableSlots = async (date: string) => {
         try {
             setLoading(true);
-            setDateMessage(null); // ← ADICIONAR
+            setDateMessage(null);
 
             const res = await fetch(`/api/available-slots?date=${date}`);
             const data = await res.json();
@@ -248,8 +226,15 @@ export default function AgendarPage() {
             if (data.success) {
                 setAvailableSlots(data.data);
 
-                // ← ADICIONAR ESTE BLOCO INTEIRO:
-                if (data.isHoliday) {
+                // ✅ CORREÇÃO: Só mostra aviso se NÃO houver horários
+                // Se tiver horários disponíveis, não mostra mensagem de bloqueio
+                if (data.data.length > 0) {
+                    // Dia com horários disponíveis
+                    setDateMessage({
+                        type: 'info',
+                        text: `${data.data.length} ${data.data.length === 1 ? 'horário disponível' : 'horários disponíveis'} para esta data`
+                    });
+                } else if (data.isHoliday) {
                     setDateMessage({
                         type: 'warning',
                         text: data.message
@@ -259,21 +244,16 @@ export default function AgendarPage() {
                         type: 'error',
                         text: data.message
                     });
-                } else if (data.data.length === 0) {
-                    setDateMessage({
-                        type: 'info',
-                        text: data.message || "Não há horários disponíveis para esta data"
-                    });
                 } else {
                     setDateMessage({
                         type: 'info',
-                        text: data.message
+                        text: data.message || "Não há horários disponíveis para esta data"
                     });
                 }
             }
         } catch (error) {
             console.error("Erro ao buscar horários:", error);
-            setDateMessage({ // ← ADICIONAR
+            setDateMessage({
                 type: 'error',
                 text: "Erro ao buscar horários disponíveis"
             });
@@ -408,7 +388,6 @@ export default function AgendarPage() {
 
             <div className="min-h-screen bg-beige py-12">
                 <div className="max-w-4xl mx-auto px-4">
-                    {/* Header */}
                     <div className="text-center mb-12">
                         <h1 className="text-4xl md:text-5xl font-bold text-charcoal mb-4">
                             Agendar Serviço
@@ -418,7 +397,6 @@ export default function AgendarPage() {
                         </p>
                     </div>
 
-                    {/* Stepper */}
                     <div className="flex justify-center mb-12">
                         <div className="flex items-center space-x-4">
                             <StepIndicator
@@ -443,9 +421,7 @@ export default function AgendarPage() {
                         </div>
                     </div>
 
-                    {/* Conteúdo */}
                     <div className="bg-white rounded-2xl shadow-xl p-8">
-                        {/* STEP 1: Escolher Serviço */}
                         {step === 1 && (
                             <div className="space-y-6">
                                 <h2 className="text-2xl font-bold text-charcoal mb-6">
@@ -476,7 +452,6 @@ export default function AgendarPage() {
                             </div>
                         )}
 
-                        {/* STEP 2: Escolher Data e Hora */}
                         {step === 2 && (
                             <div className="space-y-6">
                                 <button
@@ -490,7 +465,6 @@ export default function AgendarPage() {
                                     Escolha Data e Horário
                                 </h2>
 
-                                {/* Serviço selecionado */}
                                 <div className="bg-beige/50 p-4 rounded-lg mb-6">
                                     <p className="text-sm text-gray-600 mb-1">
                                         Serviço selecionado:
@@ -503,7 +477,6 @@ export default function AgendarPage() {
                                     </p>
                                 </div>
 
-                                {/* Campo de Cupom */}
                                 <div className="space-y-3">
                                     {!mostrarCampoCupom && !cupomValidado?.valido && (
                                         <button
@@ -627,7 +600,6 @@ export default function AgendarPage() {
                                     )}
                                 </div>
 
-                                {/* Seletor de data */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
                                         <Calendar size={20} className="text-gold" />
@@ -642,7 +614,6 @@ export default function AgendarPage() {
                                     />
                                 </div>
 
-                                {/* Horários disponíveis */}
                                 {selectedDate && (
                                     <div className="space-y-2">
                                         <label className="block text-sm font-semibold text-charcoal">
@@ -694,7 +665,6 @@ export default function AgendarPage() {
                                     </div>
                                 )}
 
-                                {/* Observações */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-semibold text-charcoal">
                                         Observações (opcional)
@@ -718,7 +688,6 @@ export default function AgendarPage() {
                             </div>
                         )}
 
-                        {/* STEP 3: Confirmar */}
                         {step === 3 && (
                             <div className="space-y-6">
                                 <button

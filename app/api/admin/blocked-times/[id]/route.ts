@@ -1,220 +1,43 @@
-// app/api/admin/blocked-times/[id]/route.ts - CORRIGIDO
-
-import { NextRequest, NextResponse } from 'next/server'
+// src/app/api/admin/blocked-times/[id]/route.ts
+import { NextResponse } from 'next/server'
+import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { prisma } from '@/lib/prisma'
 
-// BUSCAR bloqueio específico
-export async function GET(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-) {
-    try {
-        const session = await getServerSession(authOptions)
-
-        if (!session?.user?.email) {
-            return NextResponse.json(
-                { success: false, message: 'Não autorizado' },
-                { status: 401 }
-            )
-        }
-
-        // ✅ CORREÇÃO: Buscar usuário do banco
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email }
-        })
-
-        if (!user) {
-            return NextResponse.json(
-                { success: false, message: 'Usuário não encontrado' },
-                { status: 404 }
-            )
-        }
-
-        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
-
-        if (!isAdmin) {
-            return NextResponse.json(
-                { success: false, message: 'Acesso negado' },
-                { status: 403 }
-            )
-        }
-
-        const params = await context.params
-        const id = params.id
-
-        const blockedTime = await prisma.blockedTime.findUnique({
-            where: { id },
-            include: {
-                creator: {
-                    select: {
-                        name: true,
-                        email: true
-                    }
-                }
-            }
-        })
-
-        if (!blockedTime) {
-            return NextResponse.json(
-                { success: false, message: 'Bloqueio não encontrado' },
-                { status: 404 }
-            )
-        }
-
-        return NextResponse.json({
-            success: true,
-            data: blockedTime
-        })
-
-    } catch (error) {
-        console.error('❌ Erro ao buscar bloqueio:', error)
-        return NextResponse.json(
-            {
-                success: false,
-                message: 'Erro ao buscar bloqueio',
-                error: error instanceof Error ? error.message : String(error)
-            },
-            { status: 500 }
-        )
-    }
-}
-
-// ATUALIZAR bloqueio
-export async function PUT(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
-) {
-    try {
-        const session = await getServerSession(authOptions)
-
-        if (!session?.user?.email) {
-            return NextResponse.json(
-                { success: false, message: 'Não autorizado' },
-                { status: 401 }
-            )
-        }
-
-        // ✅ CORREÇÃO: Buscar usuário do banco
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email }
-        })
-
-        if (!user) {
-            return NextResponse.json(
-                { success: false, message: 'Usuário não encontrado' },
-                { status: 404 }
-            )
-        }
-
-        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
-
-        if (!isAdmin) {
-            return NextResponse.json(
-                { success: false, message: 'Acesso negado' },
-                { status: 403 }
-            )
-        }
-
-        const params = await context.params
-        const id = params.id
-        const body = await request.json()
-
-        const {
-            type,
-            date,
-            startTime,
-            endTime,
-            dayOfWeek,
-            isRecurring,
-            reason,
-            description,
-            startDate,
-            endDate
-        } = body
-
-        const blockedTime = await prisma.blockedTime.update({
-            where: { id },
-            data: {
-                type,
-                date: date ? new Date(date) : null,
-                startTime,
-                endTime,
-                dayOfWeek: dayOfWeek !== undefined ? parseInt(dayOfWeek) : null,
-                isRecurring,
-                reason,
-                description,
-                startDate: startDate ? new Date(startDate) : null,
-                endDate: endDate ? new Date(endDate) : null
-            },
-            include: {
-                creator: {
-                    select: {
-                        name: true,
-                        email: true
-                    }
-                }
-            }
-        })
-
-        return NextResponse.json({
-            success: true,
-            data: blockedTime,
-            message: 'Bloqueio atualizado com sucesso'
-        })
-
-    } catch (error) {
-        console.error('❌ Erro ao atualizar bloqueio:', error)
-        return NextResponse.json(
-            {
-                success: false,
-                message: 'Erro ao atualizar bloqueio',
-                error: error instanceof Error ? error.message : String(error)
-            },
-            { status: 500 }
-        )
-    }
-}
-
-// DELETAR bloqueio
+// ✅ CORREÇÃO: params agora é Promise no Next.js 16
 export async function DELETE(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
-
-        if (!session?.user?.email) {
+        if (!session?.user) {
             return NextResponse.json(
-                { success: false, message: 'Não autorizado' },
+                { success: false, error: 'Não autorizado' },
                 { status: 401 }
             )
         }
 
-        // ✅ CORREÇÃO: Buscar usuário do banco
-        const user = await prisma.user.findUnique({
-            where: { email: session.user.email }
+        // ✅ Await params
+        const { id } = await params
+
+        if (!id) {
+            return NextResponse.json(
+                { success: false, error: 'ID não fornecido' },
+                { status: 400 }
+            )
+        }
+
+        const blocked = await prisma.blockedTime.findUnique({
+            where: { id }
         })
 
-        if (!user) {
+        if (!blocked) {
             return NextResponse.json(
-                { success: false, message: 'Usuário não encontrado' },
+                { success: false, error: 'Bloqueio não encontrado' },
                 { status: 404 }
             )
         }
-
-        const isAdmin = user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'
-
-        if (!isAdmin) {
-            return NextResponse.json(
-                { success: false, message: 'Acesso negado' },
-                { status: 403 }
-            )
-        }
-
-        const params = await context.params
-        const id = params.id
 
         await prisma.blockedTime.delete({
             where: { id }
@@ -228,11 +51,78 @@ export async function DELETE(
     } catch (error) {
         console.error('❌ Erro ao deletar bloqueio:', error)
         return NextResponse.json(
-            {
-                success: false,
-                message: 'Erro ao deletar bloqueio',
-                error: error instanceof Error ? error.message : String(error)
-            },
+            { success: false, error: 'Erro ao deletar bloqueio' },
+            { status: 500 }
+        )
+    }
+}
+
+// ✅ CORREÇÃO: PUT também precisa de await params
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await getServerSession(authOptions)
+        if (!session?.user) {
+            return NextResponse.json(
+                { success: false, error: 'Não autorizado' },
+                { status: 401 }
+            )
+        }
+
+        // ✅ Await params
+        const { id } = await params
+        const body = await request.json()
+
+        function parseDate(dateStr: string): Date {
+            const [year, month, day] = dateStr.split('-').map(Number)
+            return new Date(year, month - 1, day, 12, 0, 0, 0)
+        }
+
+        const { type, reason, description, isRecurring, date, startTime, endTime, dayOfWeek, startDate, endDate } = body
+
+        const data: any = {
+            type,
+            reason,
+            description: description || null,
+            isRecurring,
+            startTime: startTime || null,
+            endTime: endTime || null
+        }
+
+        if (isRecurring) {
+            data.dayOfWeek = dayOfWeek
+            data.startDate = startDate ? parseDate(startDate) : null
+            data.endDate = endDate ? parseDate(endDate) : null
+            data.date = null
+        } else {
+            data.date = date ? parseDate(date) : null
+
+            if (type === 'VACATION' && endDate) {
+                data.endDate = parseDate(endDate)
+            }
+        }
+
+        const blocked = await prisma.blockedTime.update({
+            where: { id },
+            data,
+            include: {
+                creator: {
+                    select: { name: true }
+                }
+            }
+        })
+
+        return NextResponse.json({
+            success: true,
+            data: blocked
+        })
+
+    } catch (error) {
+        console.error('❌ Erro ao atualizar bloqueio:', error)
+        return NextResponse.json(
+            { success: false, error: 'Erro ao atualizar bloqueio' },
             { status: 500 }
         )
     }
