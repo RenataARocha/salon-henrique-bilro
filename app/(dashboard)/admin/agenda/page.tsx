@@ -3,16 +3,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Clock, Plus, Trash2, AlertCircle, Power, Calendar, ChevronLeft, ChevronRight, Eye, Info } from 'lucide-react'
+import { Clock, Plus, Trash2, Power, Calendar, ChevronLeft, ChevronRight, Eye, Info } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { useToast } from '@/components/ui/ToastContainer'
 import AdminHeader from '@/components/admin/AdminHeader'
+
+const CLOSED_DAYS = [0, 1] // Domingo e Segunda
 
 interface AvailableSlot {
     id: string
     dayOfWeek: number
     timeSlot: string
     active: boolean
+    type: 'recorrente' | 'especifico'
+    date?: string // yyyy-mm-dd
 }
 
 export default function AgendaAdminPage() {
@@ -26,6 +30,8 @@ export default function AgendaAdminPage() {
     const [showInfoModal, setShowInfoModal] = useState(false)
     const [viewingDay, setViewingDay] = useState<number>(0)
     const [viewingDate, setViewingDate] = useState<Date | null>(null)
+    const isClosedDay = CLOSED_DAYS.includes(selectedDay)
+
 
     const [currentDate, setCurrentDate] = useState(new Date())
 
@@ -350,6 +356,7 @@ export default function AgendaAdminPage() {
                 {/* Grid de dias COM DATAS CLICÁVEIS */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {daysOfWeek.map((day) => {
+                        const isClosed = CLOSED_DAYS.includes(day.value)
                         const daySlots = getSlotsByDay(day.value)
                         const activeSlots = daySlots.filter(s => s.active).length
                         const specificDates = getSpecificDates(day.value)
@@ -360,7 +367,12 @@ export default function AgendaAdminPage() {
                                 className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all border-2 border-gray-100"
                             >
                                 {/* Header */}
-                                <div className={`bg-gradient-to-br ${day.color} text-white p-5`}>
+                                <div
+                                    className={`text-white p-5 ${isClosed
+                                        ? 'bg-gray-400'
+                                        : `bg-gradient-to-br ${day.color}`
+                                        }`}
+                                >
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-2">
                                             <span className="text-2xl">{day.emoji}</span>
@@ -371,26 +383,28 @@ export default function AgendaAdminPage() {
                                         </span>
                                     </div>
                                     <p className="text-xs text-white/90 mb-2">
-                                        {daySlots.length === 0
-                                            ? 'Nenhum horário configurado'
-                                            : `${activeSlots} ${activeSlots === 1 ? 'horário ativo' : 'horários ativos'}`
+                                        {isClosed
+                                            ? '🚫 Folga fixa'
+                                            : daySlots.length === 0
+                                                ? 'Nenhum horário configurado'
+                                                : `${activeSlots} horários ativos`
                                         }
                                     </p>
+
 
                                     {/* DATAS ESPECÍFICAS CLICÁVEIS */}
                                     {specificDates.length > 0 && (
                                         <div className="space-y-1">
                                             <p className="text-xs text-white/70 font-semibold">Datas neste mês:</p>
                                             <div className="flex flex-wrap gap-2">
-                                                {specificDates.map((date, idx) => (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => openViewModal(day.value, date)}
-                                                        className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
-                                                    >
-                                                        {formatDate(date)}
-                                                        <Eye size={12} />
-                                                    </button>
+                                                {!isClosed && specificDates.map((date, idx) => (<button
+                                                    key={idx}
+                                                    onClick={() => openViewModal(day.value, date)}
+                                                    className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
+                                                >
+                                                    {formatDate(date)}
+                                                    <Eye size={12} />
+                                                </button>
                                                 ))}
                                             </div>
                                         </div>
@@ -436,15 +450,18 @@ export default function AgendaAdminPage() {
                                         <div className="text-center py-8">
                                             <Clock size={28} className="mx-auto text-gray-300 mb-2" />
                                             <p className="text-gray-400 text-xs mb-3">Nenhum horário</p>
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedDay(day.value)
-                                                    setShowAddModal(true)
-                                                }}
-                                                className="text-xs text-gold hover:text-gold-dark font-semibold"
-                                            >
-                                                + Adicionar
-                                            </button>
+                                            {!isClosed && (
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedDay(day.value)
+                                                        setShowAddModal(true)
+                                                    }}
+                                                    className="text-xs text-gold hover:text-gold-dark font-semibold"
+                                                >
+                                                    + Adicionar
+                                                </button>
+                                            )}
+
                                         </div>
                                     )}
                                 </div>
@@ -472,7 +489,7 @@ export default function AgendaAdminPage() {
                                 <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
                                     <h3 className="font-bold text-blue-900 mb-2">1️⃣ Criar Horários Recorrentes</h3>
                                     <p className="text-sm text-blue-800 mb-2">
-                                        Clique em "+ Novo Horário Recorrente" e escolha:
+                                        Clique em &quot+ Novo Horário Recorrente&quot e escolha:
                                     </p>
                                     <ul className="text-sm text-blue-700 space-y-1 ml-4">
                                         <li>• Dia da semana (ex: Segunda-feira)</li>
@@ -732,6 +749,15 @@ export default function AgendaAdminPage() {
                                     />
                                 </div>
 
+                                {isClosedDay && (
+                                    <div className="mt-3 bg-red-50 border-2 border-red-200 rounded-lg p-3 text-xs text-red-800">
+                                        🚫 <strong>Este dia é folga fixa.</strong><br />
+                                        Para abrir o salão, use horários <strong>específicos por data</strong>
+                                        (ex: feriados, datas festivas).
+                                    </div>
+                                )}
+
+
                                 {/* INFO */}
                                 <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3">
                                     <p className="text-xs text-yellow-800">
@@ -755,10 +781,12 @@ export default function AgendaAdminPage() {
                                     <Button
                                         variant="primary"
                                         onClick={handleAddSlot}
+                                        disabled={isClosedDay}
                                         className="flex-1"
                                     >
                                         Criar Horário
                                     </Button>
+
                                 </div>
                             </div>
                         </div>

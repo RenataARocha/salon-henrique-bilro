@@ -6,12 +6,22 @@ import AdminHeader from '@/components/admin/AdminHeader'
 
 type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
 
-interface Service {
+export interface Service {
     id: string
     name: string
     price: number
     duration: number
 }
+
+export interface ServiceCombo {
+    id: string
+    name: string
+    services: Service[]
+    originalPrice: number
+    comboPrice: number
+    discountPercent: number
+}
+
 
 interface Appointment {
     id: string
@@ -28,12 +38,9 @@ interface Appointment {
         email: string
         phone: string
     }
-    service: {
-        id?: string
-        name: string
-        price: number
-        duration: number
-    }
+    service?: Service
+    combo?: ServiceCombo
+
 }
 
 type SortOption = 'date-asc' | 'date-desc' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc'
@@ -57,6 +64,9 @@ function BulkActionsBar({
     onClearSelection: () => void
 }) {
     if (selectedCount === 0) return null
+
+
+
 
     return (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-charcoal text-white rounded-2xl shadow-2xl p-6 z-50 min-w-[700px] animate-slide-up">
@@ -132,6 +142,16 @@ function AppointmentDetailsModal({
     getStatusColor: (status: string) => string
     getStatusLabel: (status: string) => string
 }) {
+
+    const price = appointment.combo
+        ? appointment.combo.comboPrice
+        : appointment.service?.price ?? 0
+
+    const duration = appointment.combo
+        ? appointment.combo.services.reduce((total, s) => total + s.duration, 0)
+        : appointment.service?.duration ?? 0
+
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -169,11 +189,17 @@ function AppointmentDetailsModal({
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500 mb-1">Serviço</p>
-                                <p className="font-semibold text-charcoal">{appointment.service.name}</p>
+                                <p className="font-semibold text-charcoal">{appointment.service?.name || 'N/A'}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500 mb-1">Valor</p>
-                                <p className="font-semibold text-gold text-xl">R$ {appointment.service.price.toFixed(2)}</p>
+                                <p className="text-2xl font-bold text-gold">
+                                    R$ {price.toFixed(2)}
+                                </p>
+
+                                <p className="text-sm text-gray-500">
+                                    {duration} min
+                                </p>
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500 mb-1">Data</p>
@@ -213,6 +239,16 @@ function AppointmentDetailsModal({
     )
 }
 
+const normalizePaymentMethod = (value?: string) => {
+    if (!value) return ''
+    return value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '_')
+        .toUpperCase()
+}
+
+
 // Componente Principal
 export default function AdminAgendamentosPage() {
     const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -238,17 +274,12 @@ export default function AdminAgendamentosPage() {
         fetchServices()
     }, [])
 
-    const fetchServices = async () => {
-        try {
-            const res = await fetch('/api/services')
-            const data = await res.json()
-            if (data.success) {
-                setServices(data.data)
-            }
-        } catch (error) {
-            console.error('Erro ao buscar serviços:', error)
-        }
-    }
+
+    // NOVO useEffect
+    useEffect(() => {
+        fetchAppointments()
+        fetchServices()
+    }, [])
 
     const fetchAppointments = async () => {
         try {
@@ -263,6 +294,18 @@ export default function AdminAgendamentosPage() {
             console.error('Erro ao buscar agendamentos:', error)
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchServices = async () => {
+        try {
+            const res = await fetch('/api/services')
+            const data = await res.json()
+            if (data.success) {
+                setServices(data.data)
+            }
+        } catch (error) {
+            console.error('Erro ao buscar serviços:', error)
         }
     }
 
@@ -330,9 +373,9 @@ export default function AdminAgendamentosPage() {
         if (selectedIds.size === 0) return
 
         const confirmMessage = `Deseja realmente ${action === 'CONFIRMED' ? 'confirmar' :
-                action === 'COMPLETED' ? 'concluir' :
-                    action === 'NO_SHOW' ? 'marcar como não compareceu' :
-                        'cancelar'
+            action === 'COMPLETED' ? 'concluir' :
+                action === 'NO_SHOW' ? 'marcar como não compareceu' :
+                    'cancelar'
             } ${selectedIds.size} agendamento(s)?`
 
         if (!confirm(confirmMessage)) return
@@ -454,8 +497,9 @@ export default function AdminAgendamentosPage() {
 
             if (selectedPaymentMethods.length > 0) {
                 if (!apt.paymentMethod) return false
-                const normalizedPayment = apt.paymentMethod.toUpperCase()
-                if (!selectedPaymentMethods.includes(normalizedPayment)) {
+
+                const payment = normalizePaymentMethod(apt.paymentMethod)
+                if (!selectedPaymentMethods.includes(payment)) {
                     return false
                 }
             }
@@ -478,19 +522,25 @@ export default function AdminAgendamentosPage() {
 
             return true
         })
+        const buildDateTime = (date: string, time: string) => {
+            const [hour, minute] = time.split(':')
+            const d = new Date(date)
+            d.setHours(Number(hour), Number(minute), 0, 0)
+            return d
+        }
+
 
         const sorted = [...filtered].sort((a, b) => {
             switch (sortBy) {
                 case 'date-asc': {
-                    const dateA = new Date(a.date + 'T' + a.time)
-                    const dateB = new Date(b.date + 'T' + b.time)
-                    return dateA.getTime() - dateB.getTime()
+                    return buildDateTime(a.date, a.time).getTime() -
+                        buildDateTime(b.date, b.time).getTime()
                 }
                 case 'date-desc': {
-                    const dateA = new Date(a.date + 'T' + a.time)
-                    const dateB = new Date(b.date + 'T' + b.time)
-                    return dateB.getTime() - dateA.getTime()
+                    return buildDateTime(b.date, b.time).getTime() -
+                        buildDateTime(a.date, a.time).getTime()
                 }
+
                 case 'price-asc':
                     return (a.service?.price || 0) - (b.service?.price || 0)
                 case 'price-desc':
@@ -515,7 +565,11 @@ export default function AdminAgendamentosPage() {
         cancelled: filteredAppointments.filter(a => a.status === 'CANCELLED').length,
         revenue: filteredAppointments
             .filter(a => a.status === 'COMPLETED')
-            .reduce((sum, a) => sum + a.service.price, 0)
+            .reduce((sum, a) => {
+                if (a.combo) return sum + a.combo.comboPrice
+                return sum + (a.service?.price ?? 0)
+            }, 0)
+
     }), [filteredAppointments])
 
     const getStatusColor = (status: string): string => {
@@ -557,6 +611,7 @@ export default function AdminAgendamentosPage() {
             </div>
         )
     }
+
 
     return (
         <div className="min-h-screen bg-beige py-8 px-4 pb-32">
@@ -688,8 +743,8 @@ export default function AdminAgendamentosPage() {
                                     <div className="space-y-2">
                                         {[
                                             { value: 'PIX', label: '💳 PIX' },
-                                            { value: 'CARTAO_CREDITO', label: '💳 Cartão Crédito' },
-                                            { value: 'CARTAO_DEBITO', label: '💳 Cartão Débito' },
+                                            { value: 'CARTAO_DE_CREDITO', label: '💳 Cartão Crédito' }, // ✅ ADICIONAR _DE_
+                                            { value: 'CARTAO_DE_DEBITO', label: '💳 Cartão Débito' },   // ✅ ADICIONAR _DE_
                                             { value: 'DINHEIRO', label: '💵 Dinheiro' }
                                         ].map(payment => (
                                             <label key={payment.value} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
@@ -750,8 +805,8 @@ export default function AdminAgendamentosPage() {
                                 key={filter.value}
                                 onClick={() => setFilterPeriod(filter.value as 'today' | 'week' | 'month' | 'all')}
                                 className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterPeriod === filter.value
-                                        ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
-                                        : 'bg-beige text-charcoal hover:shadow-md'
+                                    ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
+                                    : 'bg-beige text-charcoal hover:shadow-md'
                                     }`}
                             >
                                 {filter.icon} {filter.label}
@@ -774,8 +829,8 @@ export default function AdminAgendamentosPage() {
                             key={filter.value}
                             onClick={() => setFilterStatus(filter.value)}
                             className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
-                                    ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
-                                    : 'bg-white text-charcoal hover:shadow-md'
+                                ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
+                                : 'bg-white text-charcoal hover:shadow-md'
                                 }`}
                         >
                             {filter.icon} {filter.label}
@@ -786,94 +841,136 @@ export default function AdminAgendamentosPage() {
                 {/* Lista com Checkboxes */}
                 {filteredAppointments.length > 0 ? (
                     <>
-                        {/* Botão Selecionar Todos - ACIMA DA LISTA */}
+                        {/* Botão Selecionar Todos */}
                         <div className="flex justify-between items-center">
                             <p className="text-gray-600">
-                                {filteredAppointments.length} {filteredAppointments.length === 1 ? 'agendamento encontrado' : 'agendamentos encontrados'}
+                                {filteredAppointments.length}{' '}
+                                {filteredAppointments.length === 1
+                                    ? 'agendamento encontrado'
+                                    : 'agendamentos encontrados'}
                             </p>
                             <button
                                 onClick={toggleSelectAll}
                                 className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg border-2 border-gold hover:bg-gold hover:text-white transition-colors font-semibold"
                             >
                                 {selectedIds.size === filteredAppointments.length ? (
-                                    <><CheckSquare size={20} /> Desmarcar Todos</>
+                                    <>
+                                        <CheckSquare size={20} /> Desmarcar Todos
+                                    </>
                                 ) : (
-                                    <><Square size={20} /> Selecionar Todos</>
+                                    <>
+                                        <Square size={20} /> Selecionar Todos
+                                    </>
                                 )}
                             </button>
                         </div>
 
-                        <div className="grid gap-4">{filteredAppointments.map((apt) => (
-                            <div
-                                key={apt.id}
-                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
-                                    }`}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            toggleSelection(apt.id)
-                                        }}
-                                        className="mt-1 flex-shrink-0"
-                                    >
-                                        {selectedIds.has(apt.id) ? (
-                                            <CheckSquare size={24} className="text-gold" />
-                                        ) : (
-                                            <Square size={24} className="text-gray-400 hover:text-gold" />
-                                        )}
-                                    </button>
+                        {/* Lista */}
+                        {filteredAppointments.map((apt) => {
+                            const price = apt.combo
+                                ? apt.combo.comboPrice
+                                : apt.service?.price ?? 0
 
+                            const duration = apt.combo
+                                ? apt.combo.services.reduce((total, s) => total + s.duration, 0)
+                                : apt.service?.duration ?? 0
+
+                            return (
+                                <div
+                                    key={apt.id}
+                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
+                                        }`}
+                                >
+                                    {/* card */}
                                     <div
-                                        className="flex-1 cursor-pointer"
+                                        key={apt.id}
                                         onClick={() => setSelectedAppointmentId(apt.id)}
+                                        className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
+                                            }`}
                                     >
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <h3 className="text-xl font-bold text-charcoal">{apt.user.name}</h3>
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
-                                                        {getStatusLabel(apt.status)}
-                                                    </span>
-                                                </div>
-                                                <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                                    <div>
-                                                        <p className="text-gray-500 mb-1">Serviço</p>
-                                                        <p className="font-semibold text-charcoal">{apt.service.name}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-gray-500 mb-1">Data e Hora</p>
-                                                        <p className="font-semibold text-charcoal">
-                                                            {new Date(apt.date).toLocaleDateString('pt-BR')} às {apt.time}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-gray-500 mb-1">Contato</p>
-                                                        <p className="font-semibold text-charcoal">{apt.user.phone}</p>
-                                                    </div>
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-start gap-4">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedIds.has(apt.id)}
+                                                    onChange={() => toggleSelection(apt.id)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="mt-1 rounded text-gold focus:ring-gold"
+                                                />
+
+                                                <div>
+                                                    <p className="font-bold text-lg text-charcoal">
+                                                        {apt.user.name}
+                                                    </p>
+
+                                                    <p className="text-sm text-gray-600">
+                                                        {apt.combo ? (
+                                                            <>🎁 <strong>Combo:</strong> {apt.combo.name}</>
+                                                        ) : (
+                                                            <>✂️ {apt.service?.name}</>
+                                                        )}
+                                                    </p>
+
+                                                    <p className="text-sm text-gray-500">
+                                                        📅 {new Date(apt.date).toLocaleDateString('pt-BR')} • ⏰ {apt.time}
+                                                    </p>
                                                 </div>
                                             </div>
+
                                             <div className="text-right">
-                                                <p className="text-2xl font-bold text-gold">R$ {apt.service.price.toFixed(2)}</p>
-                                                <p className="text-sm text-gray-500">{apt.service.duration} min</p>
+                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2 ${getStatusColor(apt.status)}`}>
+                                                    {getStatusLabel(apt.status)}
+                                                </span>
+
+                                                <p className="text-lg font-bold text-gold">
+                                                    R$ {price.toFixed(2)}
+                                                </p>
+
+                                                <p className="text-sm text-gray-500">
+                                                    {duration} min
+                                                </p>
                                             </div>
                                         </div>
                                     </div>
+
                                 </div>
-                            </div>
-                        ))}
-                        </div>
+
+                            )
+                        })}
+
+                        {/* Modal */}
+                        {selectedAppointment && (
+                            <AppointmentDetailsModal
+                                appointment={selectedAppointment}
+                                onClose={() => setSelectedAppointmentId(null)}
+                                getStatusColor={getStatusColor}
+                                getStatusLabel={getStatusLabel}
+                            />
+                        )}
+
+                        {/* Barra de Ações em Massa */}
+                        <BulkActionsBar
+                            selectedCount={selectedIds.size}
+                            onConfirm={() => handleBulkAction('CONFIRMED')}
+                            onCancel={() => handleBulkAction('CANCELLED')}
+                            onComplete={() => handleBulkAction('COMPLETED')}
+                            onNoShow={() => handleBulkAction('NO_SHOW')}
+                            onDelete={handleBulkDelete}
+                            onClearSelection={clearSelection}
+                        />
                     </>
                 ) : (
                     <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
                         <p className="text-6xl mb-4">📭</p>
-                        <h3 className="text-2xl font-bold text-charcoal mb-2">Nenhum agendamento</h3>
+                        <h3 className="text-2xl font-bold text-charcoal mb-2">
+                            Nenhum agendamento
+                        </h3>
                         <p className="text-gray-600">
                             {searchTerm
                                 ? `Nenhum resultado encontrado para "${searchTerm}"`
-                                : 'Não há agendamentos para os filtros selecionados'
-                            }
+                                : 'Não há agendamentos para os filtros selecionados'}
                         </p>
+
                         {activeFiltersCount > 0 && (
                             <button
                                 onClick={clearAllFilters}
@@ -885,29 +982,9 @@ export default function AdminAgendamentosPage() {
                     </div>
                 )}
 
-                {/* Modal de Detalhes */}
-                {selectedAppointment && (
-                    <AppointmentDetailsModal
-                        appointment={selectedAppointment}
-                        onClose={() => setSelectedAppointmentId(null)}
-                        getStatusColor={getStatusColor}
-                        getStatusLabel={getStatusLabel}
-                    />
-                )}
 
-                {/* Barra de Ações em Massa */}
-                <BulkActionsBar
-                    selectedCount={selectedIds.size}
-                    onConfirm={() => handleBulkAction('CONFIRMED')}
-                    onCancel={() => handleBulkAction('CANCELLED')}
-                    onComplete={() => handleBulkAction('COMPLETED')}
-                    onNoShow={() => handleBulkAction('NO_SHOW')}
-                    onDelete={handleBulkDelete}
-                    onClearSelection={clearSelection}
-                />
-            </div>
 
-            <style jsx global>{`
+                <style jsx global>{`
                 @keyframes slide-up {
                     from {
                         transform: translate(-50%, 100%);
@@ -963,6 +1040,6 @@ export default function AdminAgendamentosPage() {
                     background-color: #F5F5DC;
                 }
             `}</style>
-        </div>
-    )
+            </div>
+        </div>)
 }
