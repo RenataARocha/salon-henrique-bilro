@@ -37,7 +37,7 @@ export async function GET(request: Request) {
         const endDate = searchParams.get('endDate')
 
         const where: any = {
-            userId: session.user.email
+            userId: session.user.id
 
         }
 
