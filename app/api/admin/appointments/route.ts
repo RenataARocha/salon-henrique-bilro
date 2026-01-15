@@ -25,27 +25,22 @@ export async function GET(request: NextRequest) {
                 },
                 service: {
                     select: {
-                        id: true,      // ✅ ADICIONAR ID
+                        id: true,
                         name: true,
                         price: true,
                         duration: true,
                     }
-                }
+                },
+                coupon: true
             },
             orderBy: {
                 date: 'desc'
             }
         })
 
-        // Garantir que serviceId está presente
-        const appointmentsWithServiceId = appointments.map(apt => ({
-            ...apt,
-            serviceId: apt.serviceId // Já vem do banco
-        }))
-
         return NextResponse.json({
             success: true,
-            data: appointmentsWithServiceId
+            data: appointments
         })
 
     } catch (error) {

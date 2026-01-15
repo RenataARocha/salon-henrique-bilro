@@ -16,19 +16,78 @@ export async function GET(request: Request) {
                 { status: 401 }
             )
         }
+        const { searchParams } = new URL(request.url)
+
+        const status = searchParams.get('status')
+        const paymentMethodsParam = searchParams.get('paymentMethod')
+
+        const paymentMethods = paymentMethodsParam
+            ? paymentMethodsParam
+                .split(',')
+                .map(method =>
+                    method
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .replace(/\s+/g, '_')
+                        .toUpperCase()
+                )
+            : []
+
+        const startDate = searchParams.get('startDate')
+        const endDate = searchParams.get('endDate')
+
+        const where: any = {
+            userId: session.user.email
+
+        }
+
+        if (status) {
+            where.status = status
+        }
+
+        if (paymentMethods.length > 0) {
+            where.paymentMethod = {
+                in: paymentMethods
+            }
+        }
+
+        if (startDate || endDate) {
+            where.date = {}
+
+            if (startDate) {
+                where.date.gte = new Date(startDate)
+            }
+
+            if (endDate) {
+                where.date.lte = new Date(endDate)
+            }
+        }
+
 
         const appointments = await prisma.appointment.findMany({
-            where: {
-                userId: session.user.id
-            },
+            where,
             include: {
-                service: true,
-                coupon: true // ✅ Incluir dados do cupom
+                user: {
+                    select: {
+                        name: true,
+                        email: true,
+                        phone: true,
+                    }
+                },
+                service: {
+                    select: {
+                        id: true,
+                        name: true,
+                        price: true,
+                        duration: true,
+                    }
+                }
             },
             orderBy: {
                 date: 'desc'
             }
         })
+
 
         return NextResponse.json({ success: true, data: appointments })
 
@@ -53,19 +112,36 @@ export async function POST(request: Request) {
             )
         }
 
+        // 1️⃣ Ler o body PRIMEIRO
         const body = await request.json()
+
         const {
             serviceId,
             date,
             time,
             notes,
             paymentMethod,
-            // ✅ NOVOS CAMPOS DE CUPOM
             cupomId,
             valorOriginal,
             valorDesconto,
             valorFinal
         } = body
+
+        // 2️⃣ Normalizar DEPOIS
+        const normalizedPaymentMethod = paymentMethod
+            ?.normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '_')
+            .toUpperCase()
+
+
+        if (!normalizedPaymentMethod) {
+            return NextResponse.json(
+                { success: false, error: 'Forma de pagamento inválida' },
+                { status: 400 }
+            )
+        }
+
 
         // Validações
         if (!serviceId || !date || !time) {
@@ -151,9 +227,8 @@ export async function POST(request: Request) {
                 date: new Date(date),
                 time,
                 notes: notes || null,
-                paymentMethod,
+                paymentMethod: normalizedPaymentMethod, // ✅ AGORA SIM
                 status: 'PENDING',
-                // ✅ CAMPOS DE CUPOM
                 couponId: cupomId || null,
                 discountAmount: valorDesconto || 0,
                 finalPrice: valorFinal || service.price
@@ -161,9 +236,11 @@ export async function POST(request: Request) {
             include: {
                 service: true,
                 user: true,
-                coupon: true // ✅ Incluir dados do cupom
+                coupon: true
             }
         })
+
+
 
         // ✅ Incrementar contador de uso do cupom
         if (cupomId) {
@@ -225,7 +302,8 @@ export async function DELETE(request: Request) {
         }
 
         // Verificar se o usuário é o dono do agendamento
-        if (appointment.userId !== session.user.id) {
+        if (appointment.userId !== session.user.id
+        ) {
             return NextResponse.json(
                 { success: false, error: 'Sem permissão para cancelar este agendamento' },
                 { status: 403 }
