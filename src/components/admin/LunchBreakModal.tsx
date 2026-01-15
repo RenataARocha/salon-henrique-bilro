@@ -251,13 +251,13 @@ export default function LunchBreakModal({ onClose, onSuccess }: Props) {
                                 return (
                                     <label
                                         key={day.value}
-                                        className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all relative ${isSelected
-                                            ? 'bg-orange-500 text-white border-orange-500'
-                                            : isSelected
+                                        className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 cursor-pointer transition-all relative
+    ${isSelected
                                                 ? 'bg-orange-500 text-white border-orange-500'
                                                 : 'bg-white text-gray-700 border-gray-200 hover:border-orange-300'
+                                            }
+`}
 
-                                            }`}
                                     >
                                         <input
                                             type="checkbox"
