@@ -29,7 +29,7 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
         discountType: 'PERCENTAGE',
         discountValue: 20,
         validDays: 30,
-        applicableServices: [] as string[],
+        applicableServices: null as string[] | null,
         sendEmail: true,
         sendWhatsApp: false
     })
@@ -68,8 +68,27 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
 
             if (data.success) {
                 alert('✅ Oferta criada e enviada com sucesso!')
+
+                // 👉 WHATSAPP (abre conversa com mensagem pronta)
+                if (formData.sendWhatsApp && birthday.phone) {
+                    const message = encodeURIComponent(
+                        `🎉 Oi ${firstName}! Preparamos um presente especial de aniversário pra você 💝\n\n` +
+                        `🎁 Seu cupom: *${couponCode}*\n` +
+                        `⏳ Válido por ${formData.validDays} dias\n\n` +
+                        `Aproveite e agende seu horário 😉`
+                    )
+
+                    const phone = birthday.phone.replace(/\D/g, '')
+
+                    window.open(
+                        `https://wa.me/55${phone}?text=${message}`,
+                        '_blank'
+                    )
+                }
+
                 onSuccess()
-            } else {
+            }
+            else {
                 alert('❌ ' + (data.message || 'Erro ao criar oferta'))
             }
         } catch (error) {
@@ -81,22 +100,36 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
     }
 
     const toggleService = (serviceId: string) => {
-        setFormData(prev => ({
-            ...prev,
-            applicableServices: prev.applicableServices.includes(serviceId)
-                ? prev.applicableServices.filter(id => id !== serviceId)
-                : [...prev.applicableServices, serviceId]
-        }))
+        setFormData(prev => {
+            // Se estava como "todos os serviços"
+            if (prev.applicableServices === null) {
+                return {
+                    ...prev,
+                    applicableServices: [serviceId]
+                }
+            }
+
+            // Se já é array
+            const alreadySelected = prev.applicableServices.includes(serviceId)
+
+            return {
+                ...prev,
+                applicableServices: alreadySelected
+                    ? prev.applicableServices.filter(id => id !== serviceId)
+                    : [...prev.applicableServices, serviceId]
+            }
+        })
     }
+
 
     const firstName = birthday.name.split(' ')[0]
     const couponCode = `ANIVERSARIO-${firstName.toUpperCase()}-${new Date().getFullYear()}`
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8 max-h-[90vh] flex flex-col">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-pink-500 to-purple-500 text-white p-6 rounded-t-2xl">
+                <div className="bg-gradient-gold text-white p-6 rounded-t-2xl ">
                     <div className="flex items-start justify-between">
                         <div>
                             <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
@@ -114,7 +147,10 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form
+                    onSubmit={handleSubmit}
+                    className="p-6 space-y-6 overflow-y-auto flex-1"
+                >
                     {/* Preview do Cupom */}
                     <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-6 border-2 border-dashed border-pink-300">
                         <p className="text-sm text-gray-600 mb-2">Cupom que será criado:</p>
@@ -195,9 +231,11 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                             <label className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    checked={formData.applicableServices.length === 0}
-                                    onChange={() => setFormData({ ...formData, applicableServices: [] })}
-                                    className="rounded text-purple-500 focus:ring-purple-500"
+                                    checked={formData.applicableServices === null}
+
+                                    onChange={() =>
+                                        setFormData({ ...formData, applicableServices: null })
+                                    } className="rounded text-purple-500 focus:ring-purple-500"
                                 />
                                 <span className="font-semibold text-purple-700">Todos os serviços</span>
                             </label>
@@ -205,7 +243,10 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                                 <label key={service.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
                                     <input
                                         type="checkbox"
-                                        checked={formData.applicableServices.includes(service.id)}
+                                        checked={
+                                            formData.applicableServices !== null &&
+                                            formData.applicableServices.includes(service.id)
+                                        }
                                         onChange={() => toggleService(service.id)}
                                         className="rounded text-purple-500 focus:ring-purple-500"
                                     />
@@ -266,7 +307,7 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:shadow-lg font-semibold disabled:opacity-50 transition-all"
+                            className="flex-1 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg font-semibold disabled:opacity-50 transition-all"
                             disabled={loading}
                         >
                             {loading ? 'Criando...' : '🎁 Criar e Enviar'}

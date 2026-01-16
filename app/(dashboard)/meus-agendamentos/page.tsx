@@ -179,12 +179,23 @@ export default function HistoricoPage() {
 
             <div className="min-h-screen bg-beige py-8 px-4">
                 <div className="max-w-6xl mx-auto">
-                    <h1 className="text-4xl font-bold text-charcoal mb-2">
-                        Meu Histórico
-                    </h1>
-                    <p className="text-gray-600 mb-8">
-                        Acompanhe todos os seus agendamentos
-                    </p>
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h1 className="text-4xl font-bold text-charcoal mb-2">
+                                Meu Histórico
+                            </h1>
+                            <p className="text-gray-600">
+                                Acompanhe todos os seus agendamentos
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => router.push('/agendar')}
+                            className="bg-gradient-gold text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all flex items-center gap-2"
+                        >
+                            <CalendarIcon size={20} />
+                            Novo Agendamento
+                        </button>
+                    </div>
 
                     {/* Estatísticas */}
                     <div className="grid md:grid-cols-4 gap-4 mb-8">

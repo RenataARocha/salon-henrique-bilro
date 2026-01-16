@@ -135,7 +135,10 @@ export async function POST(request: NextRequest) {
                 maxUses: maxUses ? parseInt(maxUses) : null,
                 validFrom: new Date(validFrom),
                 validUntil: new Date(validUntil),
-                applicableServices: applicableServices || [],
+                applicableServices:
+                    applicableServices && applicableServices.length > 0
+                        ? applicableServices
+                        : null,
                 perUserLimit: perUserLimit || false,
                 daysOfWeek: daysOfWeek || [],
                 timeStart: timeStart || null,

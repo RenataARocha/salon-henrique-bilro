@@ -278,33 +278,13 @@ export default function AniversariantesPage() {
                                         <div className="flex flex-col gap-2">
                                             <button
                                                 onClick={() => handleSendOffer(birthday)}
-                                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                                                className="flex items-center gap-2 px-4 py-2 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
                                             >
                                                 <Gift size={18} />
                                                 Criar Oferta
                                             </button>
 
-                                            {birthday.email && (
-                                                <a
-                                                    href={`mailto:${birthday.email}`}
-                                                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-semibold justify-center"
-                                                >
-                                                    <Mail size={18} />
-                                                    Email
-                                                </a>
-                                            )}
 
-                                            {birthday.phone && (
-                                                <a
-                                                    href={`https://wa.me/55${birthday.phone.replace(/\D/g, '')}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-semibold justify-center"
-                                                >
-                                                    <MessageCircle size={18} />
-                                                    WhatsApp
-                                                </a>
-                                            )}
                                         </div>
                                     </div>
                                 </div>

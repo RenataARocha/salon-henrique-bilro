@@ -24,10 +24,16 @@ export async function POST(request: NextRequest) {
             discountValue = 20,
             discountType = 'PERCENTAGE',
             validDays = 30,
-            applicableServices = [],
+            applicableServices,
             sendEmail = true,
             sendWhatsApp = false
         } = body
+
+        // 🔒 Blindagem contra null / undefined
+        const safeApplicableServices = Array.isArray(applicableServices)
+            ? applicableServices
+            : []
+
 
         // Buscar usuário
         const user = await prisma.user.findUnique({
@@ -71,7 +77,7 @@ export async function POST(request: NextRequest) {
                     active: true,
                     maxUses: 1,
                     usedCount: 0,
-                    applicableServices: applicableServices.length > 0 ? applicableServices : []
+                    applicableServices: safeApplicableServices
                 }
             })
         } else {
@@ -87,7 +93,7 @@ export async function POST(request: NextRequest) {
                     active: true,
                     maxUses: 1,
                     usedCount: 0,
-                    applicableServices: applicableServices.length > 0 ? applicableServices : []
+                    applicableServices: safeApplicableServices
                 }
             })
         }

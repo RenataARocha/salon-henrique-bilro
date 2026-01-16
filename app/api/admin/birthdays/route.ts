@@ -1,6 +1,5 @@
 // app/api/admin/birthdays/route.ts
 
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -34,76 +33,84 @@ export async function GET(request: NextRequest) {
                 email: true,
                 phone: true,
                 birthDate: true,
-                createdAt: true,
-                appointments: {
-                    where: {
-                        status: 'COMPLETED'
-                    },
-                    orderBy: {
-                        date: 'desc'
-                    },
-                    take: 1,
-                    select: {
-                        date: true,
-                        service: {
-                            select: {
-                                name: true
-                            }
-                        }
-                    }
-                },
-                _count: {
-                    select: {
-                        appointments: {
-                            where: {
-                                status: 'COMPLETED'
-                            }
-                        }
-                    }
-                }
+                createdAt: true
             }
         })
 
         // Filtrar aniversariantes do mês
-        const birthdays = users
-            .filter(user => {
-                if (!user.birthDate) return false
-                const birthMonth = new Date(user.birthDate).getMonth() + 1
-                return birthMonth === parseInt(month.toString())
-            })
-            .map(user => {
-                const birthDate = new Date(user.birthDate!)
-                const today = new Date()
-                const thisYearBirthday = new Date(
-                    parseInt(year.toString()),
-                    birthDate.getMonth(),
-                    birthDate.getDate()
-                )
+        const birthdays = await Promise.all(
+            users
+                .filter(user => {
+                    if (!user.birthDate) return false
+                    const birthMonth = new Date(user.birthDate).getMonth() + 1
+                    return birthMonth === Number(month)
+                })
+                .map(async user => {
+                    const birthDate = new Date(user.birthDate!)
+                    const today = new Date()
 
-                const daysUntil = Math.ceil(
-                    (thisYearBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-                )
+                    const thisYearBirthday = new Date(
+                        Number(year),
+                        birthDate.getMonth(),
+                        birthDate.getDate()
+                    )
 
-                const age = parseInt(year.toString()) - birthDate.getFullYear()
+                    const daysUntil = Math.ceil(
+                        (thisYearBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+                    )
 
-                return {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    phone: user.phone,
-                    birthDate: user.birthDate,
-                    birthDay: birthDate.getDate(),
-                    birthMonth: birthDate.getMonth() + 1,
-                    age,
-                    daysUntil,
-                    isPast: daysUntil < 0,
-                    isToday: daysUntil === 0,
-                    clientSince: user.createdAt,
-                    totalAppointments: user._count.appointments,
-                    lastAppointment: user.appointments[0] || null
-                }
-            })
-            .sort((a, b) => a.birthDay - b.birthDay)
+                    const age = Number(year) - birthDate.getFullYear()
+
+                    // 🔥 BUSCA TODOS OS AGENDAMENTOS (sem filtro de status)
+                    const appointments = await prisma.appointment.findMany({
+                        where: {
+                            userId: user.id
+                        },
+                        include: {
+                            service: {
+                                select: {
+                                    name: true
+                                }
+                            }
+                        },
+                        orderBy: {
+                            date: 'asc' // ⚠️ MUDADO PARA ASC para pegar o primeiro cronologicamente
+                        }
+                    })
+
+                    console.log(`👤 ${user.name} - Total de agendamentos encontrados: ${appointments.length}`)
+
+                    // Primeiro agendamento (mais antigo)
+                    const firstAppointment = appointments.length > 0 ? appointments[0] : null
+
+                    // Último agendamento (mais recente)
+                    const lastAppointment = appointments.length > 0
+                        ? appointments[appointments.length - 1]
+                        : null
+
+                    return {
+                        id: user.id,
+                        name: user.name,
+                        email: user.email,
+                        phone: user.phone,
+                        birthDate: user.birthDate,
+                        birthDay: birthDate.getDate(),
+                        birthMonth: birthDate.getMonth() + 1,
+                        age,
+                        daysUntil,
+                        isPast: daysUntil < 0,
+                        isToday: daysUntil === 0,
+                        clientSince: firstAppointment?.date || user.createdAt,
+                        totalAppointments: appointments.length,
+                        lastAppointment: lastAppointment
+                            ? {
+                                date: lastAppointment.date,
+                                service: lastAppointment.service
+                            }
+                            : null
+                    }
+                })
+        )
 
         // Estatísticas
         const stats = {

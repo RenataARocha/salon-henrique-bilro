@@ -113,8 +113,12 @@ export async function POST(req: NextRequest) {
             });
         }
 
+
         // Validação 7: Verificar serviços aplicáveis
-        if (cupom.applicableServices && cupom.applicableServices.length > 0) {
+        if (
+            Array.isArray(cupom.applicableServices) &&
+            cupom.applicableServices.length > 0
+        ) {
             const hasApplicableService = serviceIds.some(id =>
                 cupom.applicableServices.includes(id)
             );
@@ -126,6 +130,7 @@ export async function POST(req: NextRequest) {
                 });
             }
         }
+
 
         // Validação 8: Verificar dia da semana (se aplicável)
         if (cupom.daysOfWeek && cupom.daysOfWeek.length > 0 && scheduledDate) {
