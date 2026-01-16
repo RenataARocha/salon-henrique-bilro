@@ -142,7 +142,9 @@ export default function ClientesPage() {
         setFilterByVisits('all')
         setFilterByStatus('all')
         setSortBy('name-asc')
+        setShowFilters(false)
     }
+
 
     if (loading) {
         return (
@@ -183,14 +185,17 @@ export default function ClientesPage() {
                     <div className="bg-white rounded-xl p-6 shadow">
                         <p className="text-gray-600 text-sm mb-1">Novos</p>
                         <p className="text-3xl font-bold text-blue-600">{stats.new}</p>
+                        <p className="text-xs text-gray-500 mt-1">Últimos 6 meses</p>
                     </div>
                     <div className="bg-white rounded-xl p-6 shadow">
                         <p className="text-gray-600 text-sm mb-1">Regulares</p>
                         <p className="text-3xl font-bold text-green-600">{stats.regular}</p>
+                        <p className="text-xs text-gray-500 mt-1">Não VIP</p>
                     </div>
                     <div className="bg-white rounded-xl p-6 shadow">
                         <p className="text-gray-600 text-sm mb-1">VIP</p>
                         <p className="text-3xl font-bold text-purple-600">{stats.vip}</p>
+                        <p className="text-xs text-gray-500 mt-1">&gt; R$ 5.000</p>
                     </div>
                     <div className="bg-white rounded-xl p-6 shadow">
                         <p className="text-gray-600 text-sm mb-1">Receita Total</p>
@@ -279,8 +284,8 @@ export default function ClientesPage() {
                                                 key={option.value}
                                                 onClick={() => setFilterByVisits(option.value as typeof filterByVisits)}
                                                 className={`px-4 py-2 rounded-lg font-medium transition-all ${filterByVisits === option.value
-                                                        ? 'bg-gold text-white'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    ? 'bg-gold text-white'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                             >
                                                 {option.label}
@@ -303,8 +308,8 @@ export default function ClientesPage() {
                                                 key={option.value}
                                                 onClick={() => setFilterByStatus(option.value as typeof filterByStatus)}
                                                 className={`px-4 py-2 rounded-lg font-medium transition-all ${filterByStatus === option.value
-                                                        ? 'bg-gold text-white'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    ? 'bg-gold text-white'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                             >
                                                 {option.label}
@@ -377,9 +382,7 @@ export default function ClientesPage() {
                                             <button className="px-4 py-2 bg-gold text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-semibold">
                                                 Ver Detalhes
                                             </button>
-                                            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-semibold">
-                                                Novo Agendamento
-                                            </button>
+
                                         </div>
                                     </div>
                                 </div>
