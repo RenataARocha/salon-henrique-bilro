@@ -1,5 +1,3 @@
-// app/api/admin/clients/[id]/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -22,7 +20,6 @@ export async function GET(
         const params = await context.params;
         const clientId = params.id;
 
-        // Buscar cliente com todos os detalhes
         const client = await prisma.user.findUnique({
             where: { id: clientId },
             include: {
@@ -53,20 +50,19 @@ export async function GET(
             );
         }
 
-        // Calcular estatísticas
         const completedAppointments = client.appointments.filter(
             apt => apt.status === 'COMPLETED'
         );
 
+        // CORREÇÃO: Usa finalPrice ou service.price
         const totalSpent = completedAppointments.reduce((sum, apt) => {
-            return sum + (apt.finalPrice || 0);
+            return sum + (apt.finalPrice ?? apt.service.price);
         }, 0);
 
         const avgTicket = completedAppointments.length > 0
             ? totalSpent / completedAppointments.length
             : 0;
 
-        // Serviço preferido
         const serviceCount: Record<string, { name: string; count: number; revenue: number }> = {};
 
         completedAppointments.forEach(apt => {
@@ -79,14 +75,13 @@ export async function GET(
                 };
             }
             serviceCount[serviceName].count++;
-            serviceCount[serviceName].revenue += apt.finalPrice || 0;
+            serviceCount[serviceName].revenue += apt.finalPrice ?? apt.service.price;
         });
 
         const topServices = Object.values(serviceCount)
             .sort((a, b) => b.count - a.count)
             .slice(0, 5);
 
-        // Status por tipo
         const statusCount = {
             completed: client.appointments.filter(a => a.status === 'COMPLETED').length,
             cancelled: client.appointments.filter(a => a.status === 'CANCELLED').length,
@@ -94,18 +89,15 @@ export async function GET(
             pending: client.appointments.filter(a => a.status === 'PENDING').length
         };
 
-        // Taxa de comparecimento
         const totalScheduled = client.appointments.length;
         const attendanceRate = totalScheduled > 0
             ? (statusCount.completed / totalScheduled) * 100
             : 0;
 
-        // Média de avaliações
         const avgRating = client.reviews.length > 0
             ? client.reviews.reduce((sum, r) => sum + r.rating, 0) / client.reviews.length
             : 0;
 
-        // Último agendamento
         const lastAppointment = client.appointments[0];
         const daysSinceLastAppointment = lastAppointment
             ? Math.floor((Date.now() - new Date(lastAppointment.date).getTime()) / (1000 * 60 * 60 * 24))
@@ -150,8 +142,8 @@ export async function GET(
     }
 }
 
-// PUT - Adicionar nota interna ao cliente
-export async function PUT(
+// CORREÇÃO: Adicionado método PATCH para editar cliente
+export async function PATCH(
     req: NextRequest,
     context: { params: Promise<{ id: string }> }
 ) {
@@ -167,26 +159,37 @@ export async function PUT(
 
         const params = await context.params;
         const clientId = params.id;
-        const { notes } = await req.json();
+        const body = await req.json();
 
-        // Por enquanto, vamos adicionar um campo notes no User (você pode criar uma tabela ClientNotes separada)
-        const client = await prisma.user.update({
+        const { name, email, phone, birthDate } = body;
+
+        // Preparar dados para atualização
+        const updateData: any = {};
+
+        if (name) updateData.name = name;
+        if (email) updateData.email = email;
+        if (phone) updateData.phone = phone;
+
+        // CORREÇÃO: Aceitar data no formato ISO que vem do frontend
+        if (birthDate) {
+            // Se vier no formato ISO (já convertido no frontend), usar direto
+            updateData.birthDate = birthDate;
+        }
+
+        const updatedClient = await prisma.user.update({
             where: { id: clientId },
-            data: {
-                // Nota: você precisará adicionar um campo 'notes' no schema User
-                // notes: notes
-            }
+            data: updateData
         });
 
         return NextResponse.json({
             success: true,
-            data: client,
-            message: 'Nota adicionada com sucesso'
+            data: updatedClient,
+            message: 'Cliente atualizado com sucesso'
         });
     } catch (error) {
         console.error('Erro ao atualizar cliente:', error);
         return NextResponse.json(
-            { success: false, error: 'Erro ao atualizar' },
+            { success: false, error: 'Erro ao atualizar cliente' },
             { status: 500 }
         );
     }

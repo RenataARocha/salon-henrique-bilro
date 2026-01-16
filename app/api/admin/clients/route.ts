@@ -18,14 +18,10 @@ export async function GET(req: NextRequest) {
 
         const { searchParams } = new URL(req.url);
         const search = searchParams.get('search') || '';
-        const segment = searchParams.get('segment'); // vip, new, inactive, birthday
+        const segment = searchParams.get('segment');
 
-        // Filtros
-        let where: any = {
-            role: 'CLIENT'
-        };
+        let where: any = { role: 'CLIENT' };
 
-        // Busca
         if (search) {
             where.OR = [
                 { name: { contains: search, mode: 'insensitive' } },
@@ -34,14 +30,10 @@ export async function GET(req: NextRequest) {
             ];
         }
 
-        // Buscar clientes
         const clients = await prisma.user.findMany({
             where,
             include: {
                 appointments: {
-                    where: {
-                        status: 'COMPLETED'
-                    },
                     include: {
                         service: true
                     },
@@ -60,22 +52,25 @@ export async function GET(req: NextRequest) {
             }
         });
 
-        // Calcular estatísticas para cada cliente
         const clientsWithStats = clients.map(client => {
-            const completedAppointments = client.appointments;
+            // CORREÇÃO: Agora conta TODOS os agendamentos, não só COMPLETED
+            const allAppointments = client.appointments;
+            const completedAppointments = client.appointments.filter(a => a.status === 'COMPLETED');
 
+            // CORREÇÃO: Calcula total gasto somando finalPrice OU service.price
             const totalSpent = completedAppointments.reduce((sum, apt) => {
-                return sum + (apt.finalPrice || apt.service.price);
+                const price = apt.finalPrice ?? apt.service.price;
+                return sum + price;
             }, 0);
 
             const avgTicket = completedAppointments.length > 0
                 ? totalSpent / completedAppointments.length
                 : 0;
 
-            const lastAppointment = completedAppointments[0];
+            // CORREÇÃO: Última visita considera QUALQUER agendamento, não só COMPLETED
+            const lastAppointment = allAppointments[0];
             const lastAppointmentDate = lastAppointment?.date || null;
 
-            // Calcular dias desde último agendamento
             const daysSinceLastAppointment = lastAppointmentDate
                 ? Math.floor((Date.now() - new Date(lastAppointmentDate).getTime()) / (1000 * 60 * 60 * 24))
                 : null;
@@ -91,14 +86,14 @@ export async function GET(req: NextRequest) {
                 .sort(([, a], [, b]) => b - a)[0]?.[0] || null;
 
             // Taxa de comparecimento
-            const allAppointments = client._count.appointments;
-            const attendanceRate = allAppointments > 0
-                ? (completedAppointments.length / allAppointments) * 100
+            const allAppointmentsCount = client._count.appointments;
+            const attendanceRate = allAppointmentsCount > 0
+                ? (completedAppointments.length / allAppointmentsCount) * 100
                 : 0;
 
             // Segmentação
             const isVIP = totalSpent > 5000;
-            const isNew = client.createdAt > new Date(Date.now() - 180 * 24 * 60 * 60 * 1000); // 6 meses
+            const isNew = client.createdAt > new Date(Date.now() - 180 * 24 * 60 * 60 * 1000);
             const isInactive = daysSinceLastAppointment !== null && daysSinceLastAppointment > 90;
 
             const isBirthdayThisMonth = client.birthDate
@@ -114,7 +109,7 @@ export async function GET(req: NextRequest) {
                 image: client.image,
                 createdAt: client.createdAt,
                 stats: {
-                    totalAppointments: completedAppointments.length,
+                    totalAppointments: allAppointmentsCount, // CORREÇÃO: Total de TODOS os agendamentos
                     totalSpent,
                     avgTicket,
                     lastAppointment: lastAppointmentDate,
@@ -131,7 +126,6 @@ export async function GET(req: NextRequest) {
             };
         });
 
-        // Filtrar por segmento se solicitado
         let filteredClients = clientsWithStats;
 
         if (segment === 'vip') {
@@ -144,7 +138,6 @@ export async function GET(req: NextRequest) {
             filteredClients = clientsWithStats.filter(c => c.segments.isBirthdayThisMonth);
         }
 
-        // Estatísticas gerais
         const totalClients = clientsWithStats.length;
         const vipClients = clientsWithStats.filter(c => c.segments.isVIP).length;
         const newClients = clientsWithStats.filter(c => c.segments.isNew).length;
