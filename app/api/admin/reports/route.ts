@@ -1,4 +1,5 @@
 // app/api/admin/reports/route.ts
+// VERSÃO DE TESTE - Busca TODOS os agendamentos sem filtro de data
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -17,11 +18,84 @@ export async function GET(request: NextRequest) {
         }
 
         const { searchParams } = new URL(request.url)
-        const start = searchParams.get('start') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        const start = searchParams.get('start') || new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         const end = searchParams.get('end') || new Date().toISOString().split('T')[0]
-        const period = searchParams.get('period') || 'monthly'
 
-        // ✅ FUNÇÃO AUXILIAR PARA CALCULAR PREÇO (aceita any)
+        console.log('📊 Gerando relatório:', { start, end })
+
+        // ✅ BUSCAR TODOS OS AGENDAMENTOS (SEM FILTRO INICIAL)
+        const allAppointments = await prisma.appointment.findMany({
+            include: {
+                service: true,
+                user: true,
+                combo: {
+                    select: {
+                        name: true,
+                        discountPercent: true,
+                        services: {
+                            include: {
+                                service: {
+                                    select: {
+                                        price: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            orderBy: {
+                date: 'desc'
+            }
+        })
+
+        console.log(`📅 TODOS os agendamentos no banco: ${allAppointments.length}`)
+
+        // Mostrar as datas para debug
+        allAppointments.slice(0, 5).forEach(apt => {
+            console.log(`   - ${new Date(apt.date).toLocaleDateString('pt-BR')} ${apt.time} - ${apt.status}`)
+        })
+
+        // ✅ Ajustar datas para incluir o dia completo
+        const startDate = new Date(start + 'T00:00:00.000Z')
+        const endDate = new Date(end + 'T23:59:59.999Z')
+
+        console.log('📅 Período solicitado:', {
+            start: startDate.toLocaleDateString('pt-BR'),
+            end: endDate.toLocaleDateString('pt-BR')
+        })
+
+        // Filtrar manualmente por data
+        const appointments = allAppointments.filter(apt => {
+            const aptDate = new Date(apt.date)
+            const inPeriod = aptDate >= startDate && aptDate <= endDate
+            return inPeriod
+        })
+
+        console.log(`📅 Agendamentos NO PERÍODO: ${appointments.length}`)
+
+        const statusCounts = {
+            COMPLETED: appointments.filter(a => a.status === 'COMPLETED').length,
+            PENDING: appointments.filter(a => a.status === 'PENDING').length,
+            CONFIRMED: appointments.filter(a => a.status === 'CONFIRMED').length,
+            CANCELLED: appointments.filter(a => a.status === 'CANCELLED').length,
+            NO_SHOW: appointments.filter(a => a.status === 'NO_SHOW').length
+        }
+        console.log('📊 Status dos agendamentos:', statusCounts)
+
+        // Mostrar agendamentos FORA do período
+        const outside = allAppointments.filter(apt => {
+            const aptDate = new Date(apt.date)
+            return aptDate < startDate || aptDate > endDate
+        })
+        if (outside.length > 0) {
+            console.log(`⚠️ Agendamentos FORA do período: ${outside.length}`)
+            outside.slice(0, 3).forEach(apt => {
+                console.log(`   - ${new Date(apt.date).toLocaleDateString('pt-BR')} ${apt.time}`)
+            })
+        }
+
+        // ✅ FUNÇÃO AUXILIAR PARA CALCULAR PREÇO
         const getAppointmentPrice = (apt: any): number => {
             if (apt.finalPrice) return apt.finalPrice
 
@@ -43,79 +117,57 @@ export async function GET(request: NextRequest) {
             return apt.combo?.name || apt.service?.name || 'Serviço não identificado'
         }
 
-        // BUSCAR AGENDAMENTOS COM COMBO
-        const appointments = await prisma.appointment.findMany({
-            where: {
-                date: {
-                    gte: new Date(start),
-                    lte: new Date(end)
-                }
-            },
-            include: {
-                service: true,
-                user: true,
-                combo: {
-                    select: {
-                        name: true,
-                        discountPercent: true,
-                        services: {
-                            include: {
-                                service: {
-                                    select: {
-                                        price: true
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            orderBy: {
-                date: 'asc'
-            }
-        })
-
         // ========== RECEITA POR PERÍODO ==========
-        const revenueByPeriod: Record<string, { value: number; appointments: number }> = {}
+        const generatePeriodData = (periodType: 'daily' | 'weekly' | 'monthly') => {
+            const revenueByPeriod: Record<string, { value: number; appointments: number }> = {}
 
-        appointments.forEach(apt => {
-            if (apt.status === 'COMPLETED') {
-                const date = new Date(apt.date)
-                let key = ''
+            appointments.forEach(apt => {
+                if (apt.status === 'COMPLETED') {
+                    const date = new Date(apt.date)
+                    let key = ''
 
-                if (period === 'daily') {
-                    key = date.toISOString().split('T')[0]
-                } else if (period === 'weekly') {
-                    const weekNum = Math.ceil((date.getDate()) / 7)
-                    key = `Semana ${weekNum} - ${date.toLocaleString('pt-BR', { month: 'short' })}`
-                } else {
-                    key = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
+                    if (periodType === 'daily') {
+                        key = date.toISOString().split('T')[0]
+                    } else if (periodType === 'weekly') {
+                        const weekStart = new Date(date)
+                        weekStart.setDate(date.getDate() - date.getDay())
+                        key = `Semana ${weekStart.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`
+                    } else {
+                        key = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })
+                    }
+
+                    if (!revenueByPeriod[key]) {
+                        revenueByPeriod[key] = { value: 0, appointments: 0 }
+                    }
+
+                    revenueByPeriod[key].value += getAppointmentPrice(apt)
+                    revenueByPeriod[key].appointments += 1
                 }
+            })
 
-                if (!revenueByPeriod[key]) {
-                    revenueByPeriod[key] = { value: 0, appointments: 0 }
-                }
+            return Object.entries(revenueByPeriod).map(([key, data]) => ({
+                [periodType === 'daily' ? 'date' : periodType === 'weekly' ? 'week' : 'month']: key,
+                ...data
+            }))
+        }
 
-                revenueByPeriod[key].value += getAppointmentPrice(apt)
-                revenueByPeriod[key].appointments += 1
-            }
-        })
-
-        const revenueData = Object.entries(revenueByPeriod).map(([key, data]) => ({
-            [period === 'daily' ? 'date' : period === 'weekly' ? 'week' : 'month']: key,
-            ...data
-        }))
+        const dailyData = generatePeriodData('daily')
+        const weeklyData = generatePeriodData('weekly')
+        const monthlyData = generatePeriodData('monthly')
 
         // Calcular crescimento
-        const currentPeriodRevenue = revenueData.reduce((sum, r) => sum + r.value, 0)
-        const previousPeriodStart = new Date(start)
-        previousPeriodStart.setDate(previousPeriodStart.getDate() - (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24))
+        const currentPeriodRevenue = [...dailyData, ...weeklyData, ...monthlyData].reduce((sum, r) => sum + r.value, 0)
+        const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+        const previousPeriodStart = new Date(startDate)
+        previousPeriodStart.setDate(previousPeriodStart.getDate() - daysDiff)
+        const previousPeriodEnd = new Date(startDate)
+        previousPeriodEnd.setDate(previousPeriodEnd.getDate() - 1)
 
         const previousAppointments = await prisma.appointment.findMany({
             where: {
                 date: {
                     gte: previousPeriodStart,
-                    lt: new Date(start)
+                    lte: previousPeriodEnd
                 },
                 status: 'COMPLETED'
             },
@@ -166,26 +218,33 @@ export async function GET(request: NextRequest) {
             }))
             .sort((a, b) => b.revenue - a.revenue)
 
-        // ========== HORÁRIOS DE PICO ==========
+        // ========== HORÁRIOS DE PICO (TODOS OS AGENDAMENTOS) ==========
         const hourStats: Record<string, number> = {}
-        const totalSlots = appointments.length
 
         appointments.forEach(apt => {
             const hour = apt.time.substring(0, 5)
             hourStats[hour] = (hourStats[hour] || 0) + 1
         })
 
+        const totalAppointmentsForPeak = appointments.length
+
         const peakHours = Object.entries(hourStats)
             .map(([hour, count]) => ({
                 hour,
                 count,
-                occupancy: totalSlots > 0 ? Math.round((count / totalSlots) * 100) : 0
+                occupancy: totalAppointmentsForPeak > 0
+                    ? Math.round((count / totalAppointmentsForPeak) * 100)
+                    : 0
             }))
             .sort((a, b) => b.count - a.count)
+
+        console.log(`⏰ Horários de pico: ${peakHours.length} horários únicos`)
 
         // ========== CANCELAMENTOS ==========
         const cancelledAppointments = appointments.filter(apt => apt.status === 'CANCELLED')
         const cancellationRate = appointments.length > 0 ? (cancelledAppointments.length / appointments.length) * 100 : 0
+
+        console.log(`❌ Cancelamentos: ${cancelledAppointments.length} de ${appointments.length} (${cancellationRate.toFixed(1)}%)`)
 
         const reasonStats: Record<string, number> = {}
         cancelledAppointments.forEach(apt => {
@@ -229,20 +288,29 @@ export async function GET(request: NextRequest) {
         const newClients = await prisma.user.count({
             where: {
                 createdAt: {
-                    gte: new Date(start),
-                    lte: new Date(end)
+                    gte: startDate,
+                    lte: endDate
                 },
                 role: 'CLIENT'
             }
+        })
+
+        console.log('📊 Resumo final:', {
+            totalRevenue: totalRevenue.toFixed(2),
+            totalAppointments: appointments.length,
+            completedAppointments: completedAppointments.length,
+            avgTicket: avgTicket.toFixed(2),
+            completionRate: completionRate.toFixed(1),
+            newClients
         })
 
         return NextResponse.json({
             success: true,
             data: {
                 revenue: {
-                    daily: period === 'daily' ? revenueData : [],
-                    weekly: period === 'weekly' ? revenueData : [],
-                    monthly: period === 'monthly' ? revenueData : [],
+                    daily: dailyData,
+                    weekly: weeklyData,
+                    monthly: monthlyData,
                     total: currentPeriodRevenue,
                     growth
                 },
@@ -257,6 +325,7 @@ export async function GET(request: NextRequest) {
                 summary: {
                     totalRevenue,
                     totalAppointments: appointments.length,
+                    completedAppointments: completedAppointments.length,
                     avgTicket,
                     completionRate,
                     newClients
@@ -264,7 +333,7 @@ export async function GET(request: NextRequest) {
             }
         })
     } catch (error) {
-        console.error('Erro ao gerar relatórios:', error)
+        console.error('❌ Erro ao gerar relatórios:', error)
         return NextResponse.json(
             { success: false, message: 'Erro ao gerar relatórios' },
             { status: 500 }
