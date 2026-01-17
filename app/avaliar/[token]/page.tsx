@@ -112,7 +112,7 @@ export default function AvaliarPage() {
                     <p className="text-gray-600 mb-6">{error}</p>
                     <button
                         onClick={() => router.push('/')}
-                        className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition"
+                        className="px-6 py-3 bg-gradient-gold text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition"
                     >
                         Voltar ao Início
                     </button>
@@ -132,7 +132,7 @@ export default function AvaliarPage() {
                     </p>
                     <button
                         onClick={() => router.push('/')}
-                        className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition"
+                        className="px-6 py-3 bg-gradient-gold text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition"
                     >
                         Voltar ao Início
                     </button>
@@ -177,8 +177,8 @@ export default function AvaliarPage() {
                                         <Star
                                             size={48}
                                             className={`${star <= (hoverRating || rating)
-                                                    ? 'fill-yellow-400 text-yellow-400'
-                                                    : 'text-gray-300'
+                                                ? 'fill-yellow-400 text-yellow-400'
+                                                : 'text-gray-300'
                                                 }`}
                                         />
                                     </button>
