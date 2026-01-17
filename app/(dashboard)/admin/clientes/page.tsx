@@ -179,7 +179,7 @@ export default function ClientesPage() {
 
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold "
                     >
                         <Home size={20} />
                         Ir para o Início
