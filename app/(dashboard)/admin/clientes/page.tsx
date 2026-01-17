@@ -3,6 +3,9 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Search, X, Filter, UserPlus } from 'lucide-react'
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal'
+import Link from 'next/link'
+import { ArrowLeft, Home } from 'lucide-react'
+
 
 interface Client {
     id: string
@@ -164,16 +167,31 @@ export default function ClientesPage() {
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto space-y-8">
+                {/* Navegação */}
+                <div className="flex justify-end gap-3">
+                    <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                    >
+                        <ArrowLeft size={20} />
+                        Voltar ao Painel
+                    </Link>
+
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                    >
+                        <Home size={20} />
+                        Ir para o Início
+                    </Link>
+                </div>
+
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-charcoal mb-2">👥 Clientes</h1>
                         <p className="text-gray-600">Gerencie todos os clientes do salão</p>
                     </div>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-gold to-yellow-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all">
-                        <UserPlus size={20} />
-                        Novo Cliente
-                    </button>
                 </div>
 
                 {/* Estatísticas */}

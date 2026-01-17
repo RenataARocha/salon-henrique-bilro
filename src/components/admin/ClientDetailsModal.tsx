@@ -506,17 +506,22 @@ export default function ClientDetailsModal({
                     <button
                         onClick={() => {
                             const phone = client.phone.replace(/\D/g, '')
-                            window.open(`https://wa.me/55${phone}`, '_blank')
+                            const message = `Olá, ${client.name}! 😊
+
+Aqui é da Henrique Bilro Cabeleireiros.
+Estou entrando em contato para falarmos sobre seus atendimentos conosco.
+
+Fico à disposição 💛`
+
+                            const url = `https://wa.me/55${phone}?text=${encodeURIComponent(message)}`
+                            window.open(url, '_blank')
                         }}
                         className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
                     >
                         <MessageCircle size={20} />
                         Enviar WhatsApp
                     </button>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-                        <Calendar size={20} />
-                        Novo Agendamento
-                    </button>
+
                 </div>
             </div>
 
