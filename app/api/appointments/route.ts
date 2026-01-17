@@ -16,21 +16,15 @@ export async function GET(request: Request) {
                 { status: 401 }
             )
         }
-        const { searchParams } = new URL(request.url)
 
+        const { searchParams } = new URL(request.url)
         const status = searchParams.get('status')
         const paymentMethodsParam = searchParams.get('paymentMethod')
 
         const paymentMethods = paymentMethodsParam
-            ? paymentMethodsParam
-                .split(',')
-                .map(method =>
-                    method
-                        .normalize('NFD')
-                        .replace(/[\u0300-\u036f]/g, '')
-                        .replace(/\s+/g, '_')
-                        .toUpperCase()
-                )
+            ? paymentMethodsParam.split(',').map(method =>
+                method.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_').toUpperCase()
+            )
             : []
 
         const startDate = searchParams.get('startDate')
@@ -38,58 +32,70 @@ export async function GET(request: Request) {
 
         const where: any = {
             userId: session.user.id
-
         }
 
-        if (status) {
-            where.status = status
-        }
-
-        if (paymentMethods.length > 0) {
-            where.paymentMethod = {
-                in: paymentMethods
-            }
-        }
-
+        if (status) where.status = status
+        if (paymentMethods.length > 0) where.paymentMethod = { in: paymentMethods }
         if (startDate || endDate) {
             where.date = {}
-
-            if (startDate) {
-                where.date.gte = new Date(startDate)
-            }
-
-            if (endDate) {
-                where.date.lte = new Date(endDate)
-            }
+            if (startDate) where.date.gte = new Date(startDate)
+            if (endDate) where.date.lte = new Date(endDate)
         }
-
 
         const appointments = await prisma.appointment.findMany({
             where,
             include: {
                 user: {
-                    select: {
-                        name: true,
-                        email: true,
-                        phone: true,
-                    }
+                    select: { name: true, email: true, phone: true }
                 },
                 service: {
-                    select: {
-                        id: true,
-                        name: true,
-                        price: true,
-                        duration: true,
+                    select: { id: true, name: true, price: true, duration: true }
+                },
+                combo: {  // ✅ ADICIONAR
+                    include: {
+                        services: {
+                            include: { service: true }
+                        }
                     }
-                }
+                },
+                coupon: true
             },
-            orderBy: {
-                date: 'desc'
-            }
+            orderBy: { date: 'desc' }
         })
 
+        // ✅ FORMATAR DADOS
+        const formattedAppointments = appointments.map(apt => {
+            let formattedApt: any = { ...apt, service: apt.service || null, combo: null }
 
-        return NextResponse.json({ success: true, data: appointments })
+            if (apt.combo) {
+                const comboServices = apt.combo.services.map(cs => cs.service)
+                const originalPrice = comboServices.reduce((sum, s) => sum + s.price, 0)
+                const comboPrice = originalPrice * (1 - apt.combo.discountPercent / 100)
+
+                formattedApt.combo = {
+                    id: apt.combo.id,
+                    name: apt.combo.name,
+                    description: apt.combo.description,
+                    services: comboServices,
+                    originalPrice,
+                    comboPrice,
+                    discountPercent: apt.combo.discountPercent
+                }
+
+                if (!formattedApt.service && comboServices.length > 0) {
+                    formattedApt.service = {
+                        id: apt.combo.id,
+                        name: apt.combo.name,
+                        price: comboPrice,
+                        duration: comboServices.reduce((sum, s) => sum + s.duration, 0)
+                    }
+                }
+            }
+
+            return formattedApt
+        })
+
+        return NextResponse.json({ success: true, data: formattedAppointments })
 
     } catch (error) {
         console.error('Erro ao buscar agendamentos:', error)
@@ -112,11 +118,11 @@ export async function POST(request: Request) {
             )
         }
 
-        // 1️⃣ Ler o body PRIMEIRO
         const body = await request.json()
 
         const {
             serviceId,
+            comboId,  // ✅ ADICIONAR
             date,
             time,
             notes,
@@ -127,13 +133,26 @@ export async function POST(request: Request) {
             valorFinal
         } = body
 
-        // 2️⃣ Normalizar DEPOIS
+        // ✅ VALIDAÇÃO: Deve ter UM serviço OU UM combo
+        if (!serviceId && !comboId) {
+            return NextResponse.json(
+                { success: false, error: 'Selecione um serviço ou combo' },
+                { status: 400 }
+            )
+        }
+
+        if (serviceId && comboId) {
+            return NextResponse.json(
+                { success: false, error: 'Selecione apenas um serviço OU um combo' },
+                { status: 400 }
+            )
+        }
+
         const normalizedPaymentMethod = paymentMethod
             ?.normalize('NFD')
             .replace(/[\u0300-\u036f]/g, '')
             .replace(/\s+/g, '_')
             .toUpperCase()
-
 
         if (!normalizedPaymentMethod) {
             return NextResponse.json(
@@ -142,25 +161,66 @@ export async function POST(request: Request) {
             )
         }
 
-
-        // Validações
-        if (!serviceId || !date || !time) {
+        if (!date || !time) {
             return NextResponse.json(
                 { success: false, error: 'Preencha todos os campos obrigatórios' },
                 { status: 400 }
             )
         }
 
-        // Verificar se o serviço existe
-        const service = await prisma.service.findUnique({
-            where: { id: serviceId }
-        })
+        // ✅ VERIFICAR SERVIÇO OU COMBO
+        let service = null
+        let combo = null
+        let finalPrice = valorFinal
 
-        if (!service) {
-            return NextResponse.json(
-                { success: false, error: 'Serviço não encontrado' },
-                { status: 404 }
-            )
+        if (serviceId) {
+            service = await prisma.service.findUnique({
+                where: { id: serviceId }
+            })
+
+            if (!service) {
+                return NextResponse.json(
+                    { success: false, error: 'Serviço não encontrado' },
+                    { status: 404 }
+                )
+            }
+
+            if (!finalPrice) {
+                finalPrice = service.price
+            }
+        }
+
+        if (comboId) {
+            combo = await prisma.serviceCombo.findUnique({
+                where: { id: comboId },
+                include: {
+                    services: {
+                        include: {
+                            service: true
+                        }
+                    }
+                }
+            })
+
+            if (!combo) {
+                return NextResponse.json(
+                    { success: false, error: 'Combo não encontrado' },
+                    { status: 404 }
+                )
+            }
+
+            if (!combo.active) {
+                return NextResponse.json(
+                    { success: false, error: 'Este combo não está mais disponível' },
+                    { status: 400 }
+                )
+            }
+
+            if (!finalPrice) {
+                const services = combo.services.map(cs => cs.service)
+                const originalPrice = services.reduce((sum, s) => sum + s.price, 0)
+                finalPrice = originalPrice * (1 - combo.discountPercent / 100)
+            }
         }
 
         // Verificar se já existe agendamento neste horário
@@ -181,7 +241,7 @@ export async function POST(request: Request) {
             )
         }
 
-        // ✅ Validar cupom se foi fornecido
+        // Validar cupom se foi fornecido
         if (cupomId) {
             const coupon = await prisma.coupon.findUnique({
                 where: { id: cupomId }
@@ -201,7 +261,6 @@ export async function POST(request: Request) {
                 )
             }
 
-            // Verificar validade
             const now = new Date()
             if (new Date(coupon.validFrom) > now || new Date(coupon.validUntil) < now) {
                 return NextResponse.json(
@@ -210,7 +269,6 @@ export async function POST(request: Request) {
                 )
             }
 
-            // Verificar quantidade de usos
             if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
                 return NextResponse.json(
                     { success: false, error: 'Cupom esgotado' },
@@ -219,30 +277,37 @@ export async function POST(request: Request) {
             }
         }
 
-        // Criar agendamento
+        // ✅ CRIAR AGENDAMENTO
         const appointment = await prisma.appointment.create({
             data: {
                 userId: session.user.id,
-                serviceId,
+                serviceId: serviceId || null,
+                comboId: comboId || null,  // ✅ ADICIONAR
                 date: new Date(date),
                 time,
                 notes: notes || null,
-                paymentMethod: normalizedPaymentMethod, // ✅ AGORA SIM
+                paymentMethod: normalizedPaymentMethod,
                 status: 'PENDING',
                 couponId: cupomId || null,
                 discountAmount: valorDesconto || 0,
-                finalPrice: valorFinal || service.price
+                finalPrice: finalPrice
             },
             include: {
                 service: true,
+                combo: {  // ✅ ADICIONAR
+                    include: {
+                        services: {
+                            include: {
+                                service: true
+                            }
+                        }
+                    }
+                },
                 user: true,
                 coupon: true
             }
         })
 
-
-
-        // ✅ Incrementar contador de uso do cupom
         if (cupomId) {
             await prisma.coupon.update({
                 where: { id: cupomId },

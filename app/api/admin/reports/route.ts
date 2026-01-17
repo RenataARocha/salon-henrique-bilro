@@ -21,7 +21,29 @@ export async function GET(request: NextRequest) {
         const end = searchParams.get('end') || new Date().toISOString().split('T')[0]
         const period = searchParams.get('period') || 'monthly'
 
-        // Buscar todos os agendamentos no período
+        // ✅ FUNÇÃO AUXILIAR PARA CALCULAR PREÇO (aceita any)
+        const getAppointmentPrice = (apt: any): number => {
+            if (apt.finalPrice) return apt.finalPrice
+
+            if (apt.combo) {
+                const originalPrice = apt.combo.services.reduce(
+                    (sum: number, cs: any) => sum + cs.service.price,
+                    0
+                )
+                return originalPrice * (1 - apt.combo.discountPercent / 100)
+            }
+
+            if (apt.service) return apt.service.price
+
+            return 0
+        }
+
+        // ✅ FUNÇÃO AUXILIAR PARA PEGAR NOME DO SERVIÇO/COMBO
+        const getAppointmentName = (apt: any): string => {
+            return apt.combo?.name || apt.service?.name || 'Serviço não identificado'
+        }
+
+        // BUSCAR AGENDAMENTOS COM COMBO
         const appointments = await prisma.appointment.findMany({
             where: {
                 date: {
@@ -31,7 +53,22 @@ export async function GET(request: NextRequest) {
             },
             include: {
                 service: true,
-                user: true
+                user: true,
+                combo: {
+                    select: {
+                        name: true,
+                        discountPercent: true,
+                        services: {
+                            include: {
+                                service: {
+                                    select: {
+                                        price: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             },
             orderBy: {
                 date: 'asc'
@@ -59,7 +96,7 @@ export async function GET(request: NextRequest) {
                     revenueByPeriod[key] = { value: 0, appointments: 0 }
                 }
 
-                revenueByPeriod[key].value += apt.finalPrice || apt.service.price
+                revenueByPeriod[key].value += getAppointmentPrice(apt)
                 revenueByPeriod[key].appointments += 1
             }
         })
@@ -82,10 +119,26 @@ export async function GET(request: NextRequest) {
                 },
                 status: 'COMPLETED'
             },
-            include: { service: true }
+            include: {
+                service: true,
+                combo: {
+                    select: {
+                        discountPercent: true,
+                        services: {
+                            include: {
+                                service: {
+                                    select: {
+                                        price: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         })
 
-        const previousRevenue = previousAppointments.reduce((sum, apt) => sum + (apt.finalPrice || apt.service.price), 0)
+        const previousRevenue = previousAppointments.reduce((sum, apt) => sum + getAppointmentPrice(apt), 0)
         const growth = previousRevenue > 0 ? ((currentPeriodRevenue - previousRevenue) / previousRevenue) * 100 : 0
 
         // ========== SERVIÇOS MAIS VENDIDOS ==========
@@ -93,12 +146,12 @@ export async function GET(request: NextRequest) {
 
         appointments.forEach(apt => {
             if (apt.status === 'COMPLETED') {
-                const serviceName = apt.service.name
+                const serviceName = getAppointmentName(apt)
                 if (!serviceStats[serviceName]) {
                     serviceStats[serviceName] = { count: 0, revenue: 0 }
                 }
                 serviceStats[serviceName].count += 1
-                serviceStats[serviceName].revenue += apt.finalPrice || apt.service.price
+                serviceStats[serviceName].revenue += getAppointmentPrice(apt)
             }
         })
 
@@ -134,7 +187,6 @@ export async function GET(request: NextRequest) {
         const cancelledAppointments = appointments.filter(apt => apt.status === 'CANCELLED')
         const cancellationRate = appointments.length > 0 ? (cancelledAppointments.length / appointments.length) * 100 : 0
 
-        // Agrupar por motivo (se existir campo justification)
         const reasonStats: Record<string, number> = {}
         cancelledAppointments.forEach(apt => {
             const reason = apt.justification || 'Não informado'
@@ -158,7 +210,7 @@ export async function GET(request: NextRequest) {
                         visits: 0
                     }
                 }
-                clientStats[userId].totalSpent += apt.finalPrice || apt.service.price
+                clientStats[userId].totalSpent += getAppointmentPrice(apt)
                 clientStats[userId].visits += 1
             }
         })
@@ -169,7 +221,7 @@ export async function GET(request: NextRequest) {
 
         // ========== RESUMO ==========
         const completedAppointments = appointments.filter(apt => apt.status === 'COMPLETED')
-        const totalRevenue = completedAppointments.reduce((sum, apt) => sum + (apt.finalPrice || apt.service.price), 0)
+        const totalRevenue = completedAppointments.reduce((sum, apt) => sum + getAppointmentPrice(apt), 0)
         const avgTicket = completedAppointments.length > 0 ? totalRevenue / completedAppointments.length : 0
         const completionRate = appointments.length > 0 ? (completedAppointments.length / appointments.length) * 100 : 0
 

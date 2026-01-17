@@ -74,7 +74,7 @@ export async function GET(req: NextRequest) {
 
         // Calcular métricas
         const totalRevenue = appointments.reduce((sum, apt) => {
-            const price = apt.finalPrice || apt.service.price;
+            const price = apt.finalPrice || apt.service?.price || 0;
             return sum + price;
         }, 0);
 
@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
             );
 
             const revenue = dayAppointments.reduce((sum, apt) => {
-                const price = apt.finalPrice || apt.service.price;
+                const price = apt.finalPrice || apt.service?.price || 0;
                 return sum + price;
             }, 0);
 
@@ -112,7 +112,7 @@ export async function GET(req: NextRequest) {
         const serviceCount: Record<string, { name: string; count: number; revenue: number }> = {};
 
         appointments.forEach(apt => {
-            const serviceName = apt.service.name;
+            const serviceName = apt.service?.name || 'Combo';
             if (!serviceCount[serviceName]) {
                 serviceCount[serviceName] = {
                     name: serviceName,
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
                 };
             }
             serviceCount[serviceName].count++;
-            serviceCount[serviceName].revenue += apt.finalPrice || apt.service.price;
+            serviceCount[serviceName].revenue += apt.finalPrice || apt.service?.price || 0;
         });
 
         const topServices = Object.values(serviceCount)
@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
             });
 
             const revenue = monthAppointments.reduce((sum, apt) => {
-                return sum + (apt.finalPrice || apt.service.price);
+                return sum + (apt.finalPrice || apt.service?.price || 0);
             }, 0);
 
             monthlyRevenue.push({
@@ -253,11 +253,20 @@ async function calculateRevenue(startDate: Date, endDate: Date): Promise<number>
             status: 'COMPLETED'
         },
         include: {
-            service: true
+            service: true,
+            combo: {
+                include: {
+                    services: {
+                        include: {
+                            service: true
+                        }
+                    }
+                }
+            }
         }
     });
 
     return appointments.reduce((sum, apt) => {
-        return sum + (apt.finalPrice || apt.service.price);
+        return sum + (apt.finalPrice || apt.service?.price || 0);
     }, 0);
 }

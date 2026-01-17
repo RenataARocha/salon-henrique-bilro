@@ -1,3 +1,5 @@
+// app/api/admin/clients/[id]/route.ts
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -26,7 +28,22 @@ export async function GET(
                 appointments: {
                     include: {
                         service: true,
-                        coupon: true
+                        coupon: true,
+                        combo: {
+                            select: {
+                                name: true,
+                                discountPercent: true,
+                                services: {
+                                    include: {
+                                        service: {
+                                            select: {
+                                                price: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     orderBy: {
                         date: 'desc'
@@ -54,9 +71,25 @@ export async function GET(
             apt => apt.status === 'COMPLETED'
         );
 
-        // CORREÇÃO: Usa finalPrice ou service.price
+        // ✅ CALCULAR TOTAL GASTO CONSIDERANDO COMBOS
         const totalSpent = completedAppointments.reduce((sum, apt) => {
-            return sum + (apt.finalPrice ?? apt.service.price);
+            if (apt.finalPrice) {
+                return sum + apt.finalPrice;
+            }
+
+            if (apt.combo) {
+                const originalPrice = apt.combo.services.reduce(
+                    (s, cs) => s + cs.service.price,
+                    0
+                );
+                return sum + (originalPrice * (1 - apt.combo.discountPercent / 100));
+            }
+
+            if (apt.service) {
+                return sum + apt.service.price;
+            }
+
+            return sum;
         }, 0);
 
         const avgTicket = completedAppointments.length > 0
@@ -65,17 +98,34 @@ export async function GET(
 
         const serviceCount: Record<string, { name: string; count: number; revenue: number }> = {};
 
+        // ✅ CONTAR SERVIÇOS CONSIDERANDO COMBOS
         completedAppointments.forEach(apt => {
-            const serviceName = apt.service.name;
-            if (!serviceCount[serviceName]) {
-                serviceCount[serviceName] = {
-                    name: serviceName,
-                    count: 0,
-                    revenue: 0
-                };
+            let serviceName = '';
+            let servicePrice = 0;
+
+            if (apt.combo) {
+                serviceName = apt.combo.name;
+                const originalPrice = apt.combo.services.reduce(
+                    (s, cs) => s + cs.service.price,
+                    0
+                );
+                servicePrice = originalPrice * (1 - apt.combo.discountPercent / 100);
+            } else if (apt.service) {
+                serviceName = apt.service.name;
+                servicePrice = apt.service.price;
             }
-            serviceCount[serviceName].count++;
-            serviceCount[serviceName].revenue += apt.finalPrice ?? apt.service.price;
+
+            if (serviceName) {
+                if (!serviceCount[serviceName]) {
+                    serviceCount[serviceName] = {
+                        name: serviceName,
+                        count: 0,
+                        revenue: 0
+                    };
+                }
+                serviceCount[serviceName].count++;
+                serviceCount[serviceName].revenue += apt.finalPrice ?? servicePrice;
+            }
         });
 
         const topServices = Object.values(serviceCount)
@@ -142,7 +192,6 @@ export async function GET(
     }
 }
 
-// CORREÇÃO: Adicionado método PATCH para editar cliente
 export async function PATCH(
     req: NextRequest,
     context: { params: Promise<{ id: string }> }
@@ -169,12 +218,7 @@ export async function PATCH(
         if (name) updateData.name = name;
         if (email) updateData.email = email;
         if (phone) updateData.phone = phone;
-
-        // CORREÇÃO: Aceitar data no formato ISO que vem do frontend
-        if (birthDate) {
-            // Se vier no formato ISO (já convertido no frontend), usar direto
-            updateData.birthDate = birthDate;
-        }
+        if (birthDate) updateData.birthDate = birthDate;
 
         const updatedClient = await prisma.user.update({
             where: { id: clientId },

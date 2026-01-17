@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
                 break;
 
             case 'export':
-                // Buscar dados completos para exportar
+                // ✅ BUSCAR DADOS COMPLETOS INCLUINDO COMBO
                 const appointments = await prisma.appointment.findMany({
                     where: {
                         id: { in: appointmentIds }
@@ -148,23 +148,55 @@ export async function POST(req: NextRequest) {
                                 name: true,
                                 price: true
                             }
+                        },
+                        combo: {
+                            select: {
+                                name: true,
+                                discountPercent: true,
+                                services: {
+                                    include: {
+                                        service: {
+                                            select: {
+                                                price: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 });
 
-                // Formatar para CSV/Excel
-                const csvData = appointments.map(apt => ({
-                    id: apt.id,
-                    cliente: apt.user.name,
-                    email: apt.user.email,
-                    telefone: apt.user.phone || '',
-                    servico: apt.service.name,
-                    data: new Date(apt.date).toLocaleDateString('pt-BR'),
-                    horario: apt.time,
-                    status: apt.status,
-                    preco: apt.finalPrice || apt.service.price,
-                    observacoes: apt.notes || ''
-                }));
+                // ✅ FORMATAR PARA CSV/EXCEL COM SUPORTE A COMBOS
+                const csvData = appointments.map(apt => {
+                    let serviceName = '';
+                    let servicePrice = 0;
+
+                    if (apt.combo) {
+                        serviceName = apt.combo.name;
+                        const originalPrice = apt.combo.services.reduce(
+                            (sum, cs) => sum + cs.service.price,
+                            0
+                        );
+                        servicePrice = originalPrice * (1 - apt.combo.discountPercent / 100);
+                    } else if (apt.service) {
+                        serviceName = apt.service.name;
+                        servicePrice = apt.service.price;
+                    }
+
+                    return {
+                        id: apt.id,
+                        cliente: apt.user.name,
+                        email: apt.user.email,
+                        telefone: apt.user.phone || '',
+                        servico: serviceName,
+                        data: new Date(apt.date).toLocaleDateString('pt-BR'),
+                        horario: apt.time,
+                        status: apt.status,
+                        preco: apt.finalPrice || servicePrice,
+                        observacoes: apt.notes || ''
+                    };
+                });
 
                 return NextResponse.json({
                     success: true,
@@ -216,6 +248,7 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        // ✅ INCLUIR COMBO NA CONSULTA
         const appointments = await prisma.appointment.findMany({
             where: {
                 id: { in: ids }
@@ -229,6 +262,11 @@ export async function GET(req: NextRequest) {
                     }
                 },
                 service: {
+                    select: {
+                        name: true
+                    }
+                },
+                combo: {
                     select: {
                         name: true
                     }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/NavBar";
-import { Tag, CheckCircle, XCircle, Loader2, Percent, DollarSign } from 'lucide-react';
+import { Tag, CheckCircle, XCircle, Loader2, Percent, DollarSign, Gift } from 'lucide-react';
 import Image from 'next/image';
 import SmartCalendar from "@/components/SmartCalendar";
 import { Calendar, AlertCircle } from 'lucide-react';
@@ -34,6 +34,92 @@ interface CupomValidado {
         valorFinal: number;
         percentual: number | null;
     };
+}
+
+interface ServiceCombo {
+    id: string
+    name: string
+    description?: string
+    discountPercent: number
+    services: Service[]
+    originalPrice: number
+    comboPrice: number
+}
+
+
+// Adicione este componente ANTES de ServiceCardWithCarousel:
+
+function ComboCardWithCarousel({
+    combo,
+    isSelected,
+    onSelect
+}: {
+    combo: ServiceCombo
+    isSelected: boolean
+    onSelect: () => void
+}) {
+    return (
+        <div
+            onClick={onSelect}
+            className={`rounded-xl border-2 cursor-pointer transition-all overflow-hidden ${isSelected
+                ? "border-gold shadow-lg ring-2 ring-gold/50"
+                : "border-gray-200 hover:border-gold hover:shadow-md"
+                }`}
+        >
+            {/* Badge de Combo */}
+            <div className="relative h-48 bg-gradient-to-br from-gold/20 to-yellow-100 flex flex-col items-center justify-center">
+                <div className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                    -{combo.discountPercent}% OFF
+                </div>
+                <Gift size={64} className="text-gold mb-2" />
+                <p className="text-gold font-bold text-lg">COMBO PROMOCIONAL</p>
+            </div>
+
+            <div className={`p-6 ${isSelected ? 'bg-gold/5' : 'bg-white'}`}>
+                <h3 className="text-xl font-bold text-charcoal mb-2 flex items-center gap-2">
+                    🎁 {combo.name}
+                </h3>
+                {combo.description && (
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                        {combo.description}
+                    </p>
+                )}
+
+                {/* Serviços inclusos */}
+                <div className="bg-beige/50 rounded-lg p-3 mb-4">
+                    <p className="text-xs font-semibold text-gray-700 mb-2">Serviços inclusos:</p>
+                    <ul className="space-y-1">
+                        {combo.services.map(service => (
+                            <li key={service.id} className="text-xs text-gray-600 flex items-center gap-2">
+                                <span className="w-1 h-1 bg-gold rounded-full"></span>
+                                {service.name}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+
+                {/* Preços */}
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-400 line-through">
+                            R$ {combo.originalPrice.toFixed(2)}
+                        </span>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+                            Economize R$ {(combo.originalPrice - combo.comboPrice).toFixed(2)}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-2xl font-bold text-gold">
+                            R$ {combo.comboPrice.toFixed(2)}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                            {combo.services.reduce((sum, s) => sum + s.duration, 0)} min
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
 }
 
 function ServiceCardWithCarousel({
@@ -175,9 +261,11 @@ export default function AgendarPage() {
 
     const [step, setStep] = useState(1);
     const [services, setServices] = useState<Service[]>([]);
+    const [combos, setCombos] = useState<ServiceCombo[]>([])
     const [loading, setLoading] = useState(false);
 
     const [selectedService, setSelectedService] = useState<Service | null>(null);
+    const [selectedCombo, setSelectedCombo] = useState<ServiceCombo | null>(null)
     const [selectedDate, setSelectedDate] = useState("");
     const [availableSlots, setAvailableSlots] = useState<string[]>([]);
     const [selectedTime, setSelectedTime] = useState("");
@@ -195,6 +283,7 @@ export default function AgendarPage() {
 
     useEffect(() => {
         fetchServices();
+        fetchCombos()
     }, []);
 
     useEffect(() => {
@@ -214,6 +303,24 @@ export default function AgendarPage() {
             console.error("Erro ao buscar serviços:", error);
         }
     };
+
+    const fetchCombos = async () => {
+        try {
+            console.log('🔍 Buscando combos...')
+            const res = await fetch('/api/combos')
+            const data = await res.json()
+            console.log('📦 Resposta da API:', data)
+
+            if (data.success) {
+                console.log('✅ Combos encontrados:', data.data)
+                setCombos(data.data)
+            } else {
+                console.log('❌ Erro na API:', data)
+            }
+        } catch (error) {
+            console.error('❌ Erro ao buscar combos:', error)
+        }
+    }
 
     const fetchAvailableSlots = async (date: string) => {
         try {
@@ -270,93 +377,103 @@ export default function AgendarPage() {
 
     const validarCupom = async () => {
         if (!codigoCupom.trim()) {
-            alert('Digite um código de cupom');
-            return;
+            alert('Digite um código de cupom')
+            return
         }
 
-        if (!selectedService) {
-            alert('Selecione um serviço primeiro');
-            return;
+        // ✅ MODIFICAR ESTA VALIDAÇÃO
+        if (!selectedService && !selectedCombo) {
+            alert('Selecione um serviço ou combo primeiro')
+            return
         }
 
-        setValidandoCupom(true);
-        setCupomValidado(null);
+        setValidandoCupom(true)
+        setCupomValidado(null)
 
         try {
+            // ✅ CALCULAR VALOR BASE
+            const valorBase = selectedCombo
+                ? selectedCombo.comboPrice
+                : selectedService!.price
+
             const response = await fetch('/api/cupons/validar', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     codigo: codigoCupom.toUpperCase(),
-                    valorServico: selectedService.price
+                    valorServico: valorBase  // ✅ USAR VALOR BASE
                 })
-            });
+            })
 
-            const data: CupomValidado = await response.json();
-            setCupomValidado(data);
+            const data: CupomValidado = await response.json()
+            setCupomValidado(data)
         } catch (error) {
-            console.error('Erro ao validar cupom:', error);
+            console.error('Erro ao validar cupom:', error)
             setCupomValidado({
                 valido: false,
                 erro: 'Erro ao validar cupom. Tente novamente.'
-            });
+            })
         } finally {
-            setValidandoCupom(false);
+            setValidandoCupom(false)
         }
-    };
+    }
 
     const removerCupom = () => {
         setCodigoCupom('');
         setCupomValidado(null);
     };
 
+    // ✅ MODIFICAR ESTA LINHA
     const valorFinal = cupomValidado?.valido
         ? cupomValidado.desconto?.valorFinal || 0
-        : selectedService?.price || 0;
+        : (selectedCombo?.comboPrice || selectedService?.price || 0)
 
     const handleSubmit = async () => {
-        if (!selectedService || !selectedDate || !selectedTime) {
-            alert("Por favor, preencha todos os campos obrigatórios");
-            return;
+        // ✅ MODIFICAR ESTA VALIDAÇÃO
+        if ((!selectedService && !selectedCombo) || !selectedDate || !selectedTime) {
+            alert("Por favor, preencha todos os campos obrigatórios")
+            return
         }
 
         try {
-            setLoading(true);
+            setLoading(true)
             const res = await fetch("/api/appointments", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    serviceId: selectedService.id,
+                    // ✅ MODIFICAR PARA ENVIAR COMBO OU SERVIÇO
+                    serviceId: selectedService?.id || null,
+                    comboId: selectedCombo?.id || null,
                     date: selectedDate,
                     time: selectedTime,
                     notes,
                     paymentMethod: selectedPaymentMethod,
                     cupomId: cupomValidado?.valido ? cupomValidado.cupom?.id : null,
-                    valorOriginal: selectedService.price,
+                    valorOriginal: selectedCombo?.comboPrice || selectedService?.price,
                     valorDesconto: cupomValidado?.valido ? cupomValidado.desconto?.valorDesconto : 0,
                     valorFinal: valorFinal
                 }),
-            });
+            })
 
-            const data = await res.json();
+            const data = await res.json()
 
             if (data.success) {
                 alert(
                     "🎉 Agendamento realizado com sucesso!\n\nVocê receberá uma confirmação no WhatsApp 24h antes."
-                );
-                router.push("/meus-agendamentos");
+                )
+                router.push("/meus-agendamentos")
             } else {
-                alert(data.error || "Erro ao criar agendamento");
+                alert(data.error || "Erro ao criar agendamento")
             }
         } catch (error) {
-            console.error("Erro:", error);
-            alert("Erro ao criar agendamento");
+            console.error("Erro:", error)
+            alert("Erro ao criar agendamento")
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     if (status === "loading") {
         return (
@@ -425,8 +542,51 @@ export default function AgendarPage() {
                         {step === 1 && (
                             <div className="space-y-6">
                                 <h2 className="text-2xl font-bold text-charcoal mb-6">
-                                    Escolha o Serviço
+                                    Escolha o Serviço ou Combo
                                 </h2>
+
+                                {/* ✅ SEÇÃO DE COMBOS */}
+                                {combos.length > 0 && (
+                                    <>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <Gift className="text-gold" size={24} />
+                                            <h3 className="text-xl font-bold text-charcoal">
+                                                Combos Promocionais
+                                            </h3>
+                                            <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                                OFERTA
+                                            </span>
+                                        </div>
+                                        <div className="grid md:grid-cols-2 gap-4 mb-8">
+                                            {combos.map((combo) => (
+                                                <ComboCardWithCarousel
+                                                    key={combo.id}
+                                                    combo={combo}
+                                                    isSelected={selectedCombo?.id === combo.id}
+                                                    onSelect={() => {
+                                                        setSelectedCombo(combo)
+                                                        setSelectedService(null)  // Desselecionar serviço
+                                                        setCupomValidado(null)
+                                                        setCodigoCupom('')
+                                                    }}
+                                                />
+                                            ))}
+                                        </div>
+
+                                        <div className="relative mb-6">
+                                            <div className="absolute inset-0 flex items-center">
+                                                <div className="w-full border-t border-gray-300"></div>
+                                            </div>
+                                            <div className="relative flex justify-center">
+                                                <span className="bg-beige px-4 text-sm text-gray-600 font-semibold">
+                                                    OU ESCOLHA UM SERVIÇO INDIVIDUAL
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* SEÇÃO DE SERVIÇOS INDIVIDUAIS */}
                                 <div className="grid md:grid-cols-2 gap-4">
                                     {services.map((service) => (
                                         <ServiceCardWithCarousel
@@ -434,9 +594,10 @@ export default function AgendarPage() {
                                             service={service}
                                             isSelected={selectedService?.id === service.id}
                                             onSelect={() => {
-                                                setSelectedService(service);
-                                                setCupomValidado(null);
-                                                setCodigoCupom('');
+                                                setSelectedService(service)
+                                                setSelectedCombo(null)  // Desselecionar combo
+                                                setCupomValidado(null)
+                                                setCodigoCupom('')
                                             }}
                                         />
                                     ))}
@@ -444,7 +605,7 @@ export default function AgendarPage() {
 
                                 <button
                                     onClick={() => setStep(2)}
-                                    disabled={!selectedService}
+                                    disabled={!selectedService && !selectedCombo}  // ✅ MODIFICAR
                                     className="w-full bg-gradient-gold text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Continuar
@@ -465,16 +626,45 @@ export default function AgendarPage() {
                                     Escolha Data e Horário
                                 </h2>
 
+                                {/* ✅ MODIFICAR ESTE BLOCO */}
                                 <div className="bg-beige/50 p-4 rounded-lg mb-6">
                                     <p className="text-sm text-gray-600 mb-1">
-                                        Serviço selecionado:
+                                        {selectedCombo ? 'Combo selecionado:' : 'Serviço selecionado:'}
                                     </p>
-                                    <p className="text-lg font-bold text-charcoal">
-                                        {selectedService?.name}
-                                    </p>
-                                    <p className="text-gold font-semibold">
-                                        R$ {selectedService?.price.toFixed(2)}
-                                    </p>
+                                    {selectedCombo ? (
+                                        <>
+                                            <p className="text-lg font-bold text-charcoal flex items-center gap-2">
+                                                🎁 {selectedCombo.name}
+                                            </p>
+                                            <div className="mt-2 space-y-1">
+                                                {selectedCombo.services.map(service => (
+                                                    <p key={service.id} className="text-sm text-gray-600">
+                                                        • {service.name}
+                                                    </p>
+                                                ))}
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className="text-sm text-gray-400 line-through">
+                                                    R$ {selectedCombo.originalPrice.toFixed(2)}
+                                                </span>
+                                                <span className="text-gold font-semibold">
+                                                    R$ {selectedCombo.comboPrice.toFixed(2)}
+                                                </span>
+                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+                                                    -{selectedCombo.discountPercent}%
+                                                </span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-lg font-bold text-charcoal">
+                                                {selectedService?.name}
+                                            </p>
+                                            <p className="text-gold font-semibold">
+                                                R$ {selectedService?.price.toFixed(2)}
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className="space-y-3">
@@ -708,10 +898,35 @@ export default function AgendarPage() {
                                     </h3>
 
                                     <div className="space-y-3">
-                                        <InfoBox
-                                            label="Serviço"
-                                            value={selectedService?.name || ""}
-                                        />
+                                        {/* ✅ MODIFICAR ESTE BLOCO */}
+                                        {selectedCombo ? (
+                                            <div className="bg-gradient-to-r from-gold/10 to-yellow-50 rounded-lg p-4 border-2 border-gold/30">
+                                                <p className="text-sm text-gray-600 mb-1">Combo Selecionado</p>
+                                                <p className="font-bold text-lg text-charcoal mb-2 flex items-center gap-2">
+                                                    🎁 {selectedCombo.name}
+                                                </p>
+                                                <div className="space-y-1 mb-3">
+                                                    {selectedCombo.services.map(service => (
+                                                        <p key={service.id} className="text-sm text-gray-600">
+                                                            • {service.name} ({service.duration} min)
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm text-gray-400 line-through">
+                                                        R$ {selectedCombo.originalPrice.toFixed(2)}
+                                                    </span>
+                                                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold">
+                                                        Economize R$ {(selectedCombo.originalPrice - selectedCombo.comboPrice).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <InfoBox
+                                                label="Serviço"
+                                                value={selectedService?.name || ""}
+                                            />
+                                        )}
 
                                         <InfoBox
                                             label="Data"
@@ -727,7 +942,10 @@ export default function AgendarPage() {
 
                                         <InfoBox
                                             label="Duração"
-                                            value={`${selectedService?.duration} minutos`}
+                                            value={selectedCombo
+                                                ? `${selectedCombo.services.reduce((sum, s) => sum + s.duration, 0)} minutos`
+                                                : `${selectedService?.duration} minutos`
+                                            }
                                         />
 
                                         {notes && <InfoBox label="Observações" value={notes} />}
@@ -785,7 +1003,7 @@ export default function AgendarPage() {
                                                             <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-0.5" />
                                                             <div className="flex-1">
                                                                 <p className="font-bold text-green-800 mb-1">
-                                                                    Cupom "{cupomValidado.cupom?.codigo}" aplicado!
+                                                                    Cupom &quot;{cupomValidado.cupom?.codigo}&quot; aplicado!
                                                                 </p>
                                                                 {cupomValidado.cupom?.descricao && (
                                                                     <p className="text-sm text-green-700 mb-2">

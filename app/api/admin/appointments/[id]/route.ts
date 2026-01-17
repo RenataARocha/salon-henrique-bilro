@@ -20,6 +20,7 @@ export async function GET(
         }
         const params = await context.params
         const id = params.id
+
         const appointment = await prisma.appointment.findUnique({
             where: { id },
             include: {
@@ -40,21 +41,43 @@ export async function GET(
                         duration: true,
                         description: true,
                     }
+                },
+                // ✅ ADICIONAR COMBO
+                combo: {
+                    select: {
+                        name: true,
+                        description: true,
+                        discountPercent: true,
+                        services: {
+                            include: {
+                                service: {
+                                    select: {
+                                        name: true,
+                                        price: true,
+                                        duration: true
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         })
+
         if (!appointment) {
             return NextResponse.json(
                 { success: false, message: 'Agendamento não encontrado' },
                 { status: 404 }
             )
         }
+
         // BUSCAR HISTÓRICO
         let statusHistory: Array<{
             status: string
             changedAt: Date
             notes: string | null
         }> = []
+
         try {
             statusHistory = await prisma.appointmentStatusHistory.findMany({
                 where: { appointmentId: id },
@@ -68,9 +91,28 @@ export async function GET(
         } catch (error) {
             console.log('⚠️ Histórico não disponível')
         }
+
+        // ✅ CALCULAR PREÇO BASEADO EM SERVIÇO OU COMBO
+        let finalPrice = 0
+        let serviceName = ''
+
+        if (appointment.combo) {
+            // Calcular preço do combo
+            const originalPrice = appointment.combo.services.reduce(
+                (sum, cs) => sum + cs.service.price,
+                0
+            )
+            finalPrice = originalPrice * (1 - appointment.combo.discountPercent / 100)
+            serviceName = appointment.combo.name
+        } else if (appointment.service) {
+            finalPrice = appointment.service.price
+            serviceName = appointment.service.name
+        }
+
         const response = {
             ...appointment,
-            finalPrice: appointment.service.price,
+            serviceName, // ✅ Nome do serviço ou combo
+            finalPrice,  // ✅ Preço calculado
             discountAmount: 0,
             internalNotes: appointment.internalNotes || null,
             paymentMethod: null,
@@ -79,6 +121,7 @@ export async function GET(
             coupon: null,
             statusHistory
         }
+
         return NextResponse.json({
             success: true,
             data: response
@@ -171,7 +214,8 @@ export async function DELETE(
             where: { id },
             include: {
                 user: true,
-                service: true
+                service: true,
+                combo: true // ✅ INCLUIR COMBO
             }
         })
 
@@ -181,6 +225,9 @@ export async function DELETE(
                 { status: 404 }
             )
         }
+
+        // ✅ PEGAR NOME DO SERVIÇO OU COMBO
+        const itemName = appointment.combo?.name || appointment.service?.name || 'Serviço'
 
         // Excluir agendamento
         await prisma.appointment.delete({
@@ -193,7 +240,7 @@ export async function DELETE(
             data: {
                 id: appointment.id,
                 userName: appointment.user.name,
-                serviceName: appointment.service.name,
+                serviceName: itemName, // ✅ USAR NOME CORRETO
                 date: appointment.date,
                 time: appointment.time
             }

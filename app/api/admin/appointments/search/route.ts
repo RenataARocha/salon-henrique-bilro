@@ -1,3 +1,5 @@
+// app/api/admin/appointments/search/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
 
         // Filtro de período do dia
         if (timeOfDay.length > 0) {
-            const timeConditions = timeOfDay.map((period: string) => {  // ✅ Adicione : string
+            const timeConditions = timeOfDay.map((period: string) => {
                 switch (period) {
                     case 'morning':
                         return { time: { gte: '06:00', lt: '12:00' } }
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Filtro de forma de pagamento (se você tiver esse campo)
+        // Filtro de forma de pagamento
         if (paymentMethods.length > 0) {
             andConditions.push({
                 paymentMethod: { in: paymentMethods }
@@ -176,6 +178,22 @@ export async function POST(request: NextRequest) {
                             price: true,
                             duration: true
                         }
+                    },
+                    // ✅ INCLUIR COMBO
+                    combo: {
+                        select: {
+                            name: true,
+                            discountPercent: true,
+                            services: {
+                                include: {
+                                    service: {
+                                        select: {
+                                            price: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
                 orderBy,
@@ -184,6 +202,20 @@ export async function POST(request: NextRequest) {
             }),
             prisma.appointment.count({ where })
         ])
+
+        // ✅ CALCULAR VALOR TOTAL CONSIDERANDO COMBOS
+        const totalValue = appointments.reduce((sum, apt) => {
+            if (apt.combo) {
+                const originalPrice = apt.combo.services.reduce(
+                    (s, cs) => s + cs.service.price,
+                    0
+                )
+                return sum + (originalPrice * (1 - apt.combo.discountPercent / 100))
+            } else if (apt.service) {
+                return sum + apt.service.price
+            }
+            return sum
+        }, 0)
 
         // Calcular estatísticas dos resultados filtrados
         const stats = {
@@ -200,7 +232,7 @@ export async function POST(request: NextRequest) {
             cancelled: await prisma.appointment.count({
                 where: { ...where, status: 'CANCELLED' }
             }),
-            totalValue: appointments.reduce((sum, apt) => sum + apt.service.price, 0)
+            totalValue // ✅ USAR VALOR CALCULADO
         }
 
         return NextResponse.json({

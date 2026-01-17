@@ -40,7 +40,10 @@ interface ClientDetails {
         service: {
             name: string
             price: number
-        }
+        } | null
+        combo?: {
+            name: string
+        } | null
     }>
     reviews: Array<{
         id: string
@@ -55,10 +58,12 @@ interface ClientDetails {
 
 export default function ClientDetailsModal({
     clientId,
-    onClose
+    onClose,
+    onUpdate
 }: {
     clientId: string
     onClose: () => void
+    onUpdate?: () => void
 }) {
     const [data, setData] = useState<ClientDetails | null>(null)
     const [loading, setLoading] = useState(true)
@@ -82,11 +87,20 @@ export default function ClientDetailsModal({
 
             if (response.success) {
                 setData(response.data)
+
+                // CORREÇÃO: Formatar a data para o input type="date" (YYYY-MM-DD)
+                let formattedBirthDate = ''
+                if (response.data.client.birthDate) {
+                    const date = new Date(response.data.client.birthDate)
+                    // Formata para YYYY-MM-DD
+                    formattedBirthDate = date.toISOString().split('T')[0]
+                }
+
                 setEditForm({
                     name: response.data.client.name,
                     email: response.data.client.email,
                     phone: response.data.client.phone,
-                    birthDate: response.data.client.birthDate || ''
+                    birthDate: formattedBirthDate
                 })
             }
         } catch (error) {
@@ -98,16 +112,40 @@ export default function ClientDetailsModal({
 
     const handleSave = async () => {
         try {
+            // CORREÇÃO: Preparar dados para envio
+            const dataToSend: any = {
+                name: editForm.name,
+                email: editForm.email,
+                phone: editForm.phone
+            }
+
+            // CORREÇÃO: Converter data do formato YYYY-MM-DD para ISO mantendo o dia correto
+            if (editForm.birthDate) {
+                // Pega a data no formato YYYY-MM-DD e cria objeto Date
+                const [year, month, day] = editForm.birthDate.split('-')
+                // Cria a data em UTC para evitar problemas de timezone
+                const birthDateISO = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day))).toISOString()
+                dataToSend.birthDate = birthDateISO
+            }
+
             const res = await fetch(`/api/admin/clients/${clientId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editForm)
+                body: JSON.stringify(dataToSend)
             })
 
-            if (res.ok) {
+            const result = await res.json()
+
+            if (res.ok && result.success) {
                 await fetchClientDetails()
                 setIsEditing(false)
+                // CORREÇÃO: Chamar onUpdate se existir para atualizar a lista principal
+                if (onUpdate) {
+                    onUpdate()
+                }
                 alert('Cliente atualizado com sucesso!')
+            } else {
+                alert(result.error || 'Erro ao atualizar cliente')
             }
         } catch (error) {
             console.error('Erro ao atualizar cliente:', error)
@@ -137,6 +175,36 @@ export default function ClientDetailsModal({
         return labels[status] || status
     }
 
+    // CORREÇÃO: Função para formatar data de nascimento para exibição (DD/MM/YYYY)
+    const formatBirthDateDisplay = (isoDate: string | null) => {
+        if (!isoDate) return 'Não informado'
+
+        const date = new Date(isoDate)
+        // Usar UTC para evitar problema de timezone
+        const day = String(date.getUTCDate()).padStart(2, '0')
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+        const year = date.getUTCFullYear()
+
+        return `${day}/${month}/${year}`
+    }
+
+    // CORREÇÃO: Calcular idade corretamente
+    const calculateAge = (birthDate: string | null) => {
+        if (!birthDate) return null
+
+        const today = new Date()
+        const birth = new Date(birthDate)
+
+        let age = today.getFullYear() - birth.getUTCFullYear()
+        const monthDiff = today.getMonth() - birth.getUTCMonth()
+
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getUTCDate())) {
+            age--
+        }
+
+        return age
+    }
+
     if (loading) {
         return (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -151,9 +219,7 @@ export default function ClientDetailsModal({
     if (!data) return null
 
     const { client, stats, appointments, reviews } = data
-    const clientAge = client.birthDate
-        ? Math.floor((new Date().getTime() - new Date(client.birthDate).getTime()) / (1000 * 60 * 60 * 24 * 365))
-        : null
+    const clientAge = calculateAge(client.birthDate)
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
@@ -241,6 +307,7 @@ export default function ClientDetailsModal({
                             </div>
                         </div>
                     )}
+
                     {/* Informações Pessoais */}
                     <div className="bg-gray-50 rounded-xl p-6 mb-6">
                         <div className="flex items-center justify-between mb-4">
@@ -265,11 +332,16 @@ export default function ClientDetailsModal({
                                     <button
                                         onClick={() => {
                                             setIsEditing(false)
+                                            // Restaurar valores originais
+                                            let formattedBirthDate = ''
+                                            if (client.birthDate) {
+                                                formattedBirthDate = new Date(client.birthDate).toISOString().split('T')[0]
+                                            }
                                             setEditForm({
                                                 name: client.name,
                                                 email: client.email,
                                                 phone: client.phone,
-                                                birthDate: client.birthDate || ''
+                                                birthDate: formattedBirthDate
                                             })
                                         }}
                                         className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
@@ -332,7 +404,7 @@ export default function ClientDetailsModal({
                                 ) : (
                                     <p className="text-charcoal font-semibold">
                                         {client.birthDate
-                                            ? `${new Date(client.birthDate).toLocaleDateString('pt-BR')} (${clientAge} anos)`
+                                            ? `${formatBirthDateDisplay(client.birthDate)}${clientAge ? ` (${clientAge} anos)` : ''}`
                                             : 'Não informado'}
                                     </p>
                                 )}
@@ -371,7 +443,7 @@ export default function ClientDetailsModal({
                                             </div>
                                         </div>
                                         {review.comment && (
-                                            <p className="text-sm text-gray-700 mb-2">"{review.comment}"</p>
+                                            <p className="text-sm text-gray-700 mb-2">&quot;{review.comment}&quot;</p>
                                         )}
                                         <p className="text-xs text-gray-500">
                                             {new Date(review.createdAt).toLocaleDateString('pt-BR')}
@@ -390,27 +462,36 @@ export default function ClientDetailsModal({
 
                         {appointments.length > 0 ? (
                             <div className="space-y-3 max-h-96 overflow-y-auto">
-                                {appointments.map((apt) => (
-                                    <div key={apt.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <p className="font-semibold text-charcoal">{apt.service.name}</p>
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
-                                                        {getStatusLabel(apt.status)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-4 text-sm text-gray-600">
-                                                    <span>📅 {new Date(apt.date).toLocaleDateString('pt-BR')}</span>
-                                                    <span>🕐 {apt.time}</span>
-                                                    <span className="font-semibold text-gold">
-                                                        R$ {(apt.finalPrice || apt.service.price).toFixed(2)}
-                                                    </span>
+                                {appointments.map((apt) => {
+                                    // Pegar nome do serviço ou combo
+                                    const serviceName = apt.combo?.name || apt.service?.name || 'Serviço não identificado';
+                                    const servicePrice = apt.finalPrice || (apt.combo ? 0 : apt.service?.price || 0);
+
+                                    return (
+                                        <div key={apt.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-3 mb-2">
+                                                        <p className="font-semibold text-charcoal">
+                                                            {apt.combo && '🎁 '}
+                                                            {serviceName}
+                                                        </p>
+                                                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(apt.status)}`}>
+                                                            {getStatusLabel(apt.status)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                        <span>📅 {new Date(apt.date).toLocaleDateString('pt-BR')}</span>
+                                                        <span>🕐 {apt.time}</span>
+                                                        <span className="font-semibold text-gold">
+                                                            R$ {servicePrice.toFixed(2)}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : (
                             <div className="text-center py-8 bg-gray-50 rounded-lg">
@@ -422,7 +503,13 @@ export default function ClientDetailsModal({
 
                 {/* Footer com ações */}
                 <div className="p-6 border-t bg-gray-50 rounded-b-2xl flex justify-between">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                    <button
+                        onClick={() => {
+                            const phone = client.phone.replace(/\D/g, '')
+                            window.open(`https://wa.me/55${phone}`, '_blank')
+                        }}
+                        className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold"
+                    >
                         <MessageCircle size={20} />
                         Enviar WhatsApp
                     </button>
@@ -434,10 +521,10 @@ export default function ClientDetailsModal({
             </div>
 
             <style jsx global>{`
-            .text-gold { color: #D4AF37; }
-            .bg-gold { background-color: #D4AF37; }
-            .text-charcoal { color: #2C2C2C; }
-        `}</style>
+                .text-gold { color: #D4AF37; }
+                .bg-gold { background-color: #D4AF37; }
+                .text-charcoal { color: #2C2C2C; }
+            `}</style>
         </div>
     )
 }

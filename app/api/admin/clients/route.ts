@@ -35,7 +35,22 @@ export async function GET(req: NextRequest) {
             include: {
                 appointments: {
                     include: {
-                        service: true
+                        service: true,
+                        combo: {
+                            select: {
+                                name: true,
+                                discountPercent: true,
+                                services: {
+                                    include: {
+                                        service: {
+                                            select: {
+                                                price: true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     },
                     orderBy: {
                         date: 'desc'
@@ -53,21 +68,34 @@ export async function GET(req: NextRequest) {
         });
 
         const clientsWithStats = clients.map(client => {
-            // CORREÇÃO: Agora conta TODOS os agendamentos, não só COMPLETED
             const allAppointments = client.appointments;
             const completedAppointments = client.appointments.filter(a => a.status === 'COMPLETED');
 
-            // CORREÇÃO: Calcula total gasto somando finalPrice OU service.price
+            // ✅ CALCULAR TOTAL GASTO CONSIDERANDO COMBOS
             const totalSpent = completedAppointments.reduce((sum, apt) => {
-                const price = apt.finalPrice ?? apt.service.price;
-                return sum + price;
+                if (apt.finalPrice) {
+                    return sum + apt.finalPrice;
+                }
+
+                if (apt.combo) {
+                    const originalPrice = apt.combo.services.reduce(
+                        (s, cs) => s + cs.service.price,
+                        0
+                    );
+                    return sum + (originalPrice * (1 - apt.combo.discountPercent / 100));
+                }
+
+                if (apt.service) {
+                    return sum + apt.service.price;
+                }
+
+                return sum;
             }, 0);
 
             const avgTicket = completedAppointments.length > 0
                 ? totalSpent / completedAppointments.length
                 : 0;
 
-            // CORREÇÃO: Última visita considera QUALQUER agendamento, não só COMPLETED
             const lastAppointment = allAppointments[0];
             const lastAppointmentDate = lastAppointment?.date || null;
 
@@ -75,11 +103,20 @@ export async function GET(req: NextRequest) {
                 ? Math.floor((Date.now() - new Date(lastAppointmentDate).getTime()) / (1000 * 60 * 60 * 24))
                 : null;
 
-            // Serviço preferido
+            // ✅ SERVIÇO PREFERIDO CONSIDERANDO COMBOS
             const serviceCount: Record<string, number> = {};
             completedAppointments.forEach(apt => {
-                const serviceName = apt.service.name;
-                serviceCount[serviceName] = (serviceCount[serviceName] || 0) + 1;
+                let serviceName = '';
+
+                if (apt.combo) {
+                    serviceName = apt.combo.name;
+                } else if (apt.service) {
+                    serviceName = apt.service.name;
+                }
+
+                if (serviceName) {
+                    serviceCount[serviceName] = (serviceCount[serviceName] || 0) + 1;
+                }
             });
 
             const favoriteService = Object.entries(serviceCount)
@@ -109,7 +146,7 @@ export async function GET(req: NextRequest) {
                 image: client.image,
                 createdAt: client.createdAt,
                 stats: {
-                    totalAppointments: allAppointmentsCount, // CORREÇÃO: Total de TODOS os agendamentos
+                    totalAppointments: allAppointmentsCount,
                     totalSpent,
                     avgTicket,
                     lastAppointment: lastAppointmentDate,

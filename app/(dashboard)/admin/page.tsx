@@ -46,6 +46,13 @@ export default function AdminDashboard() {
             color: 'bg-purple-500'
         },
         {
+            title: 'Combos Promocionais',
+            description: 'Criar pacotes de serviços com desconto',
+            icon: Tag,
+            href: '/admin/combos',
+            color: 'bg-amber-500'
+        },
+        {
             title: 'Cupons',
             description: 'Criar e gerenciar cupons de desconto',
             icon: Tag,
