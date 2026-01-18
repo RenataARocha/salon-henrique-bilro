@@ -11,6 +11,7 @@ import ReviewsCarousel from '@/components/home/ReviewsCarousel'
 import CTA from '@/components/home/CTA'
 import ServiceCard from '@/components/ServiceCard'
 import SmartBookingButton from '@/components/SmartBookingButton'
+import FeaturedCombos from '@/components/home/FeaturedCombos'
 
 interface Service {
     id: string
@@ -62,6 +63,7 @@ export default function HomeClient({ services }: HomeClientProps) {
                                     ))}
                                 </div>
 
+                                <FeaturedCombos />
                                 <div className="text-center mt-12">
                                     <SmartBookingButton
                                         variant="link"
@@ -80,7 +82,9 @@ export default function HomeClient({ services }: HomeClientProps) {
                             </div>
                         )}
                     </div>
+
                 </section>
+
 
                 {/* 🆕 CARROSSEL DE AVALIAÇÕES */}
                 <ReviewsCarousel />

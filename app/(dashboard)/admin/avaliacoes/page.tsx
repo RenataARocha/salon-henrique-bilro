@@ -158,20 +158,21 @@ export default function AdminAvaliacoesPage() {
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
                 {/* Navegação */}
-                <div className="mb-6 flex gap-3">
+                <div className="mb-6 flex justify-end gap-3">
                     <Link
                         href="/admin"
-                        className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
                     >
                         <ArrowLeft size={20} />
-                        Voltar ao Painel
+                        Painel
                     </Link>
+
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold "
                     >
                         <Home size={20} />
-                        Ir para o Início
+                        Voltar ao início
                     </Link>
                 </div>
 
@@ -243,8 +244,8 @@ export default function AdminAvaliacoesPage() {
                                     key={f}
                                     onClick={() => setFilter(f)}
                                     className={`px-4 py-2 rounded-lg transition-colors ${filter === f
-                                            ? 'bg-purple-600 text-white'
-                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        ? 'bg-purple-600 text-white'
+                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                         }`}
                                 >
                                     {f === 'all' ? 'Todas' :
@@ -278,8 +279,8 @@ export default function AdminAvaliacoesPage() {
                                                         key={i}
                                                         size={16}
                                                         className={`${i < review.rating
-                                                                ? 'fill-yellow-400 text-yellow-400'
-                                                                : 'text-gray-300'
+                                                            ? 'fill-yellow-400 text-yellow-400'
+                                                            : 'text-gray-300'
                                                             }`}
                                                     />
                                                 ))}
@@ -291,10 +292,10 @@ export default function AdminAvaliacoesPage() {
                                                 </span>
                                             )}
                                             <span className={`px-2 py-1 text-xs rounded-full ${review.status === 'APPROVED'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : review.status === 'REJECTED'
-                                                        ? 'bg-red-100 text-red-800'
-                                                        : 'bg-orange-100 text-orange-800'
+                                                ? 'bg-green-100 text-green-800'
+                                                : review.status === 'REJECTED'
+                                                    ? 'bg-red-100 text-red-800'
+                                                    : 'bg-orange-100 text-orange-800'
                                                 }`}>
                                                 {review.status === 'APPROVED' ? 'Aprovada' :
                                                     review.status === 'REJECTED' ? 'Reprovada' : 'Pendente'}

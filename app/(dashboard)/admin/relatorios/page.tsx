@@ -173,21 +173,21 @@ export default function RelatoriosPage() {
                 </div>
 
                 {/* Navegação */}
-                <div className="flex justify-end gap-3 flex-wrap">
+                <div className="flex justify-end gap-3">
                     <Link
                         href="/admin"
                         className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
                     >
                         <ArrowLeft size={20} />
-                        Voltar ao Painel
+                        Painel
                     </Link>
 
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold "
                     >
                         <Home size={20} />
-                        Ir para o Início
+                        Voltar ao início
                     </Link>
                 </div>
 

@@ -160,24 +160,38 @@ export default function AdminCombosPage() {
     // Adicione esta função junto com as outras (depois de handleToggleActive)
     const handleToggleFeatured = async (combo: Combo) => {
         try {
+            const newFeaturedState = !combo.featured
+
             const res = await fetch(`/api/admin/combos/${combo.id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ featured: !combo.featured })
+                body: JSON.stringify({ featured: newFeaturedState })
             })
 
             const data = await res.json()
 
             if (data.success) {
-                alert(combo.featured
-                    ? 'Combo removido da home'
-                    : 'Combo destacado na home!')
-                fetchCombos()
+                // ✅ Feedback adequado
+                const message = newFeaturedState
+                    ? '✅ Combo destacado na home! A página inicial será atualizada em instantes.'
+                    : '✅ Combo removido da home! A página inicial será atualizada em instantes.'
+
+                alert(message)
+
+                // ✅ Atualiza lista de combos do admin
+                await fetchCombos()
+
+                // ✅ Dispara evento para atualizar componente FeaturedCombos
+                window.dispatchEvent(new Event('combos-updated'))
+
+                // ✅ Se tiver a home aberta em outra aba, ela também atualizará
+                console.log('🔔 Evento de atualização disparado')
+
             } else {
                 alert(data.message || 'Erro ao atualizar combo')
             }
         } catch (error) {
-            console.error('Erro:', error)
+            console.error('❌ Erro:', error)
             alert('Erro ao atualizar combo')
         }
     }
@@ -275,7 +289,7 @@ export default function AdminCombosPage() {
                         {combos.map(combo => (
                             <div
                                 key={combo.id}
-                                className={`bg-white rounded-xl shadow-lg p-6 border-2 ${combo.active ? 'border-gold' : 'border-gray-300 opacity-60'
+                                className={`bg-white rounded-xl shadow-lg p-6 border-2 ${combo.active ? 'border-gold' : 'border-gray-300 '
                                     } ${combo.featured ? 'ring-2 ring-yellow-400' : ''}`}  // ✅ ADICIONAR
                             >
                                 {combo.featured && (

@@ -3,11 +3,40 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
+import { useState, useEffect } from 'react'
 import { Calendar, Users, Settings, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 
+interface QuickStats {
+    todayAppointments: number
+    activeServices: number
+    monthRevenue: number
+    totalClients: number
+}
+
 export default function AdminDashboard() {
     const { data: session } = useSession()
+    const [stats, setStats] = useState<QuickStats | null>(null)
+    const [loadingStats, setLoadingStats] = useState(true)
+
+    useEffect(() => {
+        fetchQuickStats()
+    }, [])
+
+    const fetchQuickStats = async () => {
+        try {
+            setLoadingStats(true)
+            const res = await fetch('/api/admin/quick-stats')
+            const data = await res.json()
+            if (data.success) {
+                setStats(data.data)
+            }
+        } catch (error) {
+            console.error('Erro ao buscar estatísticas:', error)
+        } finally {
+            setLoadingStats(false)
+        }
+    }
 
     const menuItems = [
         {
@@ -122,6 +151,65 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
+                {/* Estatísticas Rápidas */}
+                <div className="mb-8 bg-gradient-gold rounded-2xl p-8 text-white shadow-xl">
+                    <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                        <BarChart3 size={28} />
+                        📊 Resumo do Dia
+                    </h2>
+                    <div className="grid md:grid-cols-4 gap-6">
+                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5 hover:bg-white/30 transition-all">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Calendar className="text-white/80" size={20} />
+                                <p className="text-sm opacity-90 font-medium">Agendamentos Hoje</p>
+                            </div>
+                            {loadingStats ? (
+                                <div className="h-10 bg-white/20 rounded animate-pulse"></div>
+                            ) : (
+                                <p className="text-4xl font-bold">{stats?.todayAppointments || 0}</p>
+                            )}
+                        </div>
+
+                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5 hover:bg-white/30 transition-all">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Scissors className="text-white/80" size={20} />
+                                <p className="text-sm opacity-90 font-medium">Serviços Ativos</p>
+                            </div>
+                            {loadingStats ? (
+                                <div className="h-10 bg-white/20 rounded animate-pulse"></div>
+                            ) : (
+                                <p className="text-4xl font-bold">{stats?.activeServices || 0}</p>
+                            )}
+                        </div>
+
+                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5 hover:bg-white/30 transition-all">
+                            <div className="flex items-center gap-3 mb-2">
+                                <DollarSign className="text-white/80" size={20} />
+                                <p className="text-sm opacity-90 font-medium">Receita do Mês</p>
+                            </div>
+                            {loadingStats ? (
+                                <div className="h-10 bg-white/20 rounded animate-pulse"></div>
+                            ) : (
+                                <p className="text-4xl font-bold">
+                                    R$ {stats?.monthRevenue?.toFixed(2) || '0.00'}
+                                </p>
+                            )}
+                        </div>
+
+                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-5 hover:bg-white/30 transition-all">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Users className="text-white/80" size={20} />
+                                <p className="text-sm opacity-90 font-medium">Total Clientes</p>
+                            </div>
+                            {loadingStats ? (
+                                <div className="h-10 bg-white/20 rounded animate-pulse"></div>
+                            ) : (
+                                <p className="text-4xl font-bold">{stats?.totalClients || 0}</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
                 {/* Cards de Menu */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {menuItems.map((item) => (
@@ -145,25 +233,6 @@ export default function AdminDashboard() {
                             </div>
                         </Link>
                     ))}
-                </div>
-
-                {/* Estatísticas Rápidas */}
-                <div className="mt-8 bg-gradient-gold rounded-2xl p-8 text-white">
-                    <h2 className="text-2xl font-bold mb-4">📊 Estatísticas Rápidas</h2>
-                    <div className="grid md:grid-cols-3 gap-6">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                            <p className="text-sm opacity-90 mb-1">Agendamentos Hoje</p>
-                            <p className="text-3xl font-bold">--</p>
-                        </div>
-                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                            <p className="text-sm opacity-90 mb-1">Serviços Ativos</p>
-                            <p className="text-3xl font-bold">--</p>
-                        </div>
-                        <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
-                            <p className="text-sm opacity-90 mb-1">Receita do Mês</p>
-                            <p className="text-3xl font-bold">R$ --</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

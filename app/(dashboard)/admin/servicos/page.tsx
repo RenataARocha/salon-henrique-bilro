@@ -18,6 +18,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { useToast } from "@/components/ui/ToastContainer";
 import AdminHeader from "@/components/admin/AdminHeader";
+import Image from "next/image";
 
 interface Service {
     id: string;
@@ -367,8 +368,8 @@ export default function AdminServicosPage() {
                                     </h3>
                                     <span
                                         className={`px-3 py-1 rounded-full text-xs font-semibold ${service.active
-                                                ? "bg-green-100 text-green-700"
-                                                : "bg-red-100 text-red-700"
+                                            ? "bg-green-100 text-green-700"
+                                            : "bg-red-100 text-red-700"
                                             }`}
                                     >
                                         {service.active ? "Ativo" : "Inativo"}
@@ -408,8 +409,8 @@ export default function AdminServicosPage() {
                                     <button
                                         onClick={() => handleToggleActive(service)}
                                         className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 ${service.active
-                                                ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                                                : "bg-green-100 text-green-700 hover:bg-green-200"
+                                            ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                                            : "bg-green-100 text-green-700 hover:bg-green-200"
                                             }`}
                                     >
                                         <Power size={16} />
@@ -426,8 +427,8 @@ export default function AdminServicosPage() {
                                 <button
                                     onClick={() => handleToggleFeatured(service)}
                                     className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${service.featured
-                                            ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
-                                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                        ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                         }`}
                                 >
                                     <Star size={16} className={service.featured ? "fill-yellow-400" : ""} />
@@ -527,23 +528,57 @@ export default function AdminServicosPage() {
                                     />
                                 </div>
 
+
+                                <label className="block text-sm font-semibold text-charcoal mb-2">
+                                    <ImageIcon size={16} className="inline mr-1" />
+                                    Imagens do Serviço
+                                </label>
+
+
+                                {/* ADMIN - Visualização das imagens ao adicionar */}
+                                {formData.images.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-3 mb-3">
+                                        {formData.images.map((url, index) => (
+                                            <div
+                                                key={index}
+                                                className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50"
+                                            >
+                                                <img
+                                                    src={url}
+                                                    alt={`Imagem ${index + 1}`}
+                                                    className="w-full h-full object-contain p-2"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveImage(index)}
+                                                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* FRONTEND - ServiceCard.tsx */}
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
                                         <ImageIcon size={16} className="inline mr-1" />
                                         Imagens do Serviço
                                     </label>
 
+                                    {/* Visualização das imagens adicionadas */}
                                     {formData.images.length > 0 && (
                                         <div className="grid grid-cols-3 gap-3 mb-3">
                                             {formData.images.map((url, index) => (
                                                 <div
                                                     key={index}
-                                                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200"
+                                                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50"
                                                 >
                                                     <img
                                                         src={url}
                                                         alt={`Imagem ${index + 1}`}
-                                                        className="w-full h-full object-cover"
+                                                        className="w-full h-full object-contain p-2"
                                                     />
                                                     <button
                                                         type="button"
@@ -557,59 +592,54 @@ export default function AdminServicosPage() {
                                         </div>
                                     )}
 
-                                    <div className="space-y-3">
-                                        <label
-                                            className={`w-full px-4 py-3 rounded-lg transition-colors cursor-pointer flex items-center justify-center gap-2 font-semibold ${uploadLoading
-                                                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                                                    : "bg-gold text-white hover:bg-gold-dark"
-                                                }`}
-                                        >
+                                    {/* Upload de arquivo */}
+                                    <div className="mb-3">
+                                        <label className="block w-full cursor-pointer">
+                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gold transition-colors">
+                                                <ImageIcon size={32} className="mx-auto mb-2 text-gray-400" />
+                                                <p className="text-sm text-gray-600 mb-1">
+                                                    {uploadLoading ? 'Fazendo upload...' : 'Clique para fazer upload'}
+                                                </p>
+                                                <p className="text-xs text-gray-500">
+                                                    JPG, PNG, GIF ou WebP • Máx 5MB
+                                                </p>
+                                            </div>
                                             <input
                                                 type="file"
-                                                accept="image/*"
                                                 multiple
+                                                accept="image/*"
                                                 onChange={handleFileUpload}
+                                                disabled={uploadLoading || formData.images.length >= 5}
                                                 className="hidden"
-                                                disabled={uploadLoading}
                                             />
-                                            {uploadLoading ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                                    Fazendo upload...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <ImageIcon size={20} />
-                                                    Escolher Imagens do Computador
-                                                </>
-                                            )}
                                         </label>
+                                    </div>
 
-                                        <div>
-                                            <p className="text-xs text-gray-500 text-center mb-2">
-                                                ou cole uma URL
-                                            </p>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="url"
-                                                    value={formData.newImageUrl}
-                                                    onChange={(e) =>
-                                                        setFormData({
-                                                            ...formData,
-                                                            newImageUrl: e.target.value,
-                                                        })
-                                                    }
-                                                    placeholder="https://exemplo.com/imagem.jpg"
-                                                    className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none text-sm"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={handleAddImage}
-                                                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-                                                >
-                                                    <Plus size={16} />
-                                                </button>
-                                            </div>
+                                    {/* Adicionar por URL */}
+                                    <div>
+                                        <p className="text-xs text-gray-500 text-center mb-2">
+                                            ou cole uma URL
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="url"
+                                                value={formData.newImageUrl}
+                                                onChange={(e) =>
+                                                    setFormData({
+                                                        ...formData,
+                                                        newImageUrl: e.target.value,
+                                                    })
+                                                }
+                                                placeholder="https://exemplo.com/imagem.jpg"
+                                                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none text-sm"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleAddImage}
+                                                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                                            >
+                                                <Plus size={16} />
+                                            </button>
                                         </div>
                                     </div>
 

@@ -4,6 +4,7 @@ import { Playfair_Display, Inter } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 
+
 const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-playfair',

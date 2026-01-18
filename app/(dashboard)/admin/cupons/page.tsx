@@ -192,21 +192,22 @@ export default function AdminCuponsPage() {
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
-                {/* Botões de navegação no topo */}
-                <div className="mb-6 flex gap-3">
+                {/* Navegação */}
+                <div className="mb-6 flex justify-end gap-3">
                     <Link
                         href="/admin"
-                        className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
                     >
                         <ArrowLeft size={20} />
-                        Voltar ao Painel
+                        Painel
                     </Link>
+
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-semibold"
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold "
                     >
                         <Home size={20} />
-                        Ir para o Início
+                        Voltar ao início
                     </Link>
                 </div>
 

@@ -1,19 +1,28 @@
+// app/api/admin/combos/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// GET - Listar combos ativos (público)
+// GET - Listar TODOS os combos (admin)
 export async function GET(request: NextRequest) {
     try {
+        const session = await getServerSession(authOptions)
+
+        if (!session || session.user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, message: 'Não autorizado' },
+                { status: 401 }
+            )
+        }
+
         const combos = await prisma.serviceCombo.findMany({
-            where: {
-                active: true
-            },
+            // ✅ SEM FILTRO - Retorna todos os combos para admin
             include: {
                 services: {
                     include: {
-                        service: true  // ✅ SEM where aqui
+                        service: true
                     }
                 }
             },
@@ -22,7 +31,8 @@ export async function GET(request: NextRequest) {
             }
         })
 
-        // ✅ Filtrar serviços inativos DEPOIS da consulta
+        console.log(`📊 Admin: Total de combos: ${combos.length}`)
+
         const formattedCombos = combos.map(combo => {
             const activeServices = combo.services
                 .map(cs => cs.service)
@@ -35,17 +45,26 @@ export async function GET(request: NextRequest) {
                 id: combo.id,
                 name: combo.name,
                 description: combo.description,
+                active: combo.active,
+                featured: combo.featured || false,  // ✅ Garantir boolean
                 discountPercent: combo.discountPercent,
                 services: activeServices,
                 originalPrice,
-                comboPrice
+                comboPrice,
+                createdAt: combo.createdAt,
+                updatedAt: combo.updatedAt
             }
         })
 
-        return NextResponse.json({
+        const response = NextResponse.json({
             success: true,
             data: formattedCombos
         })
+
+        // ✅ Sem cache para admin
+        response.headers.set('Cache-Control', 'no-store')
+
+        return response
 
     } catch (error) {
         console.error('❌ Erro ao buscar combos:', error)
@@ -75,7 +94,6 @@ export async function POST(request: NextRequest) {
         const body = await request.json()
         const { name, description, serviceIds, discountPercent } = body
 
-        // Validações
         if (!name || !serviceIds || serviceIds.length < 2) {
             return NextResponse.json(
                 { success: false, message: 'Informe nome e pelo menos 2 serviços' },
@@ -90,12 +108,13 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Criar combo
         const combo = await prisma.serviceCombo.create({
             data: {
                 name,
                 description,
                 discountPercent,
+                active: true,
+                featured: false,  // ✅ Novo combo começa sem destaque
                 services: {
                     create: serviceIds.map((serviceId: string) => ({
                         serviceId

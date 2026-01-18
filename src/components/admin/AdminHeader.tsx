@@ -34,22 +34,22 @@ export default function AdminHeader({
                 </div>
             </div>
 
-            <div className="flex gap-3">
-                {showBackButton && (
-                    <Link
-                        href="/admin"
-                        className="flex items-center gap-2 px-4 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
-                    >
-                        <Home size={20} />
-                        <span className="hidden sm:inline">Painel</span>
-                    </Link>
-                )}
+            {/* Navegação */}
+            <div className="flex justify-end gap-3">
+                <Link
+                    href="/admin"
+                    className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                >
+                    <ArrowLeft size={20} />
+                    Painel
+                </Link>
+
                 <Link
                     href="/"
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold "
                 >
                     <Home size={20} />
-                    <span className="hidden sm:inline">Voltar ao Início</span>
+                    Voltar ao início
                 </Link>
             </div>
         </div>

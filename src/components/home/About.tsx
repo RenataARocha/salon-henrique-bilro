@@ -37,11 +37,13 @@ export default function About() {
                     </div>
 
                     <div className="relative">
-                        <div className="aspect-[4/3] bg-gray-200 rounded-xl overflow-hidden shadow-2xl">
+                        {/* ✅ MUDEI: object-cover para object-contain OU object-center */}
+                        <div className="aspect-[4/4] bg-gray-100 rounded-xl overflow-hidden shadow-2xl">
                             <img
-                                src="https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800"
+                                src="https://lh3.googleusercontent.com/p/AF1QipO9oyR_EY3o7E5FDfO5INB2_ZlCzGabefZmvqWF=w600-h988-p-k-no"
                                 alt="Interior do salão"
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
+                            // OU use: className="w-full h-full object-cover object-center"
                             />
                         </div>
                         <div className="absolute -bottom-6 -left-6 bg-gradient-gold text-white p-6 rounded-xl shadow-xl">
