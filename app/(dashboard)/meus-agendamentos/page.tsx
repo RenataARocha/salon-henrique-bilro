@@ -2,13 +2,13 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react' // Adicionado useMemo
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Clock, Calendar, CheckCircle, XCircle, AlertCircle, Ban, Tag, Percent } from 'lucide-react'
+import { Clock, Calendar, CheckCircle, XCircle, AlertCircle, Ban, Tag, Percent, Calendar as CalendarIcon } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
-import { Calendar as CalendarIcon } from 'lucide-react'
+import { isAfter, subHours, parseISO } from 'date-fns'
 
 interface Appointment {
     id: string
@@ -54,7 +54,6 @@ export default function HistoricoPage() {
             setLoading(true)
             const res = await fetch('/api/appointments')
             const data = await res.json()
-
             if (data.success) {
                 setAppointments(data.data)
             }
@@ -68,76 +67,37 @@ export default function HistoricoPage() {
     const getStatusInfo = (status: string) => {
         switch (status) {
             case 'COMPLETED':
-                return {
-                    label: 'Concluído',
-                    icon: CheckCircle,
-                    bgColor: 'bg-green-100',
-                    textColor: 'text-green-700',
-                    borderColor: 'border-green-200'
-                }
+                return { label: 'Concluído', icon: CheckCircle, bgColor: 'bg-green-100', textColor: 'text-green-700', borderColor: 'border-green-200' }
             case 'CONFIRMED':
-                return {
-                    label: 'Confirmado',
-                    icon: CheckCircle,
-                    bgColor: 'bg-blue-100',
-                    textColor: 'text-blue-700',
-                    borderColor: 'border-blue-200'
-                }
+                return { label: 'Confirmado', icon: CheckCircle, bgColor: 'bg-blue-100', textColor: 'text-blue-700', borderColor: 'border-blue-200' }
             case 'PENDING':
-                return {
-                    label: 'Pendente',
-                    icon: Clock,
-                    bgColor: 'bg-orange-100',
-                    textColor: 'text-orange-700',
-                    borderColor: 'border-orange-200'
-                }
+                return { label: 'Pendente', icon: Clock, bgColor: 'bg-orange-100', textColor: 'text-orange-700', borderColor: 'border-orange-200' }
             case 'CANCELLED':
-                return {
-                    label: 'Cancelado',
-                    icon: XCircle,
-                    bgColor: 'bg-red-100',
-                    textColor: 'text-red-700',
-                    borderColor: 'border-red-200'
-                }
+                return { label: 'Cancelado', icon: XCircle, bgColor: 'bg-red-100', textColor: 'text-red-700', borderColor: 'border-red-200' }
             case 'NO_SHOW':
-                return {
-                    label: 'Não Compareceu',
-                    icon: Ban,
-                    bgColor: 'bg-gray-100',
-                    textColor: 'text-gray-700',
-                    borderColor: 'border-gray-300'
-                }
+                return { label: 'Não Compareceu', icon: Ban, bgColor: 'bg-gray-100', textColor: 'text-gray-700', borderColor: 'border-gray-300' }
             default:
-                return {
-                    label: status,
-                    icon: AlertCircle,
-                    bgColor: 'bg-gray-100',
-                    textColor: 'text-gray-700',
-                    borderColor: 'border-gray-300'
-                }
+                return { label: status, icon: AlertCircle, bgColor: 'bg-gray-100', textColor: 'text-gray-700', borderColor: 'border-gray-300' }
         }
     }
 
+    // Função canReschedule corrigida
     const canReschedule = (appointment: Appointment) => {
-        if (!['PENDING', 'CONFIRMED'].includes(appointment.status)) {
-            return false
-        }
+        if (!['PENDING', 'CONFIRMED'].includes(appointment.status)) return false;
 
         try {
-            const dateOnly = appointment.date.split('T')[0]
-            const timeOnly = appointment.time.substring(0, 5)
-            const appointmentDateTime = new Date(`${dateOnly}T${timeOnly}:00`)
-            const minTime = new Date(Date.now() + 2 * 60 * 60 * 1000)
+            // Garante que a data está no formato correto para o parseISO (YYYY-MM-DDTHH:mm)
+            const dateOnly = appointment.date.split('T')[0];
+            const appointmentDateTime = parseISO(`${dateOnly}T${appointment.time}`);
 
-            if (isNaN(appointmentDateTime.getTime())) {
-                console.error('❌ Data inválida:', appointment)
-                return false
-            }
+            // Define o limite (2 horas antes do agendamento)
+            const limitTime = subHours(appointmentDateTime, 2);
 
-            return appointmentDateTime > minTime
+            // Pode reagendar se "agora" ainda for antes do limite
+            return isAfter(limitTime, new Date());
         } catch (error) {
-            console.error('❌ Erro ao verificar reagendamento:', error, appointment)
-            return false
+            console.error('❌ Erro ao verificar reagendamento:', error);
+            return false;
         }
     }
 
@@ -146,16 +106,18 @@ export default function HistoricoPage() {
         fetchAppointments()
     }
 
-    const filteredAppointments = appointments
-        .filter(apt => filterStatus === 'all' || apt.status === filterStatus)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-    const stats = {
+    const stats = useMemo(() => ({
         total: appointments.length,
         completed: appointments.filter(a => a.status === 'COMPLETED').length,
         noShow: appointments.filter(a => a.status === 'NO_SHOW').length,
         cancelled: appointments.filter(a => a.status === 'CANCELLED').length
-    }
+    }), [appointments]);
+
+    const filteredAppointments = useMemo(() => {
+        return appointments
+            .filter(apt => filterStatus === 'all' || apt.status === filterStatus)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [appointments, filterStatus]);
 
     if (sessionStatus === 'loading' || loading) {
         return (
@@ -287,7 +249,7 @@ export default function HistoricoPage() {
                                                 {appointment.couponId ? (
                                                     <div className="text-right">
                                                         <span className="text-2xl font-bold text-green-600">
-                                                            R$ {(appointment.finalPrice || appointment.service.price).toFixed(2)}
+                                                            R$ {(appointment.finalPrice ?? appointment.service.price).toFixed(2)}
                                                         </span>
                                                         <p className="text-xs text-gray-500 line-through">
                                                             R$ {appointment.service.price.toFixed(2)}

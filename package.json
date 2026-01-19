@@ -24,6 +24,7 @@
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.66.4",
     "cloudinary": "^2.8.0",
+    "date-fns": "^4.1.0",
     "firebase": "^12.6.0",
     "ioredis": "^5.9.0",
     "jsonwebtoken": "^9.0.2",

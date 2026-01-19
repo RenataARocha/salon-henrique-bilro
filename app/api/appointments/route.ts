@@ -1,9 +1,11 @@
 // app/api/appointments/route.ts
+// ✅ SUBSTITUA O ARQUIVO COMPLETO POR ESTE CÓDIGO
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { parseDateSafe } from '@/lib/dateUtils'
 
 // GET - Listar agendamentos do usuário logado
 export async function GET(request: Request) {
@@ -36,10 +38,15 @@ export async function GET(request: Request) {
 
         if (status) where.status = status
         if (paymentMethods.length > 0) where.paymentMethod = { in: paymentMethods }
+
         if (startDate || endDate) {
             where.date = {}
-            if (startDate) where.date.gte = new Date(startDate)
-            if (endDate) where.date.lte = new Date(endDate)
+            if (startDate) where.date.gte = parseDateSafe(startDate)
+            if (endDate) {
+                const endDateObj = parseDateSafe(endDate)
+                endDateObj.setUTCHours(23, 59, 59, 999)
+                where.date.lte = endDateObj
+            }
         }
 
         const appointments = await prisma.appointment.findMany({
@@ -51,7 +58,7 @@ export async function GET(request: Request) {
                 service: {
                     select: { id: true, name: true, price: true, duration: true }
                 },
-                combo: {  // ✅ ADICIONAR
+                combo: {
                     include: {
                         services: {
                             include: { service: true }
@@ -63,7 +70,6 @@ export async function GET(request: Request) {
             orderBy: { date: 'desc' }
         })
 
-        // ✅ FORMATAR DADOS
         const formattedAppointments = appointments.map(apt => {
             let formattedApt: any = { ...apt, service: apt.service || null, combo: null }
 
@@ -122,7 +128,7 @@ export async function POST(request: Request) {
 
         const {
             serviceId,
-            comboId,  // ✅ ADICIONAR
+            comboId,
             date,
             time,
             notes,
@@ -133,7 +139,6 @@ export async function POST(request: Request) {
             valorFinal
         } = body
 
-        // ✅ VALIDAÇÃO: Deve ter UM serviço OU UM combo
         if (!serviceId && !comboId) {
             return NextResponse.json(
                 { success: false, error: 'Selecione um serviço ou combo' },
@@ -168,7 +173,6 @@ export async function POST(request: Request) {
             )
         }
 
-        // ✅ VERIFICAR SERVIÇO OU COMBO
         let service = null
         let combo = null
         let finalPrice = valorFinal
@@ -223,10 +227,18 @@ export async function POST(request: Request) {
             }
         }
 
-        // Verificar se já existe agendamento neste horário
+        // ✅ USAR parseDateSafe
+        const appointmentDate = parseDateSafe(date)
+
+        console.log('📅 [CRIAR AGENDAMENTO]:', {
+            entrada: date,
+            parseada: appointmentDate.toISOString()
+        })
+
+        // ✅ Verificar conflito
         const existingAppointment = await prisma.appointment.findFirst({
             where: {
-                date: new Date(date),
+                date: appointmentDate,
                 time: time,
                 status: {
                     in: ['PENDING', 'CONFIRMED']
@@ -241,7 +253,7 @@ export async function POST(request: Request) {
             )
         }
 
-        // Validar cupom se foi fornecido
+        // Validar cupom se fornecido
         if (cupomId) {
             const coupon = await prisma.coupon.findUnique({
                 where: { id: cupomId }
@@ -277,13 +289,13 @@ export async function POST(request: Request) {
             }
         }
 
-        // ✅ CRIAR AGENDAMENTO
+        // ✅ Criar agendamento
         const appointment = await prisma.appointment.create({
             data: {
                 userId: session.user.id,
                 serviceId: serviceId || null,
-                comboId: comboId || null,  // ✅ ADICIONAR
-                date: new Date(date),
+                comboId: comboId || null,
+                date: appointmentDate, // ✅ Usar data parseada
                 time,
                 notes: notes || null,
                 paymentMethod: normalizedPaymentMethod,
@@ -294,7 +306,7 @@ export async function POST(request: Request) {
             },
             include: {
                 service: true,
-                combo: {  // ✅ ADICIONAR
+                combo: {
                     include: {
                         services: {
                             include: {
@@ -317,6 +329,11 @@ export async function POST(request: Request) {
             })
         }
 
+        console.log('✅ [CRIAR AGENDAMENTO] Sucesso:', {
+            id: appointment.id,
+            date: appointment.date.toISOString()
+        })
+
         return NextResponse.json({
             success: true,
             data: appointment,
@@ -324,7 +341,7 @@ export async function POST(request: Request) {
         })
 
     } catch (error) {
-        console.error('Erro ao criar agendamento:', error)
+        console.error('❌ Erro ao criar agendamento:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao criar agendamento' },
             { status: 500 }
@@ -354,7 +371,6 @@ export async function DELETE(request: Request) {
             )
         }
 
-        // Buscar agendamento
         const appointment = await prisma.appointment.findUnique({
             where: { id: appointmentId }
         })
@@ -366,22 +382,18 @@ export async function DELETE(request: Request) {
             )
         }
 
-        // Verificar se o usuário é o dono do agendamento
-        if (appointment.userId !== session.user.id
-        ) {
+        if (appointment.userId !== session.user.id) {
             return NextResponse.json(
                 { success: false, error: 'Sem permissão para cancelar este agendamento' },
                 { status: 403 }
             )
         }
 
-        // Atualizar status para CANCELLED
         await prisma.appointment.update({
             where: { id: appointmentId },
             data: { status: 'CANCELLED' }
         })
 
-        // ✅ Se tinha cupom, decrementar contador ao cancelar
         if (appointment.couponId) {
             await prisma.coupon.update({
                 where: { id: appointment.couponId },

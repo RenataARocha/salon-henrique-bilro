@@ -1,4 +1,4 @@
-// app/api/bookings/route.ts - CORRIGIDO para Appointment
+// app/api/bookings/route.ts - CORRIGIDO
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -21,7 +21,8 @@ export async function POST(req: NextRequest) {
             couponCode
         } = await req.json();
 
-        // Validações básicas
+        console.log('📅 Criando agendamento:', { date, time })
+
         if (!serviceId || !date || !time) {
             return NextResponse.json(
                 { error: 'Preencha todos os campos obrigatórios' },
@@ -29,7 +30,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Buscar serviço para pegar o preço
         const service = await prisma.service.findUnique({
             where: { id: serviceId }
         });
@@ -45,7 +45,6 @@ export async function POST(req: NextRequest) {
         let couponId = null;
         let discountAmount = 0;
 
-        // Se tem cupom, validar
         if (couponCode) {
             const validationResponse = await fetch(
                 `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/coupons/validate`,
@@ -82,14 +81,14 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Criar agendamento em transação
+
+
         const appointment = await prisma.$transaction(async (tx) => {
-            // Criar o appointment
             const newAppointment = await tx.appointment.create({
                 data: {
                     userId: session.user.id,
                     serviceId,
-                    date: new Date(date),
+                    date,
                     time,
                     notes: notes || null,
                     couponId,
@@ -99,9 +98,7 @@ export async function POST(req: NextRequest) {
                 }
             });
 
-            // Se tem cupom, registrar uso
             if (couponId) {
-                // Incrementar contador
                 await tx.coupon.update({
                     where: { id: couponId },
                     data: {
@@ -114,6 +111,11 @@ export async function POST(req: NextRequest) {
 
             return newAppointment;
         });
+
+        console.log('✅ Agendamento criado:', {
+            id: appointment.id,
+            date: appointment.date.toISOString()
+        })
 
         return NextResponse.json({
             success: true,
@@ -130,7 +132,6 @@ export async function POST(req: NextRequest) {
     }
 }
 
-// Cancelamento de agendamento (devolver uso do cupom)
 export async function DELETE(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
@@ -149,7 +150,6 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        // Buscar appointment
         const appointment = await prisma.appointment.findUnique({
             where: { id: appointmentId }
         });
@@ -161,7 +161,6 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        // Verificar permissão
         const isAdmin = session.user.role === 'ADMIN';
         const isOwner = appointment.userId === session.user.id;
 
@@ -172,9 +171,7 @@ export async function DELETE(req: NextRequest) {
             );
         }
 
-        // Cancelar em transação
         await prisma.$transaction(async (tx) => {
-            // Se tinha cupom, devolver o uso
             if (appointment.couponId) {
                 await tx.coupon.update({
                     where: { id: appointment.couponId },
@@ -186,7 +183,6 @@ export async function DELETE(req: NextRequest) {
                 });
             }
 
-            // Atualizar status do appointment
             await tx.appointment.update({
                 where: { id: appointmentId },
                 data: {

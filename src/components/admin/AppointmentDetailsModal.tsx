@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, User, Phone, Mail, Calendar, Clock, DollarSign, MessageSquare, CheckCircle, XCircle, Ban, Edit3, ExternalLink, CalendarClock } from 'lucide-react'
-import RescheduleModal from './RescheduleModal'
+import RescheduleModal from '@/components/admin/RescheduleModal'
+import { formatDateBR } from '@/lib/dateUtils'
 
 interface AppointmentDetailsModalProps {
     appointmentId: string
@@ -13,6 +14,7 @@ interface AppointmentDetails {
     date: string
     time: string
     status: string
+    serviceName: string
     notes?: string
     internalNotes?: string
     paymentMethod?: string
@@ -147,15 +149,6 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
         return colors[status] || 'bg-gray-100 text-gray-700'
     }
 
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('pt-BR', {
-            day: '2-digit',
-            month: 'long',
-            year: 'numeric',
-            weekday: 'long'
-        })
-    }
-
     const formatDateTime = (dateString: string) => {
         return new Date(dateString).toLocaleString('pt-BR', {
             day: '2-digit',
@@ -201,7 +194,7 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
                 <div className="bg-gradient-to-r from-gold to-yellow-600 text-white p-6 rounded-t-2xl">
                     <div className="flex items-start justify-between">
                         <div>
-                            <h2 className="text-2xl font-bold mb-2">{appointment.service.name}</h2>
+                            <h2 className="text-2xl font-bold mb-2">{appointment.serviceName || appointment.service.name}</h2>
                             <p className="text-white/90">Agendamento #{appointment.id.slice(-8)}</p>
                         </div>
                         <button
@@ -338,13 +331,15 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
                                 <div className="space-y-3">
                                     <div>
                                         <p className="text-sm text-gray-600">Data e Horário</p>
-                                        <p className="font-semibold">{formatDate(appointment.date)}</p>
+                                        <p className="font-semibold">{formatDateBR(appointment.date)}</p>
                                         <p className="text-gold font-bold text-lg">{appointment.time}</p>
                                     </div>
 
                                     <div>
                                         <p className="text-sm text-gray-600">Duração</p>
-                                        <p className="font-semibold">{appointment.service.duration} minutos</p>
+                                        <p className="font-semibold">
+                                            {appointment.service?.duration || '--'} minutos
+                                        </p>
                                     </div>
 
                                     <div>
@@ -372,8 +367,10 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
 
                                 <div className="space-y-2">
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Valor do Serviço:</span>
-                                        <span className="font-semibold">R$ {appointment.service.price.toFixed(2)}</span>
+                                        <span className="text-gray-600">Valor Base:</span>
+                                        <span className="font-semibold">
+                                            R$ {(appointment.service?.price || appointment.finalPrice).toFixed(2)}
+                                        </span>
                                     </div>
 
                                     {appointment.coupon && (
@@ -409,16 +406,19 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
                                         <span className="font-semibold">{formatDateTime(appointment.createdAt)}</span>
                                     </div>
 
-                                    {appointment.statusHistory && appointment.statusHistory.length > 0 && (
-                                        <div className="mt-3 pt-3 border-t">
-                                            <p className="text-gray-600 mb-2">Mudanças de Status:</p>
-                                            {appointment.statusHistory.map((history, index) => (
-                                                <div key={index} className="text-xs text-gray-600 mb-1">
-                                                    {formatDateTime(history.changedAt)} - {getStatusLabel(history.status)}
-                                                </div>
-                                            ))}
+                                    {appointment.statusHistory.map((history, index) => (
+                                        <div key={index} className="flex gap-3 pb-3 last:pb-0">
+                                            <div className="flex flex-col items-center">
+                                                <div className="w-2 h-2 rounded-full bg-gold mt-1.5" />
+                                                <div className="w-px h-full bg-gray-200" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs font-bold text-gray-700">{getStatusLabel(history.status)}</p>
+                                                <p className="text-[10px] text-gray-500">{formatDateTime(history.changedAt)}</p>
+                                                {history.notes && <p className="text-[11px] italic text-gray-400">{history.notes}</p>}
+                                            </div>
                                         </div>
-                                    )}
+                                    ))}
                                 </div>
                             </div>
                         </div>
@@ -489,22 +489,11 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
             </div>
 
             {/* Modal de Reagendamento */}
-            {showRescheduleModal && appointment && (
+            {showRescheduleModal && (
                 <RescheduleModal
-                    appointment={{
-                        id: appointment.id,
-                        date: appointment.date,
-                        time: appointment.time,
-                        service: {
-                            name: appointment.service.name,
-                            duration: appointment.service.duration
-                        },
-                        user: {
-                            name: appointment.user.name
-                        }
-                    }}
+                    appointmentId={appointmentId}
                     onClose={() => setShowRescheduleModal(false)}
-                    onSuccess={() => {
+                    onUpdate={() => {
                         setShowRescheduleModal(false)
                         fetchAppointmentDetails()
                         onUpdate()

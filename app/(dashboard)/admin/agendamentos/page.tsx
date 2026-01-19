@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Filter, X, Search, CheckSquare, Square } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
+import RescheduleModal from '@/components/appointments/RescheduleModal'
+import { Calendar } from 'lucide-react'
 
 type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
 
@@ -53,6 +55,7 @@ function BulkActionsBar({
     onComplete,
     onNoShow,
     onDelete,
+    onReschedule,
     onClearSelection
 }: {
     selectedCount: number
@@ -61,6 +64,7 @@ function BulkActionsBar({
     onComplete: () => void
     onNoShow: () => void
     onDelete: () => void
+    onReschedule: () => void
     onClearSelection: () => void
 }) {
     if (selectedCount === 0) return null
@@ -81,6 +85,18 @@ function BulkActionsBar({
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {/* ✅ NOVO BOTÃO */}
+                    {selectedCount === 1 && (
+                        <button
+                            onClick={onReschedule}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition-colors flex items-center gap-2"
+                            title="Reagendar"
+                        >
+                            <Calendar size={18} />
+                            Reagendar
+                        </button>
+                    )}
+
                     <button
                         onClick={onConfirm}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg font-semibold transition-colors"
@@ -255,6 +271,8 @@ export default function AdminAgendamentosPage() {
     const [services, setServices] = useState<Service[]>([])
     const [loading, setLoading] = useState(true)
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    const [showRescheduleModal, setShowRescheduleModal] = useState(false)
+    const [appointmentToReschedule, setAppointmentToReschedule] = useState<Appointment | null>(null)
 
     // Filtros
     const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -368,6 +386,21 @@ export default function AdminAgendamentosPage() {
         setSelectedIds(new Set())
     }
 
+    const handleOpenReschedule = (appointment: Appointment) => {
+        setAppointmentToReschedule(appointment)
+        setShowRescheduleModal(true)
+    }
+
+    const handleCloseReschedule = () => {
+        setShowRescheduleModal(false)
+        setAppointmentToReschedule(null)
+    }
+
+    const handleRescheduleSuccess = () => {
+        fetchAppointments() // Recarregar lista
+        handleCloseReschedule()
+    }
+
     // Ações em Massa
     const handleBulkAction = async (action: AppointmentStatus) => {
         if (selectedIds.size === 0) return
@@ -397,6 +430,26 @@ export default function AdminAgendamentosPage() {
             console.error('Erro ao realizar ação em massa:', error)
             alert('Erro ao atualizar agendamentos')
         }
+    }
+
+
+    const handleBulkReschedule = () => {
+        if (selectedIds.size !== 1) {
+            alert('Selecione apenas 1 agendamento para reagendar')
+            return
+        }
+
+        const appointmentId = Array.from(selectedIds)[0]
+        const appointment = appointments.find(a => a.id === appointmentId)
+
+        if (!appointment) return
+
+        if (!['PENDING', 'CONFIRMED'].includes(appointment.status)) {
+            alert('Só é possível reagendar agendamentos pendentes ou confirmados')
+            return
+        }
+
+        handleOpenReschedule(appointment)
     }
 
     // Excluir em Massa
@@ -956,6 +1009,7 @@ export default function AdminAgendamentosPage() {
                             onComplete={() => handleBulkAction('COMPLETED')}
                             onNoShow={() => handleBulkAction('NO_SHOW')}
                             onDelete={handleBulkDelete}
+                            onReschedule={handleBulkReschedule}
                             onClearSelection={clearSelection}
                         />
                     </>
@@ -979,9 +1033,31 @@ export default function AdminAgendamentosPage() {
                                 Limpar todos os filtros
                             </button>
                         )}
+
+
                     </div>
                 )}
 
+                {/* Modal de Reagendamento */}
+                {showRescheduleModal && appointmentToReschedule && (
+                    <RescheduleModal
+                        appointment={{
+                            id: appointmentToReschedule.id,
+                            date: appointmentToReschedule.date,
+                            time: appointmentToReschedule.time,
+                            service: appointmentToReschedule.service || {
+                                name: appointmentToReschedule.combo?.name || 'Serviço',
+                                duration:
+                                    appointmentToReschedule.combo?.services.reduce(
+                                        (sum, s) => sum + s.duration,
+                                        0
+                                    ) || 60
+                            }
+                        }}
+                        onClose={handleCloseReschedule}
+                        onSuccess={handleRescheduleSuccess}
+                    />
+                )}
 
 
                 <style jsx global>{`

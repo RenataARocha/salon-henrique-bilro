@@ -1,3 +1,6 @@
+// app/api/admin/appointments/route.ts
+// ✅ SUBSTITUA O ARQUIVO COMPLETO POR ESTE CÓDIGO
+
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
                 service: {
                     select: { id: true, name: true, price: true, duration: true }
                 },
-                combo: {  // ✅ ADICIONAR
+                combo: {
                     include: {
                         services: {
                             include: { service: true }
@@ -34,7 +37,7 @@ export async function GET(request: NextRequest) {
             orderBy: { date: 'desc' }
         })
 
-        // ✅ FORMATAR DADOS
+        // Formatar dados
         const formattedAppointments = appointments.map(apt => {
             let formattedApt: any = { ...apt, service: apt.service || null, combo: null }
 
@@ -82,4 +85,4 @@ export async function GET(request: NextRequest) {
             { status: 500 }
         )
     }
-}
+} 

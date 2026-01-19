@@ -1,4 +1,5 @@
-// src/components/appointments/RescheduleModal.tsx
+// components/appointments/RescheduleModal.tsx
+// ✅ VERSÃO FINAL COM TIMEZONE CORRETO
 
 'use client'
 
@@ -6,6 +7,8 @@ import { useState, useEffect } from 'react'
 import { Calendar, Clock, X, AlertCircle } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import { useToast } from '@/components/ui/ToastContainer'
+import SmartCalendar from '@/components/SmartCalendar'
+import { dbDateToCalendar, formatDateBR } from '@/lib/dateUtils'
 
 interface Appointment {
     id: string
@@ -14,6 +17,9 @@ interface Appointment {
     service: {
         name: string
         duration: number
+    }
+    user?: {
+        name: string
     }
 }
 
@@ -26,56 +32,63 @@ interface RescheduleModalProps {
 export default function RescheduleModal({ appointment, onClose, onSuccess }: RescheduleModalProps) {
     const { showToast } = useToast()
     const [loading, setLoading] = useState(false)
-    const [availableDates, setAvailableDates] = useState<string[]>([])
-    const [availableTimes, setAvailableTimes] = useState<string[]>([])
+    const [availableSlots, setAvailableSlots] = useState<string[]>([])
     const [selectedDate, setSelectedDate] = useState('')
     const [selectedTime, setSelectedTime] = useState('')
-    const [loadingDates, setLoadingDates] = useState(true)
-    const [loadingTimes, setLoadingTimes] = useState(false)
-
-    useEffect(() => {
-        fetchAvailableDates()
-    }, [])
+    const [loadingSlots, setLoadingSlots] = useState(false)
+    const [dateMessage, setDateMessage] = useState<{
+        type: 'info' | 'warning' | 'error'
+        text: string
+    } | null>(null)
 
     useEffect(() => {
         if (selectedDate) {
-            fetchAvailableTimes(selectedDate)
+            fetchAvailableSlots(selectedDate)
         }
     }, [selectedDate])
 
-    const fetchAvailableDates = async () => {
+    const fetchAvailableSlots = async (date: string) => {
         try {
-            setLoadingDates(true)
-            // Gerar próximos 30 dias
-            const dates: string[] = []
-            const today = new Date()
+            setLoadingSlots(true)
+            setDateMessage(null)
+            setSelectedTime('')
 
-            for (let i = 1; i <= 30; i++) {
-                const date = new Date(today)
-                date.setDate(today.getDate() + i)
-                dates.push(date.toISOString().split('T')[0])
-            }
-
-            setAvailableDates(dates)
-        } catch (error) {
-            console.error('Erro ao buscar datas:', error)
-        } finally {
-            setLoadingDates(false)
-        }
-    }
-
-    const fetchAvailableTimes = async (date: string) => {
-        try {
-            setLoadingTimes(true)
             const res = await fetch(`/api/available-slots?date=${date}`)
             const data = await res.json()
+
             if (data.success) {
-                setAvailableTimes(data.data)
+                setAvailableSlots(data.data)
+
+                if (data.data.length > 0) {
+                    setDateMessage({
+                        type: 'info',
+                        text: `${data.data.length} ${data.data.length === 1 ? 'horário disponível' : 'horários disponíveis'}`
+                    })
+                } else if (data.isHoliday) {
+                    setDateMessage({
+                        type: 'warning',
+                        text: data.message
+                    })
+                } else if (data.isBlocked) {
+                    setDateMessage({
+                        type: 'error',
+                        text: data.message
+                    })
+                } else {
+                    setDateMessage({
+                        type: 'info',
+                        text: data.message || 'Nenhum horário disponível para esta data'
+                    })
+                }
             }
         } catch (error) {
             console.error('Erro ao buscar horários:', error)
+            setDateMessage({
+                type: 'error',
+                text: 'Erro ao buscar horários disponíveis'
+            })
         } finally {
-            setLoadingTimes(false)
+            setLoadingSlots(false)
         }
     }
 
@@ -88,6 +101,12 @@ export default function RescheduleModal({ appointment, onClose, onSuccess }: Res
         setLoading(true)
 
         try {
+            console.log('🔄 Enviando reagendamento:', {
+                appointmentId: appointment.id,
+                newDate: selectedDate,
+                newTime: selectedTime
+            })
+
             const res = await fetch('/api/appointments/reschedule', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -101,7 +120,7 @@ export default function RescheduleModal({ appointment, onClose, onSuccess }: Res
             const data = await res.json()
 
             if (data.success) {
-                showToast('Agendamento reagendado com sucesso!', 'success')
+                showToast('✅ Agendamento reagendado com sucesso!', 'success')
                 onSuccess()
                 onClose()
             } else {
@@ -114,6 +133,26 @@ export default function RescheduleModal({ appointment, onClose, onSuccess }: Res
             setLoading(false)
         }
     }
+
+    const getMinDate = () => {
+        const tomorrow = new Date()
+        tomorrow.setDate(tomorrow.getDate() + 1)
+        return tomorrow.toISOString().split('T')[0]
+    }
+
+    const getMaxDate = () => {
+        const maxDate = new Date()
+        maxDate.setMonth(maxDate.getMonth() + 2)
+        return maxDate.toISOString().split('T')[0]
+    }
+
+    // ✅ CONVERTER DATA DO BANCO PARA EXIBIÇÃO CORRETA
+    const currentDateForDisplay = formatDateBR(appointment.date)
+
+    console.log('📅 Data do agendamento atual:', {
+        raw: appointment.date,
+        formatted: currentDateForDisplay
+    })
 
     return (
         <div
@@ -133,6 +172,11 @@ export default function RescheduleModal({ appointment, onClose, onSuccess }: Res
                         <p className="text-gray-600">
                             {appointment.service.name}
                         </p>
+                        {appointment.user && (
+                            <p className="text-sm text-gray-500 mt-1">
+                                Cliente: {appointment.user.name}
+                            </p>
+                        )}
                     </div>
                     <button
                         onClick={onClose}
@@ -142,13 +186,13 @@ export default function RescheduleModal({ appointment, onClose, onSuccess }: Res
                     </button>
                 </div>
 
-                {/* Informações do Agendamento Atual */}
+                {/* Agendamento Atual */}
                 <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-6">
                     <p className="text-sm text-blue-900 font-semibold mb-2">
                         📅 Agendamento Atual
                     </p>
                     <p className="text-blue-700">
-                        <strong>Data:</strong> {new Date(appointment.date).toLocaleDateString('pt-BR')}
+                        <strong>Data:</strong> {currentDateForDisplay}
                         {' '}<strong>às</strong> {appointment.time}
                     </p>
                 </div>
@@ -166,79 +210,67 @@ export default function RescheduleModal({ appointment, onClose, onSuccess }: Res
                     </div>
                 </div>
 
-                {/* Seleção de Data */}
+                {/* Calendário */}
                 <div className="mb-6">
                     <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
                         <Calendar size={18} className="text-gold" />
                         Nova Data
                     </label>
-                    {loadingDates ? (
-                        <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold"></div>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto">
-                            {availableDates.slice(0, 15).map((date) => {
-                                const dateObj = new Date(date + 'T00:00:00')
-                                const isSelected = selectedDate === date
-
-                                return (
-                                    <button
-                                        key={date}
-                                        onClick={() => setSelectedDate(date)}
-                                        className={`p-4 rounded-xl border-2 transition-all ${isSelected
-                                                ? 'border-gold bg-gold text-white'
-                                                : 'border-gray-200 hover:border-gold hover:bg-beige'
-                                            }`}
-                                    >
-                                        <p className="text-xs font-semibold">
-                                            {dateObj.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase()}
-                                        </p>
-                                        <p className="text-lg font-bold">
-                                            {dateObj.getDate()}
-                                        </p>
-                                        <p className="text-xs">
-                                            {dateObj.toLocaleDateString('pt-BR', { month: 'short' })}
-                                        </p>
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    )}
+                    <SmartCalendar
+                        onDateSelect={(date) => setSelectedDate(date)}
+                        selectedDate={selectedDate}
+                        minDate={getMinDate()}
+                        maxDate={getMaxDate()}
+                    />
                 </div>
 
-                {/* Seleção de Horário */}
+                {/* Mensagem */}
+                {dateMessage && selectedDate && (
+                    <div className={`rounded-lg p-4 flex items-start gap-3 mb-6 ${dateMessage.type === 'error' ? 'bg-red-50 border-2 border-red-200' :
+                            dateMessage.type === 'warning' ? 'bg-yellow-50 border-2 border-yellow-200' :
+                                'bg-blue-50 border-2 border-blue-200'
+                        }`}>
+                        <AlertCircle className={`flex-shrink-0 mt-0.5 ${dateMessage.type === 'error' ? 'text-red-600' :
+                                dateMessage.type === 'warning' ? 'text-yellow-600' :
+                                    'text-blue-600'
+                            }`} size={20} />
+                        <p className={`text-sm font-medium ${dateMessage.type === 'error' ? 'text-red-800' :
+                                dateMessage.type === 'warning' ? 'text-yellow-800' :
+                                    'text-blue-800'
+                            }`}>
+                            {dateMessage.text}
+                        </p>
+                    </div>
+                )}
+
+                {/* Horários */}
                 {selectedDate && (
                     <div className="mb-6">
                         <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
                             <Clock size={18} className="text-gold" />
                             Novo Horário
                         </label>
-                        {loadingTimes ? (
+                        {loadingSlots ? (
                             <div className="flex justify-center py-8">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gold"></div>
                             </div>
-                        ) : availableTimes.length > 0 ? (
+                        ) : availableSlots.length > 0 ? (
                             <div className="grid grid-cols-4 gap-3">
-                                {availableTimes.map((time) => {
-                                    const isSelected = selectedTime === time
-
-                                    return (
-                                        <button
-                                            key={time}
-                                            onClick={() => setSelectedTime(time)}
-                                            className={`p-4 rounded-xl border-2 font-bold transition-all ${isSelected
-                                                    ? 'border-gold bg-gold text-white'
-                                                    : 'border-gray-200 hover:border-gold hover:bg-beige'
-                                                }`}
-                                        >
-                                            {time}
-                                        </button>
-                                    )
-                                })}
+                                {availableSlots.map((time) => (
+                                    <button
+                                        key={time}
+                                        onClick={() => setSelectedTime(time)}
+                                        className={`p-4 rounded-xl border-2 font-bold transition-all ${selectedTime === time
+                                                ? 'border-gold bg-gold text-white'
+                                                : 'border-gray-200 hover:border-gold hover:bg-beige'
+                                            }`}
+                                    >
+                                        {time}
+                                    </button>
+                                ))}
                             </div>
                         ) : (
-                            <p className="text-center text-gray-500 py-8">
+                            <p className="text-center text-gray-500 py-8 bg-gray-50 rounded-lg">
                                 Nenhum horário disponível para esta data
                             </p>
                         )}
