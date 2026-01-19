@@ -1,11 +1,24 @@
+'use client'
+
 import SectionTitle from '@/components/ui/SectionTitle'
+import { motion } from 'framer-motion'
+import { useInView } from 'framer-motion'
+import { useRef } from 'react'
 
 export default function About() {
+    const ref = useRef(null)
+    const isInView = useInView(ref, { once: true, margin: "-100px" })
+
     return (
-        <section id="sobre" className="py-20 bg-white">
+        <section id="sobre" ref={ref} className="py-20 bg-white">
             <div className="max-w-7xl mx-auto px-4">
                 <div className="grid md:grid-cols-2 gap-12 items-center">
-                    <div>
+                    {/* Texto - Vem da esquerda */}
+                    <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
+                        transition={{ duration: 0.6 }}
+                    >
                         <SectionTitle
                             title="Sobre o Salão"
                             align="left"
@@ -21,36 +34,43 @@ export default function About() {
                         </p>
 
                         <div className="grid grid-cols-3 gap-6 text-center">
-                            <div>
-                                <div className="text-3xl font-bold text-gold mb-2">15+</div>
-                                <div className="text-sm text-gray-600">Anos de Experiência</div>
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold text-gold mb-2">5000+</div>
-                                <div className="text-sm text-gray-600">Clientes Satisfeitos</div>
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold text-gold mb-2">100%</div>
-                                <div className="text-sm text-gray-600">Produtos Premium</div>
-                            </div>
+                            {[
+                                { number: '15+', label: 'Anos de Experiência' },
+                                { number: '5000+', label: 'Clientes Satisfeitos' },
+                                { number: '100%', label: 'Produtos Premium' }
+                            ].map((stat, index) => (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, scale: 0.5 }}
+                                    animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.5 }}
+                                    transition={{ duration: 0.4, delay: 0.6 + (index * 0.1) }}
+                                >
+                                    <div className="text-3xl font-bold text-gold mb-2">{stat.number}</div>
+                                    <div className="text-sm text-gray-600">{stat.label}</div>
+                                </motion.div>
+                            ))}
                         </div>
-                    </div>
+                    </motion.div>
 
-                    <div className="relative">
-                        {/* ✅ MUDEI: object-cover para object-contain OU object-center */}
+                    {/* Imagem - Vem da direita */}
+                    <motion.div
+                        className="relative"
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={isInView ? { opacity: 1, x: 0 } : { opacity: 0, x: 50 }}
+                        transition={{ duration: 0.6, delay: 0.2 }}
+                    >
                         <div className="aspect-[4/4] bg-gray-100 rounded-xl overflow-hidden shadow-2xl">
                             <img
                                 src="https://lh3.googleusercontent.com/p/AF1QipO9oyR_EY3o7E5FDfO5INB2_ZlCzGabefZmvqWF=w600-h988-p-k-no"
                                 alt="Interior do salão"
                                 className="w-full h-full object-contain"
-                            // OU use: className="w-full h-full object-cover object-center"
                             />
                         </div>
                         <div className="absolute -bottom-6 -left-6 bg-gradient-gold text-white p-6 rounded-xl shadow-xl">
                             <div className="text-2xl font-bold">Ambiente</div>
                             <div className="text-sm">Acolhedor e Moderno</div>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
         </section>

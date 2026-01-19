@@ -1,11 +1,10 @@
-// src/components/NavBar.tsx - ATUALIZADO
-
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { Menu, X, LogOut, Calendar, Settings, List } from 'lucide-react'
 import Logo from './Logo'
+import { motion } from 'framer-motion'
 
 export default function Navbar() {
     const { data: session } = useSession()
@@ -28,13 +27,30 @@ export default function Navbar() {
     const isAdmin = user?.role === 'ADMIN'
 
     return (
-        <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-charcoal/95 backdrop-blur-md shadow-lg' : 'bg-charcoal/90 backdrop-blur-sm'}`}>
+        <motion.nav
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-charcoal/95 backdrop-blur-md shadow-lg' : 'bg-charcoal/90 backdrop-blur-sm'}`}
+        >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
-                    <Logo variant="header" />
+                    {/* Logo - vem da esquerda */}
+                    <motion.div
+                        initial={{ x: -30, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                    >
+                        <Logo variant="header" />
+                    </motion.div>
 
-                    {/* Desktop Menu */}
-                    <div className="hidden md:flex items-center space-x-8">
+                    {/* Desktop Menu - vem da direita */}
+                    <motion.div
+                        className="hidden md:flex items-center space-x-8"
+                        initial={{ x: 30, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
+                    >
                         <a href="/#home" className="text-white hover-gold transition-colors text-sm font-medium">
                             Home
                         </a>
@@ -96,21 +112,30 @@ export default function Navbar() {
                                 </div>
                             </>
                         )}
-                    </div>
+                    </motion.div>
 
                     {/* Mobile Menu Button */}
-                    <button
+                    <motion.button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         className="md:hidden text-white hover-gold"
                         aria-label="Menu"
+                        initial={{ x: 30, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.2 }}
                     >
                         {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
+                    </motion.button>
                 </div>
 
                 {/* Mobile Menu */}
                 {mobileMenuOpen && (
-                    <div className="md:hidden pb-4 space-y-3 border-t border-gray-700 mt-4 pt-4">
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="md:hidden pb-4 space-y-3 border-t border-gray-700 mt-4 pt-4"
+                    >
                         <a href="/#home" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
                             Home
                         </a>
@@ -171,9 +196,9 @@ export default function Navbar() {
                                 </button>
                             </>
                         )}
-                    </div>
+                    </motion.div>
                 )}
             </div>
-        </nav>
+        </motion.nav>
     )
 }
