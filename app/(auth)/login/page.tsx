@@ -1,5 +1,3 @@
-// app/(auth)/login/page.tsx 
-
 'use client'
 
 import { useState } from 'react'
@@ -10,6 +8,7 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Logo from '@/components/Logo'
 import { useToast } from '@/components/ui/ToastContainer'
+import { motion } from 'framer-motion'
 
 export default function LoginPage() {
     const router = useRouter()
@@ -43,11 +42,9 @@ export default function LoginPage() {
             if (result?.ok) {
                 showToast('Login realizado com sucesso!', 'success')
 
-                // Buscar a sessão para verificar o role
                 const sessionResponse = await fetch('/api/auth/session')
                 const session = await sessionResponse.json()
 
-                // Redirecionar baseado no role
                 if (session?.user?.role === 'ADMIN') {
                     router.push('/admin')
                 } else {
@@ -66,8 +63,18 @@ export default function LoginPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
-            <div className="max-w-md w-full">
-                <div className="text-center mb-8">
+            <motion.div
+                className="max-w-md w-full"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <motion.div
+                    className="text-center mb-8"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
                     <div className="flex justify-center mb-6">
                         <Logo variant="header" />
                     </div>
@@ -77,14 +84,24 @@ export default function LoginPage() {
                     <p className="text-gray-400">
                         Entre com sua conta para agendar
                     </p>
-                </div>
+                </motion.div>
 
-                <div className="bg-white rounded-xl shadow-2xl p-8">
+                <motion.div
+                    className="bg-white rounded-xl shadow-2xl p-8"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                >
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm" role="alert">
+                            <motion.div
+                                className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm"
+                                role="alert"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                            >
                                 {error}
-                            </div>
+                            </motion.div>
                         )}
 
                         <Input
@@ -142,14 +159,19 @@ export default function LoginPage() {
                             </Link>
                         </p>
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="text-center mt-6">
+                <motion.div
+                    className="text-center mt-6"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                >
                     <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
                         ← Voltar para o início
                     </Link>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
         </div>
     )
 }

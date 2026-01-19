@@ -10,6 +10,7 @@ import Logo from '@/components/Logo'
 import { useToast } from '@/components/ui/ToastContainer'
 import { validateEmail, validatePassword, validateName, validateBirthDate, validatePhone } from '@/lib/validation'
 import { removeMask } from '@/lib/masks'
+import { motion } from 'framer-motion'
 
 export default function RegisterPage() {
     const router = useRouter()
@@ -28,23 +29,19 @@ export default function RegisterPage() {
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {}
 
-        // Validar nome
         const nameValidation = validateName(formData.name)
         if (!nameValidation.valid) {
             newErrors.name = nameValidation.message || 'Nome inválido'
         }
 
-        // Validar email
         if (!validateEmail(formData.email)) {
             newErrors.email = 'Email inválido'
         }
 
-        // Validar telefone (se preenchido)
         if (formData.phone && !validatePhone(formData.phone)) {
             newErrors.phone = 'Telefone inválido'
         }
 
-        // Validar data de nascimento (se preenchida)
         if (formData.birthDate) {
             const birthValidation = validateBirthDate(formData.birthDate)
             if (!birthValidation.valid) {
@@ -52,13 +49,11 @@ export default function RegisterPage() {
             }
         }
 
-        // Validar senha
         const passwordValidation = validatePassword(formData.password)
         if (!passwordValidation.valid) {
             newErrors.password = passwordValidation.message || 'Senha inválida'
         }
 
-        // Confirmar senha
         if (formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = 'As senhas não coincidem'
         }
@@ -112,8 +107,18 @@ export default function RegisterPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
-            <div className="max-w-md w-full">
-                <div className="text-center mb-8">
+            <motion.div
+                className="max-w-md w-full"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <motion.div
+                    className="text-center mb-8"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
                     <div className="flex justify-center mb-6">
                         <Logo variant="header" />
                     </div>
@@ -123,9 +128,14 @@ export default function RegisterPage() {
                     <p className="text-gray-400">
                         Cadastre-se para agendar seus horários
                     </p>
-                </div>
+                </motion.div>
 
-                <div className="bg-white rounded-xl shadow-2xl p-8">
+                <motion.div
+                    className="bg-white rounded-xl shadow-2xl p-8"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.3 }}
+                >
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <Input
                             id="name"
@@ -227,14 +237,19 @@ export default function RegisterPage() {
                             </Link>
                         </p>
                     </div>
-                </div>
+                </motion.div>
 
-                <div className="text-center mt-6">
+                <motion.div
+                    className="text-center mt-6"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5, delay: 0.5 }}
+                >
                     <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
                         ← Voltar para o início
                     </Link>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
         </div>
     )
 }

@@ -8,6 +8,7 @@ import { Tag, CheckCircle, XCircle, Loader2, Percent, DollarSign, Gift } from 'l
 import Image from 'next/image';
 import SmartCalendar from "@/components/SmartCalendar";
 import { Calendar, AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion'
 
 interface Service {
     id: string;
@@ -558,18 +559,24 @@ export default function AgendarPage() {
                                             </span>
                                         </div>
                                         <div className="grid md:grid-cols-2 gap-4 mb-8">
-                                            {combos.map((combo) => (
-                                                <ComboCardWithCarousel
+                                            {combos.map((combo, index) => (
+                                                <motion.div
                                                     key={combo.id}
-                                                    combo={combo}
-                                                    isSelected={selectedCombo?.id === combo.id}
-                                                    onSelect={() => {
-                                                        setSelectedCombo(combo)
-                                                        setSelectedService(null)  // Desselecionar serviço
-                                                        setCupomValidado(null)
-                                                        setCodigoCupom('')
-                                                    }}
-                                                />
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                                                >
+                                                    <ComboCardWithCarousel
+                                                        combo={combo}
+                                                        isSelected={selectedCombo?.id === combo.id}
+                                                        onSelect={() => {
+                                                            setSelectedCombo(combo)
+                                                            setSelectedService(null)
+                                                            setCupomValidado(null)
+                                                            setCodigoCupom('')
+                                                        }}
+                                                    />
+                                                </motion.div>
                                             ))}
                                         </div>
 
@@ -588,18 +595,24 @@ export default function AgendarPage() {
 
                                 {/* SEÇÃO DE SERVIÇOS INDIVIDUAIS */}
                                 <div className="grid md:grid-cols-2 gap-4">
-                                    {services.map((service) => (
-                                        <ServiceCardWithCarousel
+                                    {services.map((service, index) => (
+                                        <motion.div
                                             key={service.id}
-                                            service={service}
-                                            isSelected={selectedService?.id === service.id}
-                                            onSelect={() => {
-                                                setSelectedService(service)
-                                                setSelectedCombo(null)  // Desselecionar combo
-                                                setCupomValidado(null)
-                                                setCodigoCupom('')
-                                            }}
-                                        />
+                                            initial={{ opacity: 0, y: 30 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.4, delay: index * 0.1 }}
+                                        >
+                                            <ServiceCardWithCarousel
+                                                service={service}
+                                                isSelected={selectedService?.id === service.id}
+                                                onSelect={() => {
+                                                    setSelectedService(service)
+                                                    setSelectedCombo(null)
+                                                    setCupomValidado(null)
+                                                    setCodigoCupom('')
+                                                }}
+                                            />
+                                        </motion.div>
                                     ))}
                                 </div>
 
@@ -816,9 +829,12 @@ export default function AgendarPage() {
                                             </div>
                                         ) : availableSlots.length > 0 ? (
                                             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                                                {availableSlots.map((slot) => (
-                                                    <button
+                                                {availableSlots.map((slot, index) => (
+                                                    <motion.button
                                                         key={slot}
+                                                        initial={{ opacity: 0, scale: 0.8 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ duration: 0.2, delay: index * 0.03 }}
                                                         onClick={() => setSelectedTime(slot)}
                                                         className={`py-3 px-4 rounded-lg font-semibold transition-all ${selectedTime === slot
                                                             ? "bg-gold text-white shadow-lg"
@@ -826,7 +842,7 @@ export default function AgendarPage() {
                                                             }`}
                                                     >
                                                         {slot}
-                                                    </button>
+                                                    </motion.button>
                                                 ))}
                                             </div>
                                         ) : selectedDate ? (

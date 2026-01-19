@@ -10,6 +10,7 @@ import Button from '@/components/ui/Button'
 import Logo from '@/components/Logo'
 import { useToast } from '@/components/ui/ToastContainer'
 import { validateEmail } from '@/lib/validation'
+import { motion } from 'framer-motion'
 
 export default function ForgotPasswordPage() {
     const { showToast } = useToast()
@@ -92,7 +93,12 @@ export default function ForgotPasswordPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
-            <div className="max-w-md w-full">
+            <motion.div
+                className="max-w-md w-full"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-6">
                         <Logo variant="header" />
@@ -217,7 +223,7 @@ export default function ForgotPasswordPage() {
                         ← Voltar para o início
                     </Link>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </div >
     )
 }

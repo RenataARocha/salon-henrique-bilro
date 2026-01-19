@@ -9,6 +9,7 @@ import { Clock, Calendar, CheckCircle, XCircle, AlertCircle, Ban, Tag, Percent, 
 import Navbar from '@/components/NavBar'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
 import { isAfter, subHours, parseISO } from 'date-fns'
+import { motion } from 'framer-motion'
 
 interface Appointment {
     id: string
@@ -141,7 +142,13 @@ export default function HistoricoPage() {
 
             <div className="min-h-screen bg-beige py-8 px-4">
                 <div className="max-w-6xl mx-auto">
-                    <div className="flex items-center justify-between mb-8">
+                    {/* Título e Botão - Animação de entrada */}
+                    <motion.div
+                        className="flex items-center justify-between mb-8"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                    >
                         <div>
                             <h1 className="text-4xl font-bold text-charcoal mb-2">
                                 Meu Histórico
@@ -157,30 +164,36 @@ export default function HistoricoPage() {
                             <CalendarIcon size={20} />
                             Novo Agendamento
                         </button>
-                    </div>
+                    </motion.div>
 
-                    {/* Estatísticas */}
+                    {/* Estatísticas - Animação em cascata */}
                     <div className="grid md:grid-cols-4 gap-4 mb-8">
-                        <div className="bg-white rounded-xl p-6 shadow">
-                            <p className="text-gray-600 text-sm mb-1">Total</p>
-                            <p className="text-3xl font-bold text-charcoal">{stats.total}</p>
-                        </div>
-                        <div className="bg-white rounded-xl p-6 shadow">
-                            <p className="text-gray-600 text-sm mb-1">Concluídos</p>
-                            <p className="text-3xl font-bold text-green-600">{stats.completed}</p>
-                        </div>
-                        <div className="bg-white rounded-xl p-6 shadow">
-                            <p className="text-gray-600 text-sm mb-1">Cancelados</p>
-                            <p className="text-3xl font-bold text-red-600">{stats.cancelled}</p>
-                        </div>
-                        <div className="bg-white rounded-xl p-6 shadow">
-                            <p className="text-gray-600 text-sm mb-1">Não Compareceu</p>
-                            <p className="text-3xl font-bold text-gray-600">{stats.noShow}</p>
-                        </div>
+                        {[
+                            { label: 'Total', value: stats.total, color: 'text-charcoal' },
+                            { label: 'Concluídos', value: stats.completed, color: 'text-green-600' },
+                            { label: 'Cancelados', value: stats.cancelled, color: 'text-red-600' },
+                            { label: 'Não Compareceu', value: stats.noShow, color: 'text-gray-600' }
+                        ].map((stat, index) => (
+                            <motion.div
+                                key={stat.label}
+                                className="bg-white rounded-xl p-6 shadow"
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: 0.2 + (index * 0.1) }}
+                            >
+                                <p className="text-gray-600 text-sm mb-1">{stat.label}</p>
+                                <p className={`text-3xl font-bold ${stat.color}`}>{stat.value}</p>
+                            </motion.div>
+                        ))}
                     </div>
 
-                    {/* Filtros */}
-                    <div className="flex gap-3 flex-wrap mb-6">
+                    {/* Filtros - Animação de fade in */}
+                    <motion.div
+                        className="flex gap-3 flex-wrap mb-6"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.6 }}
+                    >
                         {[
                             { value: 'all', label: 'Todos', icon: '📋' },
                             { value: 'COMPLETED', label: 'Concluídos', icon: '✅' },
@@ -200,17 +213,23 @@ export default function HistoricoPage() {
                                 {filter.icon} {filter.label}
                             </button>
                         ))}
-                    </div>
+                    </motion.div>
 
                     {/* Lista de agendamentos */}
                     {filteredAppointments.length > 0 ? (
                         <div className="space-y-4">
-                            {filteredAppointments.map(appointment => {
+                            {filteredAppointments.map((appointment, index) => {
                                 const statusInfo = getStatusInfo(appointment.status)
                                 const StatusIcon = statusInfo.icon
 
                                 return (
-                                    <div key={appointment.id} className={`bg-white rounded-xl shadow p-6 border-2 ${statusInfo.borderColor}`}>
+                                    <motion.div
+                                        key={appointment.id}
+                                        className={`bg-white rounded-xl shadow p-6 border-2 ${statusInfo.borderColor}`}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                                    >
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex-1">
                                                 <h3 className="text-xl font-bold text-charcoal mb-2">
@@ -311,7 +330,7 @@ export default function HistoricoPage() {
                                                 </button>
                                             )}
                                         </div>
-                                    </div>
+                                    </motion.div>
                                 )
                             })}
                         </div>
