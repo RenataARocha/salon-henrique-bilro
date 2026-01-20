@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, Calendar, Target, Users, Clock } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { motion } from 'framer-motion';
+import { Variants } from "framer-motion";
 
 interface AnalyticsData {
     summary: {
@@ -69,12 +71,40 @@ const FinancialDashboard = () => {
     const goalProgress = (data.comparisons.month.revenue / monthlyGoal) * 100;
     const goalRemaining = monthlyGoal - data.comparisons.month.revenue;
 
+    const cardAnimation: Variants = {
+        hidden: { opacity: 0, y: 40 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 0.8,
+                ease: "easeOut" as const,
+            },
+        },
+    };
+
+
     return (
-        <div className="space-y-6">
+        <motion.div
+            className="space-y-6"
+            initial="hidden"
+            animate="visible"
+            variants={{
+                hidden: {},
+                visible: {
+                    transition: {
+                        staggerChildren: 0.1,
+                    },
+                },
+            }}
+        >
             {/* Métricas Principais */}
             <div className="grid md:grid-cols-3 gap-6">
                 {/* Hoje */}
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                <motion.div
+                    variants={cardAnimation}
+                    className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white"
+                >
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold opacity-90">💰 RECEITA HOJE</h3>
                         {data.comparisons.today.change !== 0 && (
@@ -92,10 +122,12 @@ const FinancialDashboard = () => {
                     <p className="text-sm opacity-75">
                         {data.comparisons.today.change > 0 ? '↑' : '↓'} vs ontem
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Semana */}
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                <motion.div
+                    variants={cardAnimation}
+                    className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold opacity-90">📊 ESTA SEMANA</h3>
                         {data.comparisons.week.change !== 0 && (
@@ -113,10 +145,12 @@ const FinancialDashboard = () => {
                     <p className="text-sm opacity-75">
                         {data.comparisons.week.change > 0 ? '↑' : '↓'} vs semana passada
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Mês */}
-                <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg p-6 text-white">
+                <motion.div
+                    variants={cardAnimation}
+                    className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg p-6 text-white">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-sm font-semibold opacity-90">📅 ESTE MÊS</h3>
                         {data.comparisons.month.change !== 0 && (
@@ -134,11 +168,13 @@ const FinancialDashboard = () => {
                     <p className="text-sm opacity-75">
                         {data.comparisons.month.change > 0 ? '↑' : '↓'} vs mês passado
                     </p>
-                </div>
+                </motion.div>
             </div>
 
             {/* Meta Mensal */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            <motion.div
+                variants={cardAnimation}
+                className="bg-white rounded-xl shadow-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                     <Target className="text-pink-500" size={24} />
                     <h3 className="text-xl font-bold text-gray-800">🎯 META MENSAL</h3>
@@ -173,10 +209,12 @@ const FinancialDashboard = () => {
                         </p>
                     )}
                 </div>
-            </div>
+            </motion.div>
 
             {/* Gráfico de Receita (Últimos 30 dias) */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            <motion.div
+                variants={cardAnimation}
+                className="bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                     <Calendar size={24} className="text-purple-500" />
                     Receita nos Últimos 30 Dias
@@ -207,11 +245,13 @@ const FinancialDashboard = () => {
                         />
                     </LineChart>
                 </ResponsiveContainer>
-            </div>
+            </motion.div>
 
-            <div className="grid md:grid-cols-2 gap-6">
+            <motion.div
+                variants={cardAnimation} className="grid md:grid-cols-2 gap-6">
                 {/* Serviços Mais Vendidos */}
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <motion.div
+                    variants={cardAnimation} className="bg-white rounded-xl shadow-lg p-6">
                     <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                         <DollarSign size={24} className="text-green-500" />
                         Serviços Mais Vendidos
@@ -235,7 +275,7 @@ const FinancialDashboard = () => {
                             <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
                         </PieChart>
                     </ResponsiveContainer>
-                </div>
+                </motion.div>
 
                 {/* Horários de Pico */}
                 <div className="bg-white rounded-xl shadow-lg p-6">
@@ -253,10 +293,12 @@ const FinancialDashboard = () => {
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
-            </div>
+            </motion.div>
 
             {/* Comparativo Mensal */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
+            <motion.div
+                variants={cardAnimation}
+                className="bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                     <Users size={24} className="text-pink-500" />
                     Comparativo Mensal
@@ -271,10 +313,12 @@ const FinancialDashboard = () => {
                         <Bar dataKey="revenue" fill="#ec4899" radius={[8, 8, 0, 0]} name="Receita" />
                     </BarChart>
                 </ResponsiveContainer>
-            </div>
+            </motion.div>
 
             {/* Resumo */}
-            <div className="grid md:grid-cols-4 gap-4">
+            <motion.div
+                variants={cardAnimation}
+                className="grid md:grid-cols-4 gap-4">
                 <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
                     <p className="text-sm text-gray-600 mb-1">Total de Agendamentos</p>
                     <p className="text-2xl font-bold text-gray-800">{data.summary.totalAppointments}</p>
@@ -300,8 +344,8 @@ const FinancialDashboard = () => {
                         R$ {data.summary.totalDiscount.toFixed(2)}
                     </p>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div >
     );
 };
 

@@ -8,6 +8,8 @@ import { useEffect } from 'react';
 import { ArrowLeft, Home } from 'lucide-react';
 import Link from 'next/link';
 import FinancialDashboard from '@/components/admin/FinancialDashboard';
+import { motion } from 'framer-motion';
+
 
 export default function FinanceiroPage() {
     const { data: session, status } = useSession();
@@ -34,10 +36,20 @@ export default function FinanceiroPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <motion.div
+            className="min-h-screen bg-gray-50 p-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+        >
             <div className="max-w-7xl mx-auto">
                 {/* Navegação */}
-                <div className="mb-6 justify-end flex gap-3">
+                <motion.div
+                    className="mb-6 justify-end flex gap-3"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
                     <Link
                         href="/admin"
                         className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
@@ -53,21 +65,26 @@ export default function FinanceiroPage() {
                         <Home size={20} />
                         Voltar ao início
                     </Link>
-                </div>
+                </motion.div>
 
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <motion.div
+                    className="bg-white rounded-lg shadow-sm p-6 mb-6"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
+                >
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
                         💰 Dashboard Financeiro
                     </h1>
                     <p className="text-gray-600">
                         Visão completa da saúde financeira do salão
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Dashboard */}
                 <FinancialDashboard />
             </div>
-        </div>
+        </motion.div >
     );
 }
