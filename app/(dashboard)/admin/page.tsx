@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
 import { Calendar, Users, Settings, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 
 interface QuickStats {
     todayAppointments: number
@@ -129,7 +130,12 @@ export default function AdminDashboard() {
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto">
                 {/* Header com botão Home */}
-                <div className="mb-8">
+                <motion.div
+                    className="mb-8"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h1 className="text-4xl font-bold text-charcoal mb-2">
@@ -149,10 +155,15 @@ export default function AdminDashboard() {
                             Voltar ao Início
                         </Link>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Estatísticas Rápidas */}
-                <div className="mb-8 bg-gradient-gold rounded-2xl p-8 text-white shadow-xl">
+                <motion.div
+                    className="mb-8 bg-gradient-gold rounded-2xl p-8 text-white shadow-xl"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
                     <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                         <BarChart3 size={28} />
                         📊 Resumo do Dia
@@ -208,33 +219,39 @@ export default function AdminDashboard() {
                             )}
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Cards de Menu */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {menuItems.map((item) => (
-                        <Link
+                    {menuItems.map((item, index) => (
+                        <motion.div
                             key={item.href}
-                            href={item.href}
-                            className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all hover:scale-105 group"
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.8 + (index * 0.05) }}
                         >
-                            <div className="flex items-start gap-6">
-                                <div className={`${item.color} p-4 rounded-xl text-white group-hover:scale-110 transition-transform`}>
-                                    <item.icon size={32} />
+                            <Link
+                                href={item.href}
+                                className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all hover:scale-105 group block"
+                            >
+                                <div className="flex items-start gap-6">
+                                    <div className={`${item.color} p-4 rounded-xl text-white group-hover:scale-110 transition-transform`}>
+                                        <item.icon size={32} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="text-2xl font-bold text-charcoal mb-2 group-hover:text-gold transition-colors">
+                                            {item.title}
+                                        </h3>
+                                        <p className="text-gray-600">
+                                            {item.description}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="text-2xl font-bold text-charcoal mb-2 group-hover:text-gold transition-colors">
-                                        {item.title}
-                                    </h3>
-                                    <p className="text-gray-600">
-                                        {item.description}
-                                    </p>
-                                </div>
-                            </div>
-                        </Link>
+                            </Link>
+                        </motion.div>
                     ))}
                 </div>
             </div>
-        </div>
+        </div >
     )
 }

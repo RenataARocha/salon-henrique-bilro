@@ -5,6 +5,8 @@ import { Filter, X, Search, CheckSquare, Square } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
 import { Calendar } from 'lucide-react'
+import { motion } from 'framer-motion'
+
 
 type AppointmentStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW'
 
@@ -677,7 +679,12 @@ export default function AdminAgendamentosPage() {
                 />
 
                 {/* Barra de Busca e Controles */}
-                <div className="bg-white rounded-xl p-4 shadow space-y-4">
+                <motion.div
+                    className="bg-white rounded-xl p-4 shadow space-y-4"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="flex gap-3">
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -815,61 +822,81 @@ export default function AdminAgendamentosPage() {
                             </div>
                         </div>
                     )}
-                </div>
+                </motion.div>
 
                 {/* Estatísticas */}
                 <div className="grid md:grid-cols-5 gap-6">
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Total</p>
-                        <p className="text-3xl font-bold text-charcoal">{stats.total}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Pendentes</p>
-                        <p className="text-3xl font-bold text-orange-600">{stats.pending}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Confirmados</p>
-                        <p className="text-3xl font-bold text-green-600">{stats.confirmed}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Concluídos</p>
-                        <p className="text-3xl font-bold text-blue-600">{stats.completed}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Receita</p>
-                        <p className="text-3xl font-bold text-gold">R$ {stats.revenue.toFixed(2)}</p>
-                    </div>
+                    {[
+                        { label: 'Total', value: stats.total, color: 'text-charcoal' },
+                        { label: 'Pendentes', value: stats.pending, color: 'text-orange-600' },
+                        { label: 'Confirmados', value: stats.confirmed, color: 'text-green-600' },
+                        { label: 'Concluídos', value: stats.completed, color: 'text-blue-600' },
+                        { label: 'Receita', value: `R$ ${stats.revenue.toFixed(2)}`, color: 'text-gold' }
+                    ].map((stat, index) => (
+                        <motion.div
+                            key={stat.label}
+                            className="bg-white rounded-xl p-6 shadow"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.2 + index * 0.1 }}
+                        >
+                            <p className="text-gray-600 text-sm mb-1">{stat.label}</p>
+                            <p className={`text-3xl font-bold ${stat.color}`}>
+                                {stat.value}
+                            </p>
+                        </motion.div>
+                    ))}
                 </div>
 
+
                 {/* Filtros de Período */}
-                <div className="bg-white rounded-xl p-6 shadow">
+                <motion.div
+                    className="bg-white rounded-xl p-6 shadow"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
                     <div className="flex items-center gap-2 mb-4">
                         <Filter size={20} className="text-gold" />
                         <h3 className="font-bold text-charcoal">Período</h3>
                     </div>
+
                     <div className="flex gap-3 flex-wrap">
                         {[
                             { value: 'today', label: 'Hoje', icon: '📅' },
                             { value: 'week', label: 'Esta Semana', icon: '📆' },
                             { value: 'month', label: 'Este Mês', icon: '🗓️' },
                             { value: 'all', label: 'Todos', icon: '📋' }
-                        ].map((filter) => (
-                            <button
+                        ].map((filter, index) => (
+                            <motion.button
                                 key={filter.value}
-                                onClick={() => setFilterPeriod(filter.value as 'today' | 'week' | 'month' | 'all')}
+                                onClick={() =>
+                                    setFilterPeriod(filter.value as 'today' | 'week' | 'month' | 'all')
+                                }
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: index * 0.05 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
                                 className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterPeriod === filter.value
                                     ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
                                     : 'bg-beige text-charcoal hover:shadow-md'
                                     }`}
                             >
                                 {filter.icon} {filter.label}
-                            </button>
+                            </motion.button>
                         ))}
                     </div>
-                </div>
+                </motion.div>
+
 
                 {/* Filtros de Status */}
-                <div className="flex gap-3 flex-wrap">
+                <motion.div
+                    className="flex gap-3 flex-wrap"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
+                >
                     {[
                         { value: 'all', label: 'Todos', icon: '📋' },
                         { value: 'PENDING', label: 'Pendentes', icon: '⏳' },
@@ -877,19 +904,25 @@ export default function AdminAgendamentosPage() {
                         { value: 'COMPLETED', label: 'Concluídos', icon: '🎉' },
                         { value: 'NO_SHOW', label: 'Não Compareceu', icon: '🚫' },
                         { value: 'CANCELLED', label: 'Cancelados', icon: '❌' }
-                    ].map((filter) => (
-                        <button
+                    ].map((filter, index) => (
+                        <motion.button
                             key={filter.value}
                             onClick={() => setFilterStatus(filter.value)}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.05 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                             className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
-                                ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
-                                : 'bg-white text-charcoal hover:shadow-md'
+                                    ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
+                                    : 'bg-white text-charcoal hover:shadow-md'
                                 }`}
                         >
                             {filter.icon} {filter.label}
-                        </button>
+                        </motion.button>
                     ))}
-                </div>
+                </motion.div>
+
 
                 {/* Lista com Checkboxes */}
                 {filteredAppointments.length > 0 ? (
@@ -919,7 +952,7 @@ export default function AdminAgendamentosPage() {
                         </div>
 
                         {/* Lista */}
-                        {filteredAppointments.map((apt) => {
+                        {filteredAppointments.map((apt, index) => {
                             const price = apt.combo
                                 ? apt.combo.comboPrice
                                 : apt.service?.price ?? 0
@@ -929,10 +962,13 @@ export default function AdminAgendamentosPage() {
                                 : apt.service?.duration ?? 0
 
                             return (
-                                <div
+                                <motion.div
                                     key={apt.id}
                                     className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
                                         }`}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.3, delay: index * 0.05 }}
                                 >
                                     {/* card */}
                                     <div
@@ -986,7 +1022,7 @@ export default function AdminAgendamentosPage() {
                                         </div>
                                     </div>
 
-                                </div>
+                                </motion.div>
 
                             )
                         })}
@@ -1117,5 +1153,5 @@ export default function AdminAgendamentosPage() {
                 }
             `}</style>
             </div>
-        </div>)
+        </div >)
 }
