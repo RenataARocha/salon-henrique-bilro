@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { TrendingUp, DollarSign, Calendar, Clock, Users, Award, Download, Filter, ArrowLeft, Home } from 'lucide-react'
 import { exportReportToCSV, exportToPDF } from '@/lib/exportUtils'
+import { motion, Variants } from 'framer-motion'
+
 
 interface ReportData {
     revenue: {
@@ -145,11 +147,42 @@ export default function RelatoriosPage() {
     // ✅ Pega os dados do período selecionado
     const currentPeriodData = data.revenue[period]
 
+    const containerAnimation: Variants = {
+        hidden: {},
+        visible: {
+            transition: {
+                staggerChildren: 0.25,   // antes: 0.15
+                delayChildren: 0.4,      // antes: 0.2
+            },
+        },
+    }
+
+    const cardAnimation: Variants = {
+        hidden: { opacity: 0, y: 50 }, // sobe um pouco mais suave
+        visible: {
+            opacity: 1,
+            y: 0,
+            transition: {
+                duration: 1.2,          // antes: 0.8
+                ease: [0.16, 1, 0.3, 1],
+            },
+        },
+    }
+
+
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
+        <motion.div
+            className="min-h-screen bg-beige py-8 px-4"
+            variants={containerAnimation}
+            initial="hidden"
+            animate="visible"
+        >
+
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
-                <div className="flex items-center justify-between flex-wrap gap-4">
+                <motion.div
+                    variants={cardAnimation}
+                    className="flex items-center justify-between flex-wrap gap-4">
                     <div>
                         <h1 className="text-3xl font-bold text-charcoal mb-2">📊 Relatórios</h1>
                         <p className="text-gray-600">Análise completa do desempenho do salão</p>
@@ -170,10 +203,12 @@ export default function RelatoriosPage() {
                             Excel/CSV
                         </button>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Navegação */}
-                <div className="flex justify-end gap-3">
+                <motion.div
+                    variants={cardAnimation}
+                    className="flex justify-end gap-3">
                     <Link
                         href="/admin"
                         className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
@@ -189,10 +224,12 @@ export default function RelatoriosPage() {
                         <Home size={20} />
                         Voltar ao início
                     </Link>
-                </div>
+                </motion.div>
 
                 {/* Filtros */}
-                <div className="bg-white rounded-xl p-6 shadow">
+                <motion.div
+                    variants={cardAnimation}
+                    className="bg-white rounded-xl p-6 shadow">
                     <div className="flex items-center gap-4 flex-wrap">
                         <div className="flex items-center gap-2">
                             <Filter size={20} className="text-gold" />
@@ -251,10 +288,12 @@ export default function RelatoriosPage() {
                         {period === 'weekly' && 'Agrupa dados por semana no período selecionado'}
                         {period === 'monthly' && 'Agrupa dados por mês no período selecionado'}
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Cards de Resumo */}
-                <div className="grid md:grid-cols-5 gap-6">
+                <motion.div
+                    variants={cardAnimation}
+                    className="grid md:grid-cols-5 gap-6">
                     <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 shadow-lg text-white">
                         <DollarSign className="mb-2" size={32} />
                         <p className="text-white/80 text-sm mb-1">Receita Total</p>
@@ -291,10 +330,12 @@ export default function RelatoriosPage() {
                         <p className="text-3xl font-bold">{data.summary.newClients}</p>
                         <p className="text-sm text-white/70 mt-2">No período</p>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Gráfico de Faturamento */}
-                <div className="bg-white rounded-xl p-6 shadow">
+                <motion.div
+                    variants={cardAnimation}
+                    className="bg-white rounded-xl p-6 shadow">
                     <h3 className="text-xl font-bold text-charcoal mb-6 flex items-center gap-2">
                         <TrendingUp className="text-gold" size={24} />
                         Evolução do Faturamento
@@ -334,12 +375,14 @@ export default function RelatoriosPage() {
                             <p className="text-sm mt-2">Complete alguns agendamentos para visualizar os gráficos.</p>
                         </div>
                     )}
-                </div>
+                </motion.div>
 
                 {/* Serviços Mais Vendidos e Horários de Pico */}
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Serviços */}
-                    <div className="bg-white rounded-xl p-6 shadow">
+                    <motion.div
+                        variants={cardAnimation}
+                        className="bg-white rounded-xl p-6 shadow">
                         <h3 className="text-xl font-bold text-charcoal mb-6 flex items-center gap-2">
                             <Award className="text-gold" size={24} />
                             Top 10 Serviços
@@ -395,10 +438,12 @@ export default function RelatoriosPage() {
                                 <p className="text-sm mt-2">Complete agendamentos para ver o ranking.</p>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
 
                     {/* Horários de Pico */}
-                    <div className="bg-white rounded-xl p-6 shadow">
+                    <motion.div
+                        variants={cardAnimation}
+                        className="bg-white rounded-xl p-6 shadow">
                         <h3 className="text-xl font-bold text-charcoal mb-6 flex items-center gap-2">
                             <Clock className="text-gold" size={24} />
                             Horários de Pico
@@ -437,13 +482,15 @@ export default function RelatoriosPage() {
                                 <p className="text-sm mt-2">Crie agendamentos para ver os horários de pico.</p>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 </div>
 
                 {/* Cancelamentos e Top Clientes */}
                 <div className="grid md:grid-cols-2 gap-6">
                     {/* Cancelamentos */}
-                    <div className="bg-white rounded-xl p-6 shadow">
+                    <motion.div
+                        variants={cardAnimation}
+                        className="bg-white rounded-xl p-6 shadow">
                         <h3 className="text-xl font-bold text-charcoal mb-6">
                             📊 Análise de Cancelamentos
                         </h3>
@@ -467,10 +514,12 @@ export default function RelatoriosPage() {
                                 <p>✅ Nenhum cancelamento registrado!</p>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
 
                     {/* Top Clientes */}
-                    <div className="bg-white rounded-xl p-6 shadow">
+                    <motion.div
+                        variants={cardAnimation}
+                        className="bg-white rounded-xl p-6 shadow">
                         <h3 className="text-xl font-bold text-charcoal mb-6 flex items-center gap-2">
                             <Users className="text-gold" size={24} />
                             Top 10 Clientes
@@ -496,7 +545,7 @@ export default function RelatoriosPage() {
                                 <p className="text-sm mt-2">Complete agendamentos para ver o ranking.</p>
                             </div>
                         )}
-                    </div>
+                    </motion.div>
                 </div>
             </div>
 
@@ -507,6 +556,6 @@ export default function RelatoriosPage() {
                 .bg-charcoal { background-color: #2C2C2C; }
                 .bg-beige { background-color: #F5F5DC; }
             `}</style>
-        </div>
+        </motion.div >
     )
 } 
