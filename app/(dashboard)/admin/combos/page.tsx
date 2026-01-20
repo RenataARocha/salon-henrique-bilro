@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Gift, Percent, X, Check } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
+import { motion } from 'framer-motion'
 
 interface Service {
     id: string
@@ -273,7 +274,12 @@ export default function AdminCombosPage() {
                 />
 
                 {/* Botão Adicionar */}
-                <div className="flex justify-end">
+                <motion.div
+                    className="flex justify-end"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <button
                         onClick={() => handleOpenModal()}
                         className="flex items-center gap-2 bg-gradient-gold text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
@@ -281,14 +287,17 @@ export default function AdminCombosPage() {
                         <Plus size={20} />
                         Criar Novo Combo
                     </button>
-                </div>
+                </motion.div>
 
                 {/* Lista de Combos */}
                 {combos.length > 0 ? (
                     <div className="grid md:grid-cols-2 gap-6">
-                        {combos.map(combo => (
-                            <div
+                        {combos.map((combo, index) => (
+                            <motion.div
                                 key={combo.id}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.4, delay: index * 0.1 }}
                                 className={`bg-white rounded-xl shadow-lg p-6 border-2 ${combo.active ? 'border-gold' : 'border-gray-300 '
                                     } ${combo.featured ? 'ring-2 ring-yellow-400' : ''}`}  // ✅ ADICIONAR
                             >
@@ -386,7 +395,7 @@ export default function AdminCombosPage() {
                                         </span>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 ) : (
@@ -410,7 +419,12 @@ export default function AdminCombosPage() {
                 {/* Modal de Criar/Editar */}
                 {showModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                        <motion.div
+                            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                        >
                             <div className="p-6 border-b sticky top-0 bg-white">
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-2xl font-bold text-charcoal">
@@ -548,10 +562,10 @@ export default function AdminCombosPage() {
                                     </button>
                                 </div>
                             </form>
-                        </div>
+                        </motion.div>
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     )
 }

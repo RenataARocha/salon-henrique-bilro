@@ -5,7 +5,7 @@ import { Search, X, Filter, UserPlus } from 'lucide-react'
 import ClientDetailsModal from '@/components/admin/ClientDetailsModal'
 import Link from 'next/link'
 import { ArrowLeft, Home } from 'lucide-react'
-
+import { motion } from 'framer-motion'
 
 interface Client {
     id: string
@@ -170,7 +170,12 @@ export default function ClientesPage() {
 
 
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <motion.div
+                    className="flex items-center justify-between"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div>
                         <h1 className="text-3xl font-bold text-charcoal mb-2">👥 Clientes</h1>
                         <p className="text-gray-600">Gerencie todos os clientes do salão</p>
@@ -193,42 +198,42 @@ export default function ClientesPage() {
                             Voltar ao início
                         </Link>
                     </div>
-                </div>
+                </motion.div>
 
 
                 {/* Estatísticas */}
                 <div className="grid md:grid-cols-6 gap-4">
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Total de Clientes</p>
-                        <p className="text-3xl font-bold text-charcoal">{stats.total}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Novos</p>
-                        <p className="text-3xl font-bold text-blue-600">{stats.new}</p>
-                        <p className="text-xs text-gray-500 mt-1">Últimos 6 meses</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Regulares</p>
-                        <p className="text-3xl font-bold text-green-600">{stats.regular}</p>
-                        <p className="text-xs text-gray-500 mt-1">Não VIP</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">VIP</p>
-                        <p className="text-3xl font-bold text-purple-600">{stats.vip}</p>
-                        <p className="text-xs text-gray-500 mt-1">&gt; R$ 5.000</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Receita Total</p>
-                        <p className="text-2xl font-bold text-gold">R$ {stats.totalRevenue.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-white rounded-xl p-6 shadow">
-                        <p className="text-gray-600 text-sm mb-1">Ticket Médio</p>
-                        <p className="text-2xl font-bold text-gold">R$ {stats.averageSpent.toFixed(2)}</p>
-                    </div>
+                    {[
+                        { label: 'Total de Clientes', value: stats.total, color: 'text-charcoal', extra: null },
+                        { label: 'Novos', value: stats.new, color: 'text-blue-600', extra: 'Últimos 6 meses' },
+                        { label: 'Regulares', value: stats.regular, color: 'text-green-600', extra: 'Não VIP' },
+                        { label: 'VIP', value: stats.vip, color: 'text-purple-600', extra: '> R$ 5.000' },
+                        { label: 'Receita Total', value: `R$ ${stats.totalRevenue.toFixed(2)}`, color: 'text-gold', extra: null, large: true },
+                        { label: 'Ticket Médio', value: `R$ ${stats.averageSpent.toFixed(2)}`, color: 'text-gold', extra: null, large: true }
+                    ].map((stat, index) => (
+                        <motion.div
+                            key={stat.label}
+                            className="bg-white rounded-xl p-6 shadow"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: 0.2 + (index * 0.1) }}
+                        >
+                            <p className="text-gray-600 text-sm mb-1">{stat.label}</p>
+                            <p className={`${stat.large ? 'text-2xl' : 'text-3xl'} font-bold ${stat.color}`}>
+                                {stat.value}
+                            </p>
+                            {stat.extra && <p className="text-xs text-gray-500 mt-1">{stat.extra}</p>}
+                        </motion.div>
+                    ))}
                 </div>
 
                 {/* Barra de Busca e Filtros */}
-                <div className="bg-white rounded-xl p-4 shadow space-y-4">
+                <motion.div
+                    className="bg-white rounded-xl p-4 shadow space-y-4"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.8 }}
+                >
                     <div className="flex gap-3">
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -237,12 +242,12 @@ export default function ClientesPage() {
                                 placeholder="🔍 Buscar por nome, email ou telefone..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent"
+                                className="w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent transition-all"
                             />
                             {searchTerm && (
                                 <button
                                     onClick={() => setSearchTerm('')}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                 >
                                     <X size={20} />
                                 </button>
@@ -251,7 +256,7 @@ export default function ClientesPage() {
 
                         <button
                             onClick={() => setShowFilters(!showFilters)}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-colors ${showFilters ? 'bg-gold text-white border-gold' : 'hover:bg-gray-50'
+                            className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-all ${showFilters ? 'bg-gold text-white border-gold' : 'hover:bg-gray-50'
                                 }`}
                         >
                             <Filter size={20} />
@@ -261,7 +266,7 @@ export default function ClientesPage() {
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as SortOption)}
-                            className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
+                            className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold transition-all"
                         >
                             <option value="name-asc">Nome A-Z</option>
                             <option value="name-desc">Nome Z-A</option>
@@ -276,12 +281,12 @@ export default function ClientesPage() {
 
                     {/* Filtros Avançados */}
                     {showFilters && (
-                        <div className="border-t pt-4 space-y-4">
+                        <div className="border-t pt-4 space-y-4 animate-slide-down">
                             <div className="flex items-center justify-between">
                                 <h3 className="font-semibold text-charcoal">Filtros Avançados</h3>
                                 <button
                                     onClick={clearFilters}
-                                    className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
+                                    className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
                                 >
                                     <X size={16} />
                                     Limpar Todos
@@ -303,8 +308,8 @@ export default function ClientesPage() {
                                             <button
                                                 key={option.value}
                                                 onClick={() => setFilterByVisits(option.value as typeof filterByVisits)}
-                                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterByVisits === option.value
-                                                    ? 'bg-gold text-white'
+                                                className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 ${filterByVisits === option.value
+                                                    ? 'bg-gold text-white shadow-lg'
                                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                             >
@@ -327,8 +332,8 @@ export default function ClientesPage() {
                                             <button
                                                 key={option.value}
                                                 onClick={() => setFilterByStatus(option.value as typeof filterByStatus)}
-                                                className={`px-4 py-2 rounded-lg font-medium transition-all ${filterByStatus === option.value
-                                                    ? 'bg-gold text-white'
+                                                className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 ${filterByStatus === option.value
+                                                    ? 'bg-gold text-white shadow-lg'
                                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                             >
@@ -340,26 +345,29 @@ export default function ClientesPage() {
                             </div>
                         </div>
                     )}
-                </div>
+                </motion.div>
 
                 {/* Lista de Clientes */}
                 {filteredClients.length > 0 ? (
                     <div className="grid gap-4">
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 animate-fade-in">
                             {filteredClients.length} {filteredClients.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
                         </p>
 
-                        {filteredClients.map((client) => {
+                        {filteredClients.map((client, index) => {
                             const badge = getClientBadge(client)
                             return (
-                                <div
+                                <motion.div
                                     key={client.id}
                                     className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer"
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4, delay: index * 0.05 }}
                                     onClick={() => setSelectedClientId(client.id)}
                                 >
                                     <div className="flex items-start gap-4">
                                         {/* Avatar */}
-                                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-gold to-yellow-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
+                                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-gold to-yellow-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 animate-scale-in">
                                             {client.name.charAt(0).toUpperCase()}
                                         </div>
 
@@ -367,7 +375,7 @@ export default function ClientesPage() {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-3 mb-2">
                                                 <h3 className="text-xl font-bold text-charcoal">{client.name}</h3>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color}`}>
+                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color} animate-fade-in`}>
                                                     {badge.label}
                                                 </span>
                                             </div>
@@ -399,18 +407,18 @@ export default function ClientesPage() {
 
                                         {/* Ações Rápidas */}
                                         <div className="flex flex-col gap-2">
-                                            <button className="px-4 py-2 bg-gold text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-semibold">
+                                            <button className="px-4 py-2 bg-gold text-white rounded-lg hover:bg-yellow-600 transition-all text-sm font-semibold transform hover:scale-105">
                                                 Ver Detalhes
                                             </button>
 
                                         </div>
                                     </div>
-                                </div>
+                                </motion.div>
                             )
                         })}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center animate-fade-in">
                         <p className="text-6xl mb-4">👥</p>
                         <h3 className="text-2xl font-bold text-charcoal mb-2">Nenhum cliente encontrado</h3>
                         <p className="text-gray-600">
@@ -421,7 +429,7 @@ export default function ClientesPage() {
                         </p>
                         <button
                             onClick={clearFilters}
-                            className="mt-4 text-gold hover:text-yellow-600 font-semibold"
+                            className="mt-4 text-gold hover:text-yellow-600 font-semibold transition-colors"
                         >
                             Limpar filtros
                         </button>
@@ -440,14 +448,74 @@ export default function ClientesPage() {
                 .text-charcoal { color: #2C2C2C; }
                 .bg-charcoal { background-color: #2C2C2C; }
                 .bg-beige { background-color: #F5F5DC; }
+                
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                    }
+                    to {
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                @keyframes slideDown {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                @keyframes scaleIn {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.8);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+                
+                .animate-fade-in {
+                    animation: fadeIn 0.5s ease-out forwards;
+                }
+                
+                .animate-slide-up {
+                    animation: slideUp 0.5s ease-out forwards;
+                }
+                
+                .animate-slide-down {
+                    animation: slideDown 0.3s ease-out forwards;
+                }
+                
+                .animate-scale-in {
+                    animation: scaleIn 0.4s ease-out forwards;
+                }
             `}</style>
 
-            {selectedClientId && (
-                <ClientDetailsModal
-                    clientId={selectedClientId}
-                    onClose={() => setSelectedClientId(null)}
-                />
-            )}
-        </div>
+            {
+                selectedClientId && (
+                    <ClientDetailsModal
+                        clientId={selectedClientId}
+                        onClose={() => setSelectedClientId(null)}
+                    />
+                )
+            }
+        </div >
     )
 }

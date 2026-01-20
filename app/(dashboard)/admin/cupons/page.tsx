@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Search, Calendar, Tag, Percent, ArrowLeft, Home } from 'lucide-react';
 import Link from 'next/link';
-
+import { motion } from 'framer-motion'
 interface Cupom {
     id: string;
     code: string;
@@ -212,7 +212,12 @@ export default function AdminCuponsPage() {
                 </div>
 
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <motion.div
+                    className="bg-white rounded-lg shadow-sm p-6 mb-6"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">Gerenciar Cupons</h1>
@@ -275,7 +280,7 @@ export default function AdminCuponsPage() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Lista de Cupons */}
                 <div className="grid gap-4">
@@ -285,8 +290,14 @@ export default function AdminCuponsPage() {
                             <p className="text-gray-500 text-lg">Nenhum cupom encontrado</p>
                         </div>
                     ) : (
-                        cuponsFiltrados.map((cupom) => (
-                            <div key={cupom.id} className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">
+                        cuponsFiltrados.map((cupom, index) => (
+                            <motion.div
+                                key={cupom.id}
+                                className="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.4, delay: index * 0.05 }}
+                            >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
@@ -357,7 +368,7 @@ export default function AdminCuponsPage() {
                                         </button>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))
                     )}
                 </div>
@@ -366,7 +377,12 @@ export default function AdminCuponsPage() {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <motion.div
+                        className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3 }}
+                    >
                         <div className="p-6">
                             <h2 className="text-2xl font-bold mb-6">
                                 {editingId ? 'Editar Cupom' : 'Novo Cupom'}
@@ -497,9 +513,10 @@ export default function AdminCuponsPage() {
                                 </div>
                             </form>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 }

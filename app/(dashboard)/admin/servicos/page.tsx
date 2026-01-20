@@ -12,13 +12,14 @@ import {
     Clock,
     X,
     Image as ImageIcon,
-    Star, // ← ADICIONADO
+    Star,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { useToast } from "@/components/ui/ToastContainer";
 import AdminHeader from "@/components/admin/AdminHeader";
 import Image from "next/image";
+import { motion } from 'framer-motion'
 
 interface Service {
     id: string;
@@ -27,7 +28,7 @@ interface Service {
     price: number;
     duration: number;
     active: boolean;
-    featured?: boolean; // ← ADICIONADO
+    featured?: boolean;
     images?: string[];
 }
 
@@ -255,7 +256,6 @@ export default function AdminServicosPage() {
         }
     };
 
-    // ← NOVA FUNÇÃO: Toggle Featured
     const handleToggleFeatured = async (service: Service) => {
         try {
             const res = await fetch(`/api/admin/services?id=${service.id}`, {
@@ -323,41 +323,51 @@ export default function AdminServicosPage() {
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto space-y-8">
-                <AdminHeader
-                    title="Serviços"
-                    description="Gerencie os serviços oferecidos pelo salão"
-                    showBackButton={true}
-                />
-                <div className="flex justify-between items-center">
+                <div className="animate-fade-in">
+                    <AdminHeader
+                        title="Serviços"
+                        description="Gerencie os serviços oferecidos pelo salão"
+                        showBackButton={true}
+                    />
+                </div>
+
+                <motion.div
+                    className="flex justify-between items-center"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <Button variant="primary" onClick={() => openModal()}>
                         <Plus size={20} />
                         Novo Serviço
                     </Button>
-                </div>
+                </motion.div>
 
                 {services.length > 0 ? (
                     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {services.map((service) => (
-                            <div
+                        {services.map((service, index) => (
+                            <motion.div
                                 key={service.id}
-                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow ${!service.active ? "opacity-60" : ""
-                                    } ${service.featured ? "ring-2 ring-yellow-400" : ""
-                                    }`}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.4, delay: index * 0.1 }}
+                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 animate-slide-up ${!service.active ? "opacity-60" : ""
+                                    } ${service.featured ? "ring-2 ring-yellow-400" : ""}`}
+                                style={{ animationDelay: `${index * 100}ms` }}
                             >
-                                {/* ← Badge de Featured */}
                                 {service.featured && (
-                                    <div className="mb-3 flex items-center gap-2 text-yellow-600 text-sm font-bold">
-                                        <Star size={16} className="fill-yellow-400" />
+                                    <div className="mb-3 flex items-center gap-2 text-yellow-600 text-sm font-bold animate-fade-in">
+                                        <Star size={16} className="fill-yellow-400 animate-pulse" />
                                         <span>Destaque na Home</span>
                                     </div>
                                 )}
 
                                 {service.images && service.images.length > 0 && (
-                                    <div className="mb-4 h-48 rounded-lg overflow-hidden bg-gray-100">
+                                    <div className="mb-4 h-48 rounded-lg overflow-hidden bg-gray-100 animate-scale-in">
                                         <img
                                             src={service.images[0]}
                                             alt={service.name}
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover transition-transform hover:scale-110"
                                         />
                                     </div>
                                 )}
@@ -367,7 +377,7 @@ export default function AdminServicosPage() {
                                         {service.name}
                                     </h3>
                                     <span
-                                        className={`px-3 py-1 rounded-full text-xs font-semibold ${service.active
+                                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${service.active
                                             ? "bg-green-100 text-green-700"
                                             : "bg-red-100 text-red-700"
                                             }`}
@@ -397,18 +407,17 @@ export default function AdminServicosPage() {
                                     </div>
                                 </div>
 
-                                {/* ← BOTÕES ATUALIZADOS */}
                                 <div className="flex gap-2 mb-2">
                                     <button
                                         onClick={() => openModal(service)}
-                                        className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all flex items-center justify-center gap-1"
+                                        className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all flex items-center justify-center gap-1 transform hover:scale-105"
                                     >
                                         <Edit size={16} />
                                         Editar
                                     </button>
                                     <button
                                         onClick={() => handleToggleActive(service)}
-                                        className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 ${service.active
+                                        className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 transform hover:scale-105 ${service.active
                                             ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
                                             : "bg-green-100 text-green-700 hover:bg-green-200"
                                             }`}
@@ -417,16 +426,15 @@ export default function AdminServicosPage() {
                                     </button>
                                     <button
                                         onClick={() => handleDelete(service.id)}
-                                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1"
+                                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1 transform hover:scale-105"
                                     >
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
 
-                                {/* ← NOVO BOTÃO: Toggle Featured */}
                                 <button
                                     onClick={() => handleToggleFeatured(service)}
-                                    className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${service.featured
+                                    className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 transform hover:scale-105 ${service.featured
                                         ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
                                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                         }`}
@@ -434,12 +442,12 @@ export default function AdminServicosPage() {
                                     <Star size={16} className={service.featured ? "fill-yellow-400" : ""} />
                                     {service.featured ? "Remover da Home" : "Destacar na Home"}
                                 </button>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <p className="text-6xl mb-4">💇‍♀️</p>
+                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center animate-fade-in">
+                        <p className="text-6xl mb-4 animate-bounce">💇‍♀️</p>
                         <h3 className="text-2xl font-bold text-charcoal mb-2">
                             Nenhum serviço cadastrado
                         </h3>
@@ -452,17 +460,22 @@ export default function AdminServicosPage() {
                     </div>
                 )}
 
-                {/* MODAL - Mantém igual, já está correto */}
+                {/* MODAL */}
                 {showModal && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                        <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <motion.div
+                            className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                        >
                             <div className="flex justify-between items-start mb-6">
                                 <h2 className="text-3xl font-bold text-charcoal">
                                     {editingService ? "Editar Serviço" : "Novo Serviço"}
                                 </h2>
                                 <button
                                     onClick={closeModal}
-                                    className="text-gray-400 hover:text-gray-600 text-2xl"
+                                    className="text-gray-400 hover:text-gray-600 text-2xl transition-colors hover:rotate-90 transform"
                                 >
                                     ×
                                 </button>
@@ -490,7 +503,7 @@ export default function AdminServicosPage() {
                                         onChange={(e) =>
                                             setFormData({ ...formData, description: e.target.value })
                                         }
-                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none resize-none"
+                                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none resize-none transition-all"
                                         rows={3}
                                         placeholder="Descreva o serviço..."
                                     />
@@ -528,62 +541,29 @@ export default function AdminServicosPage() {
                                     />
                                 </div>
 
-
-                                <label className="block text-sm font-semibold text-charcoal mb-2">
-                                    <ImageIcon size={16} className="inline mr-1" />
-                                    Imagens do Serviço
-                                </label>
-
-
-                                {/* ADMIN - Visualização das imagens ao adicionar */}
-                                {formData.images.length > 0 && (
-                                    <div className="grid grid-cols-3 gap-3 mb-3">
-                                        {formData.images.map((url, index) => (
-                                            <div
-                                                key={index}
-                                                className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50"
-                                            >
-                                                <img
-                                                    src={url}
-                                                    alt={`Imagem ${index + 1}`}
-                                                    className="w-full h-full object-contain p-2"
-                                                />
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveImage(index)}
-                                                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
-                                                >
-                                                    <X size={14} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* FRONTEND - ServiceCard.tsx */}
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
                                         <ImageIcon size={16} className="inline mr-1" />
                                         Imagens do Serviço
                                     </label>
 
-                                    {/* Visualização das imagens adicionadas */}
                                     {formData.images.length > 0 && (
                                         <div className="grid grid-cols-3 gap-3 mb-3">
                                             {formData.images.map((url, index) => (
                                                 <div
                                                     key={index}
-                                                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50"
+                                                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50 animate-scale-in group"
+                                                    style={{ animationDelay: `${index * 50}ms` }}
                                                 >
                                                     <img
                                                         src={url}
                                                         alt={`Imagem ${index + 1}`}
-                                                        className="w-full h-full object-contain p-2"
+                                                        className="w-full h-full object-contain p-2 transition-transform group-hover:scale-110"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRemoveImage(index)}
-                                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                                                        className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-all transform hover:scale-110"
                                                     >
                                                         <X size={14} />
                                                     </button>
@@ -592,10 +572,9 @@ export default function AdminServicosPage() {
                                         </div>
                                     )}
 
-                                    {/* Upload de arquivo */}
                                     <div className="mb-3">
                                         <label className="block w-full cursor-pointer">
-                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gold transition-colors">
+                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gold transition-all hover:bg-gray-50">
                                                 <ImageIcon size={32} className="mx-auto mb-2 text-gray-400" />
                                                 <p className="text-sm text-gray-600 mb-1">
                                                     {uploadLoading ? 'Fazendo upload...' : 'Clique para fazer upload'}
@@ -615,7 +594,6 @@ export default function AdminServicosPage() {
                                         </label>
                                     </div>
 
-                                    {/* Adicionar por URL */}
                                     <div>
                                         <p className="text-xs text-gray-500 text-center mb-2">
                                             ou cole uma URL
@@ -631,12 +609,12 @@ export default function AdminServicosPage() {
                                                     })
                                                 }
                                                 placeholder="https://exemplo.com/imagem.jpg"
-                                                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none text-sm"
+                                                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none text-sm transition-all"
                                             />
                                             <button
                                                 type="button"
                                                 onClick={handleAddImage}
-                                                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
+                                                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all transform hover:scale-105"
                                             >
                                                 <Plus size={16} />
                                             </button>
@@ -662,10 +640,66 @@ export default function AdminServicosPage() {
                                     </Button>
                                 </div>
                             </form>
-                        </div>
+                        </motion.div>
                     </div>
                 )}
             </div>
-        </div>
+
+            <style jsx global>{`
+                .text-gold { color: #D4AF37; }
+                .bg-gold { background-color: #D4AF37; }
+                .border-gold { border-color: #D4AF37; }
+                .ring-gold { --tw-ring-color: #D4AF37; }
+                .hover\\:text-gold:hover { color: #D4AF37; }
+                .hover\\:bg-gold:hover { background-color: #D4AF37; }
+                .focus\\:ring-gold:focus { --tw-ring-color: #D4AF37; }
+                .text-charcoal { color: #2C2C2C; }
+                .bg-charcoal { background-color: #2C2C2C; }
+                .bg-beige { background-color: #F5F5DC; }
+                
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                    }
+                    to {
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                
+                @keyframes scaleIn {
+                    from {
+                        opacity: 0;
+                        transform: scale(0.9);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
+                }
+                
+                .animate-fade-in {
+                    animation: fadeIn 0.5s ease-out forwards;
+                }
+                
+                .animate-slide-up {
+                    animation: slideUp 0.5s ease-out forwards;
+                }
+                
+                .animate-scale-in {
+                    animation: scaleIn 0.4s ease-out forwards;
+                }
+            `}</style>
+        </div >
     );
 }
