@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Star, Check, X, Trash2, Edit2, Award, Search, ArrowLeft, Home } from 'lucide-react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 
 interface Review {
     id: string;
@@ -177,53 +178,53 @@ export default function AdminAvaliacoesPage() {
                 </div>
 
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <motion.div
+                    className="bg-white rounded-lg shadow-sm p-6 mb-6"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">
                         Gerenciar Avaliações
                     </h1>
                     <p className="text-gray-600">
                         Modere as avaliações dos clientes
                     </p>
-                </div>
+                </motion.div>
 
                 {/* Estatísticas */}
                 {stats && (
                     <div className="grid md:grid-cols-5 gap-4 mb-6">
-                        <div className="bg-white rounded-lg shadow-sm p-4">
-                            <div className="text-3xl font-bold text-blue-600 mb-1">
-                                {stats.total}
-                            </div>
-                            <div className="text-sm text-gray-600">Total</div>
-                        </div>
-                        <div className="bg-white rounded-lg shadow-sm p-4">
-                            <div className="text-3xl font-bold text-orange-600 mb-1">
-                                {stats.pending}
-                            </div>
-                            <div className="text-sm text-gray-600">Pendentes</div>
-                        </div>
-                        <div className="bg-white rounded-lg shadow-sm p-4">
-                            <div className="text-3xl font-bold text-green-600 mb-1">
-                                {stats.approved}
-                            </div>
-                            <div className="text-sm text-gray-600">Aprovadas</div>
-                        </div>
-                        <div className="bg-white rounded-lg shadow-sm p-4">
-                            <div className="text-3xl font-bold text-red-600 mb-1">
-                                {stats.rejected}
-                            </div>
-                            <div className="text-sm text-gray-600">Reprovadas</div>
-                        </div>
-                        <div className="bg-white rounded-lg shadow-sm p-4">
-                            <div className="text-3xl font-bold text-yellow-600 mb-1">
-                                {stats.averageRating.toFixed(1)}★
-                            </div>
-                            <div className="text-sm text-gray-600">Média Geral</div>
-                        </div>
+                        {[
+                            { label: 'Total', value: stats.total, color: 'blue' },
+                            { label: 'Pendentes', value: stats.pending, color: 'orange' },
+                            { label: 'Aprovadas', value: stats.approved, color: 'green' },
+                            { label: 'Reprovadas', value: stats.rejected, color: 'red' },
+                            { label: 'Média Geral', value: `${stats.averageRating.toFixed(1)}★`, color: 'yellow' }
+                        ].map((stat, index) => (
+                            <motion.div
+                                key={stat.label}
+                                className="bg-white rounded-lg shadow-sm p-4"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3, delay: index * 0.1 }}
+                            >
+                                <div className={`text-3xl font-bold text-${stat.color}-600 mb-1`}>
+                                    {stat.value}
+                                </div>
+                                <div className="text-sm text-gray-600">{stat.label}</div>
+                            </motion.div>
+                        ))}
                     </div>
                 )}
 
                 {/* Filtros */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <motion.div
+                    className="bg-white rounded-lg shadow-sm p-6 mb-6"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
                     <div className="flex gap-4 flex-wrap">
                         <div className="flex-1 min-w-[300px]">
                             <div className="relative">
@@ -255,7 +256,7 @@ export default function AdminAvaliacoesPage() {
                             ))}
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Lista de Avaliações */}
                 <div className="space-y-4">
@@ -265,8 +266,14 @@ export default function AdminAvaliacoesPage() {
                             <p className="text-gray-500 text-lg">Nenhuma avaliação encontrada</p>
                         </div>
                     ) : (
-                        filteredReviews.map((review) => (
-                            <div key={review.id} className="bg-white rounded-lg shadow-sm p-6">
+                        filteredReviews.map((review, index) => (
+                            <motion.div
+                                key={review.id}
+                                className="bg-white rounded-lg shadow-sm p-6"
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.4, delay: index * 0.05 }}
+                            >
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
@@ -334,7 +341,7 @@ export default function AdminAvaliacoesPage() {
                                             </div>
                                         ) : (
                                             review.comment && (
-                                                <p className="text-gray-700 italic">"{review.comment}"</p>
+                                                <p className="text-gray-700 italic">&quot;{review.comment}&quot;</p>
                                             )
                                         )}
                                     </div>
@@ -399,7 +406,7 @@ export default function AdminAvaliacoesPage() {
                                         </button>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))
                     )}
                 </div>

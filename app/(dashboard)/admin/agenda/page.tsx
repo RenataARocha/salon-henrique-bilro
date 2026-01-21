@@ -7,6 +7,7 @@ import { Clock, Plus, Trash2, Power, Calendar, ChevronLeft, ChevronRight, Eye, I
 import Button from '@/components/ui/Button'
 import { useToast } from '@/components/ui/ToastContainer'
 import AdminHeader from '@/components/admin/AdminHeader'
+import { motion } from 'framer-motion'
 
 const CLOSED_DAYS = [0, 1] // Domingo e Segunda
 
@@ -31,8 +32,6 @@ export default function AgendaAdminPage() {
     const [viewingDay, setViewingDay] = useState<number>(0)
     const [viewingDate, setViewingDate] = useState<Date | null>(null)
     const isClosedDay = CLOSED_DAYS.includes(selectedDay)
-
-
     const [currentDate, setCurrentDate] = useState(new Date())
 
     const daysOfWeek = [
@@ -241,7 +240,12 @@ export default function AgendaAdminPage() {
                 />
 
                 {/* Navegador de Mês */}
-                <div className="bg-gradient-to-r from-gold to-yellow-600 rounded-xl shadow-lg p-6">
+                <motion.div
+                    className="bg-gradient-to-r from-gold to-yellow-600 rounded-xl shadow-lg p-6"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="flex items-center justify-between">
                         <button
                             onClick={() => changeMonth('prev')}
@@ -274,10 +278,15 @@ export default function AgendaAdminPage() {
                             <ChevronRight className="text-white" size={24} />
                         </button>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Info Box - Como Funciona */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6">
+                <motion.div
+                    className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
                     <div className="flex items-start gap-4">
                         <div className="bg-blue-500 text-white p-3 rounded-full">
                             <Info size={24} />
@@ -312,7 +321,7 @@ export default function AgendaAdminPage() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Actions */}
                 <div className="flex justify-end">
@@ -324,47 +333,42 @@ export default function AgendaAdminPage() {
 
                 {/* Estatísticas */}
                 <div className="grid md:grid-cols-3 gap-6">
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Calendar className="text-blue-500" size={24} />
-                            <p className="text-sm text-gray-600">Dias Configurados</p>
-                        </div>
-                        <p className="text-3xl font-bold text-charcoal">
-                            {daysOfWeek.filter(d => getSlotsByDay(d.value).length > 0).length}/7
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Clock className="text-green-500" size={24} />
-                            <p className="text-sm text-gray-600">Horários Ativos</p>
-                        </div>
-                        <p className="text-3xl font-bold text-green-600">
-                            {slots.filter(s => s.active).length}
-                        </p>
-                    </div>
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Clock className="text-orange-500" size={24} />
-                            <p className="text-sm text-gray-600">Total de Horários</p>
-                        </div>
-                        <p className="text-3xl font-bold text-charcoal">
-                            {slots.length}
-                        </p>
-                    </div>
+                    {[
+                        { icon: Calendar, label: 'Dias Configurados', value: `${daysOfWeek.filter(d => getSlotsByDay(d.value).length > 0).length}/7` },
+                        { icon: Clock, label: 'Horários Ativos', value: slots.filter(s => s.active).length },
+                        { icon: Clock, label: 'Total de Horários', value: slots.length }
+                    ].map((stat, index) => (
+                        <motion.div
+                            key={stat.label}
+                            className="bg-white rounded-xl shadow-lg p-6"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                        >
+                            <div className="flex items-center gap-3 mb-2">
+                                <stat.icon className="text-blue-500" size={24} />
+                                <p className="text-sm text-gray-600">{stat.label}</p>
+                            </div>
+                            <p className="text-3xl font-bold text-charcoal">{stat.value}</p>
+                        </motion.div>
+                    ))}
                 </div>
 
                 {/* Grid de dias COM DATAS CLICÁVEIS */}
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {daysOfWeek.map((day) => {
+                    {daysOfWeek.map((day, dayIndex) => {
                         const isClosed = CLOSED_DAYS.includes(day.value)
                         const daySlots = getSlotsByDay(day.value)
                         const activeSlots = daySlots.filter(s => s.active).length
                         const specificDates = getSpecificDates(day.value)
 
                         return (
-                            <div
+                            <motion.div
                                 key={day.value}
                                 className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all border-2 border-gray-100"
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3, delay: dayIndex * 0.05 }}
                             >
                                 {/* Header */}
                                 <div
@@ -465,7 +469,7 @@ export default function AgendaAdminPage() {
                                         </div>
                                     )}
                                 </div>
-                            </div>
+                            </motion.div>
                         )
                     })}
                 </div>
@@ -677,13 +681,13 @@ export default function AgendaAdminPage() {
 
                 {/* MODAL: Adicionar Horário - MELHORADO */}
                 {showAddModal && (
-                    <div
-                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowAddModal(false)}
-                    >
-                        <div
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
+                        <motion.div
                             className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
                         >
                             <h2 className="text-2xl font-bold text-charcoal mb-2 flex items-center gap-2">
                                 <Plus className="text-gold" />
@@ -789,10 +793,10 @@ export default function AgendaAdminPage() {
 
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     )
 }

@@ -4,7 +4,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, Users, Settings, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3 } from 'lucide-react'
+import { Calendar, Users, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 
@@ -117,13 +117,7 @@ export default function AdminDashboard() {
             href: '/admin/horarios-bloqueados',
             color: 'bg-red-500'
         },
-        {
-            title: 'Configurações',
-            description: 'Preferências e configurações gerais',
-            icon: Settings,
-            href: '/admin/configuracoes',
-            color: 'bg-orange-500'
-        }
+
     ]
 
     return (

@@ -5,6 +5,7 @@ import { Calendar, Clock, Plus, Edit, Trash2, RefreshCw, UtensilsCrossed, CheckS
 import AdminHeader from '@/components/admin/AdminHeader'
 import BlockedTimeForm from '@/components/admin/BlockedTimeForm'
 import LunchBreakModal from '@/components/admin/LunchBreakModal'
+import { motion } from 'framer-motion'
 
 interface BlockedTime {
     id: string
@@ -262,7 +263,12 @@ export default function BlockedTimesPage() {
                 />
 
                 {/* Ações */}
-                <div className="flex items-center justify-between flex-wrap gap-4">
+                <motion.div
+                    className="flex items-center justify-between flex-wrap gap-4"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="flex gap-3">
                         <button
                             onClick={() => setFilter('all')}
@@ -371,22 +377,29 @@ export default function BlockedTimesPage() {
                             </>
                         )}
                     </div>
-                </div>
+                </motion.div>
                 {/* Bloqueios Recorrentes */}
                 {(filter === 'all' || filter === 'recurring') && recurringBlocks.length > 0 && (
                     <div>
-                        <h2 className="text-xl font-bold text-charcoal mb-4 flex items-center gap-2">
+                        <motion.h2
+                            className="text-xl font-bold text-charcoal mb-4 flex items-center gap-2"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.4 }}
+                        >
                             <RefreshCw size={24} className="text-gold" />
                             Bloqueios Recorrentes
-                        </h2>
+                        </motion.h2>
 
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
 
                             {/* 🍽️ Horário de Almoço AGRUPADO */}
                             {groupedLunchBreak && (
-                                <div
-                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all
-        ${isLunchSelected ? 'ring-4 ring-blue-500' : ''}`}
+                                <motion.div
+                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${isLunchSelected ? 'ring-4 ring-blue-500' : ''}`}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3 }}
                                 >
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-start gap-3 flex-1">
@@ -435,17 +448,20 @@ export default function BlockedTimesPage() {
                                             {groupedLunchBreak.startTime} - {groupedLunchBreak.endTime}
                                         </span>
                                     </div>
-                                </div>
+                                </motion.div>
                             )}
 
 
                             {/* 🔁 OUTROS BLOQUEIOS RECORRENTES */}
-                            {otherRecurringBlocks.map(block => (
-                                <div
+                            {otherRecurringBlocks.map((block, index) => (
+                                <motion.div
                                     key={block.id}
-                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(block.id) ? 'ring-4 ring-blue-500' : ''
-                                        }`}
+                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(block.id) ? 'ring-4 ring-blue-500' : ''}`}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    transition={{ duration: 0.3, delay: index * 0.05 }}
                                 >
+
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-start gap-3 flex-1">
                                             {selectMode && (
@@ -520,7 +536,7 @@ export default function BlockedTimesPage() {
                                     <div className="mt-4 pt-4 border-t text-xs text-gray-500">
                                         Criado por {block.creator.name}
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
                         </div>
                     </div>
@@ -534,7 +550,11 @@ export default function BlockedTimesPage() {
                             <Calendar size={24} className="text-gold" />
                             Bloqueios Pontuais
                         </h2>
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <motion.div
+                            className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}>
                             {punctualBlocks.map(block => (
                                 <div
                                     key={block.id}
@@ -610,7 +630,7 @@ export default function BlockedTimesPage() {
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </motion.div>
                     </div>
                 )}
 
@@ -644,20 +664,24 @@ export default function BlockedTimesPage() {
                 )}
             </div>
 
-            {showForm && (
-                <BlockedTimeForm
-                    onClose={handleCloseForm}
-                    onSuccess={handleFormSuccess}
-                    editData={editingBlock}
-                />
-            )}
+            {
+                showForm && (
+                    <BlockedTimeForm
+                        onClose={handleCloseForm}
+                        onSuccess={handleFormSuccess}
+                        editData={editingBlock}
+                    />
+                )
+            }
 
-            {showLunchModal && (
-                <LunchBreakModal
-                    onClose={() => setShowLunchModal(false)}
-                    onSuccess={handleLunchSuccess}
-                />
-            )}
-        </div>
+            {
+                showLunchModal && (
+                    <LunchBreakModal
+                        onClose={() => setShowLunchModal(false)}
+                        onSuccess={handleLunchSuccess}
+                    />
+                )
+            }
+        </div >
     )
 }

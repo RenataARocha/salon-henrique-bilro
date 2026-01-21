@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Gift, Mail, MessageCircle, ChevronLeft, ChevronRight, Cake, TrendingUp, Clock } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import BirthdayOfferModal from '@/components/admin/BirthdayOfferModal'
+import { motion } from 'framer-motion'
 
 interface Birthday {
     id: string
@@ -142,7 +143,12 @@ export default function AniversariantesPage() {
                 />
 
                 {/* Seletor de Mês */}
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <motion.div
+                    className="bg-white rounded-xl shadow-lg p-6"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="flex items-center justify-between">
                         <button
                             onClick={handlePreviousMonth}
@@ -165,41 +171,32 @@ export default function AniversariantesPage() {
                             <ChevronRight size={24} />
                         </button>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Estatísticas */}
                 <div className="grid md:grid-cols-4 gap-6">
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Calendar className="text-blue-500" size={24} />
-                            <p className="text-sm text-gray-600">Total no Mês</p>
-                        </div>
-                        <p className="text-3xl font-bold text-charcoal">{stats.total}</p>
-                    </div>
-
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Gift className="text-pink-500" size={24} />
-                            <p className="text-sm text-gray-600">Hoje</p>
-                        </div>
-                        <p className="text-3xl font-bold text-pink-600">{stats.today}</p>
-                    </div>
-
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <Clock className="text-orange-500" size={24} />
-                            <p className="text-sm text-gray-600">Próximos 7 Dias</p>
-                        </div>
-                        <p className="text-3xl font-bold text-orange-600">{stats.thisWeek}</p>
-                    </div>
-
-                    <div className="bg-white rounded-xl shadow-lg p-6">
-                        <div className="flex items-center gap-3 mb-2">
-                            <TrendingUp className="text-green-500" size={24} />
-                            <p className="text-sm text-gray-600">A Enviar</p>
-                        </div>
-                        <p className="text-3xl font-bold text-green-600">{stats.upcoming}</p>
-                    </div>
+                    {[
+                        { icon: Calendar, label: 'Total no Mês', value: stats.total, color: 'blue' },
+                        { icon: Gift, label: 'Hoje', value: stats.today, color: 'pink' },
+                        { icon: Clock, label: 'Próximos 7 Dias', value: stats.thisWeek, color: 'orange' },
+                        { icon: TrendingUp, label: 'A Enviar', value: stats.upcoming, color: 'green' }
+                    ].map((stat, index) => (
+                        <motion.div
+                            key={stat.label}
+                            className="bg-white rounded-xl shadow-lg p-6"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                        >
+                            <div className="flex items-center gap-3 mb-2">
+                                <stat.icon className={`text-${stat.color}-500`} size={24} />
+                                <p className="text-sm text-gray-600">{stat.label}</p>
+                            </div>
+                            <p className={`text-3xl font-bold text-${stat.color === 'pink' ? 'pink' : stat.color === 'orange' ? 'orange' : stat.color === 'green' ? 'green' : 'charcoal'}-600`}>
+                                {stat.value}
+                            </p>
+                        </motion.div>
+                    ))}
                 </div>
 
                 {/* Lista de Aniversariantes */}
@@ -215,11 +212,13 @@ export default function AniversariantesPage() {
                     </div>
                 ) : (
                     <div className="grid gap-4">
-                        {birthdays.map(birthday => (
-                            <div
+                        {birthdays.map((birthday, index) => (
+                            <motion.div
                                 key={birthday.id}
-                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${birthday.isToday ? 'ring-4 ring-pink-500 ring-opacity-50' : ''
-                                    }`}
+                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${birthday.isToday ? 'ring-4 ring-pink-500 ring-opacity-50' : ''}`}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.4, delay: index * 0.05 }}
                             >
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
@@ -283,12 +282,10 @@ export default function AniversariantesPage() {
                                                 <Gift size={18} />
                                                 Criar Oferta
                                             </button>
-
-
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 )}
