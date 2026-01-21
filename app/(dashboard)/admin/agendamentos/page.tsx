@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Filter, X, Search, CheckSquare, Square } from 'lucide-react'
+import { Filter, X, Search, CheckSquare, Square, FileText } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
 import { Calendar } from 'lucide-react'
@@ -148,7 +148,7 @@ function BulkActionsBar({
     )
 }
 
-// Modal de Detalhes Simplificado
+// ✅ MODAL DE DETALHES COM JUSTIFICATIVA
 function AppointmentDetailsModal({
     appointment,
     onClose,
@@ -160,7 +160,6 @@ function AppointmentDetailsModal({
     getStatusColor: (status: string) => string
     getStatusLabel: (status: string) => string
 }) {
-
     const price = appointment.combo
         ? appointment.combo.comboPrice
         : appointment.service?.price ?? 0
@@ -244,10 +243,25 @@ function AppointmentDetailsModal({
                             </div>
                         )}
 
+                        {/* ✅ MOSTRAR JUSTIFICATIVA NO MODAL */}
                         {appointment.justification && (
-                            <div>
-                                <p className="text-sm text-gray-500 mb-1">Justificativa</p>
-                                <p className="text-charcoal bg-gray-50 p-3 rounded-lg">{appointment.justification}</p>
+                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                                <div className="flex items-start gap-3">
+                                    <FileText className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+                                    <div className="flex-1">
+                                        <p className="font-bold text-blue-900 mb-2">
+                                            ✅ Justificativa da Cliente
+                                        </p>
+                                        <p className="text-sm text-blue-800 bg-white p-3 rounded border border-blue-200 mb-2">
+                                            {appointment.justification}
+                                        </p>
+                                        {appointment.justifiedAt && (
+                                            <p className="text-xs text-blue-600">
+                                                📅 Enviada em {new Date(appointment.justifiedAt).toLocaleDateString('pt-BR')} às {new Date(appointment.justifiedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -914,8 +928,8 @@ export default function AdminAgendamentosPage() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
-                                    ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
-                                    : 'bg-white text-charcoal hover:shadow-md'
+                                ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
+                                : 'bg-white text-charcoal hover:shadow-md'
                                 }`}
                         >
                             {filter.icon} {filter.label}
@@ -1020,6 +1034,28 @@ export default function AdminAgendamentosPage() {
                                                 </p>
                                             </div>
                                         </div>
+
+                                        {/* ✅ BADGE DE JUSTIFICATIVA NO CARD */}
+                                        {apt.justification && (
+                                            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                                                <div className="flex items-start gap-2">
+                                                    <FileText className="text-blue-600 flex-shrink-0 mt-0.5" size={16} />
+                                                    <div className="flex-1">
+                                                        <p className="text-xs font-bold text-blue-900 mb-1">
+                                                            ✅ Cliente justificou a falta
+                                                        </p>
+                                                        <p className="text-xs text-blue-800 line-clamp-2">
+                                                            {apt.justification}
+                                                        </p>
+                                                        {apt.justifiedAt && (
+                                                            <p className="text-xs text-blue-600 mt-1">
+                                                                📅 {new Date(apt.justifiedAt).toLocaleDateString('pt-BR')} às {new Date(apt.justifiedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                 </motion.div>

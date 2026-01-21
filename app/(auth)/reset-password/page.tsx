@@ -1,4 +1,4 @@
-// app/(auth)/reset-password/page.tsx
+// app/(auth)/reset-password/page.tsx - COM ANIMAÇÕES
 
 'use client'
 
@@ -11,13 +11,11 @@ import Button from '@/components/ui/Button'
 import Logo from '@/components/Logo'
 import { useToast } from '@/components/ui/ToastContainer'
 import { validatePassword } from '@/lib/validation'
+import { motion } from 'framer-motion'
 
-// ============================================
-// COMPONENTE INTERNO (com todo o código atual)
-// ============================================
 function ResetPasswordContent() {
     const router = useRouter()
-    const searchParams = useSearchParams() // Agora pode usar aqui!
+    const searchParams = useSearchParams()
     const { showToast } = useToast()
     const token = searchParams.get('token')
 
@@ -84,13 +82,8 @@ function ResetPasswordContent() {
         try {
             const response = await fetch('/api/auth/reset-password', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    token,
-                    password
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, password })
             })
 
             const data = await response.json()
@@ -98,10 +91,7 @@ function ResetPasswordContent() {
             if (data.success) {
                 setSuccess(true)
                 showToast('Senha redefinida com sucesso!', 'success')
-
-                setTimeout(() => {
-                    router.push('/login')
-                }, 3000)
+                setTimeout(() => router.push('/login'), 3000)
             } else {
                 showToast(data.error || 'Erro ao redefinir senha', 'error')
             }
@@ -127,14 +117,24 @@ function ResetPasswordContent() {
     if (!token || !tokenValid) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
-                <div className="max-w-md w-full">
+                <motion.div
+                    className="max-w-md w-full"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="text-center mb-8">
                         <div className="flex justify-center mb-6">
                             <Logo variant="header" />
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl shadow-2xl p-8 text-center">
+                    <motion.div
+                        className="bg-white rounded-xl shadow-2xl p-8 text-center"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
+                    >
                         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <XCircle className="text-red-600" size={32} />
                         </div>
@@ -150,8 +150,8 @@ function ResetPasswordContent() {
                         >
                             Solicitar Novo Link
                         </Link>
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
             </div>
         )
     }
@@ -159,14 +159,24 @@ function ResetPasswordContent() {
     if (success) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
-                <div className="max-w-md w-full">
+                <motion.div
+                    className="max-w-md w-full"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
                     <div className="text-center mb-8">
                         <div className="flex justify-center mb-6">
                             <Logo variant="header" />
                         </div>
                     </div>
 
-                    <div className="bg-white rounded-xl shadow-2xl p-8 text-center">
+                    <motion.div
+                        className="bg-white rounded-xl shadow-2xl p-8 text-center"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
+                    >
                         <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                             <CheckCircle className="text-green-600" size={32} />
                         </div>
@@ -182,15 +192,20 @@ function ResetPasswordContent() {
                         >
                             Ir para Login
                         </Link>
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
             </div>
         )
     }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
-            <div className="max-w-md w-full">
+            <motion.div
+                className="max-w-md w-full"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+            >
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-6">
                         <Logo variant="header" />
@@ -203,7 +218,12 @@ function ResetPasswordContent() {
                     </p>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-2xl p-8">
+                <motion.div
+                    className="bg-white rounded-xl shadow-2xl p-8"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                >
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
                             <p className="text-sm text-blue-800 flex items-start gap-2">
@@ -244,21 +264,18 @@ function ResetPasswordContent() {
                             Redefinir Senha
                         </Button>
                     </form>
-                </div>
+                </motion.div>
 
                 <div className="text-center mt-6">
                     <Link href="/login" className="text-gray-400 hover:text-white text-sm transition-colors">
                         ← Voltar para o login
                     </Link>
                 </div>
-            </div>
+            </motion.div>
         </div>
     )
 }
 
-// ============================================
-// COMPONENTE PRINCIPAL (wrapper com Suspense)
-// ============================================
 export default function ResetPasswordPage() {
     return (
         <Suspense fallback={

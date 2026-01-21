@@ -209,9 +209,10 @@ export async function sendBirthdayEmail({
                 Estamos ansiosos para te ver em breve!
             </p>
             <p style="margin-top: 20px; font-size: 12px; color: #999;">
-                📍 Rua ABC, 123 - Centro<br>
-                📱 (84) 98639-9847<br>
-                💌 contato@henriquebilro.com.br
+                📍 Av. Rio Doce, 3101 – Potengi, Natal / RN<br>
+                📱 (84) 98881-4965<br>
+                📱 (84) 99965-1972<br>
+                💌 salaobilro@icloud.com
             </p>
         </div>
     </div>

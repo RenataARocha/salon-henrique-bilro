@@ -2,12 +2,13 @@
 
 'use client'
 
-import { useState, useEffect, useMemo } from 'react' // Adicionado useMemo
+import { useState, useEffect, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Clock, Calendar, CheckCircle, XCircle, AlertCircle, Ban, Tag, Percent, Calendar as CalendarIcon } from 'lucide-react'
+import { Clock, Calendar, CheckCircle, XCircle, AlertCircle, Ban, Tag, Percent, Calendar as CalendarIcon, FileText } from 'lucide-react'
 import Navbar from '@/components/NavBar'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
+import JustificationModal from '@/components/JustificationModal' // ✅ IMPORT DO MODAL
 import { isAfter, subHours, parseISO } from 'date-fns'
 import { motion } from 'framer-motion'
 
@@ -17,12 +18,13 @@ interface Appointment {
     time: string
     status: string
     notes?: string
+    justification?: string | null // ✅ CAMPO DE JUSTIFICATIVA
+    justifiedAt?: Date | null // ✅ DATA DA JUSTIFICATIVA
     service: {
         name: string
         price: number
         duration: number
     }
-    // ✅ NOVOS CAMPOS DE CUPOM
     couponId?: string | null
     discountAmount?: number
     finalPrice?: number | null
@@ -41,6 +43,7 @@ export default function HistoricoPage() {
     const [loading, setLoading] = useState(true)
     const [filterStatus, setFilterStatus] = useState<string>('all')
     const [rescheduleAppointment, setRescheduleAppointment] = useState<Appointment | null>(null)
+    const [justifyAppointment, setJustifyAppointment] = useState<Appointment | null>(null) // ✅ ESTADO DO MODAL
 
     useEffect(() => {
         if (sessionStatus === 'unauthenticated') {
@@ -82,19 +85,13 @@ export default function HistoricoPage() {
         }
     }
 
-    // Função canReschedule corrigida
     const canReschedule = (appointment: Appointment) => {
         if (!['PENDING', 'CONFIRMED'].includes(appointment.status)) return false;
 
         try {
-            // Garante que a data está no formato correto para o parseISO (YYYY-MM-DDTHH:mm)
             const dateOnly = appointment.date.split('T')[0];
             const appointmentDateTime = parseISO(`${dateOnly}T${appointment.time}`);
-
-            // Define o limite (2 horas antes do agendamento)
             const limitTime = subHours(appointmentDateTime, 2);
-
-            // Pode reagendar se "agora" ainda for antes do limite
             return isAfter(limitTime, new Date());
         } catch (error) {
             console.error('❌ Erro ao verificar reagendamento:', error);
@@ -102,8 +99,19 @@ export default function HistoricoPage() {
         }
     }
 
+    // ✅ FUNÇÃO PARA VERIFICAR SE PODE JUSTIFICAR
+    const canJustify = (appointment: Appointment) => {
+        return appointment.status === 'NO_SHOW' && !appointment.justification
+    }
+
     const handleRescheduleSuccess = () => {
         setRescheduleAppointment(null)
+        fetchAppointments()
+    }
+
+    // ✅ HANDLER PARA SUCESSO DA JUSTIFICATIVA
+    const handleJustificationSuccess = () => {
+        setJustifyAppointment(null)
         fetchAppointments()
     }
 
@@ -142,7 +150,6 @@ export default function HistoricoPage() {
 
             <div className="min-h-screen bg-beige py-8 px-4">
                 <div className="max-w-6xl mx-auto">
-                    {/* Título e Botão - Animação de entrada */}
                     <motion.div
                         className="flex items-center justify-between mb-8"
                         initial={{ opacity: 0, y: -20 }}
@@ -166,7 +173,6 @@ export default function HistoricoPage() {
                         </button>
                     </motion.div>
 
-                    {/* Estatísticas - Animação em cascata */}
                     <div className="grid md:grid-cols-4 gap-4 mb-8">
                         {[
                             { label: 'Total', value: stats.total, color: 'text-charcoal' },
@@ -187,7 +193,6 @@ export default function HistoricoPage() {
                         ))}
                     </div>
 
-                    {/* Filtros - Animação de fade in */}
                     <motion.div
                         className="flex gap-3 flex-wrap mb-6"
                         initial={{ opacity: 0 }}
@@ -215,7 +220,6 @@ export default function HistoricoPage() {
                         ))}
                     </motion.div>
 
-                    {/* Lista de agendamentos */}
                     {filteredAppointments.length > 0 ? (
                         <div className="space-y-4">
                             {filteredAppointments.map((appointment, index) => {
@@ -264,7 +268,6 @@ export default function HistoricoPage() {
                                                     <StatusIcon size={14} />
                                                     {statusInfo.label}
                                                 </span>
-                                                {/* ✅ MOSTRAR VALOR COM CUPOM */}
                                                 {appointment.couponId ? (
                                                     <div className="text-right">
                                                         <span className="text-2xl font-bold text-green-600">
@@ -282,7 +285,6 @@ export default function HistoricoPage() {
                                             </div>
                                         </div>
 
-                                        {/* ✅ BADGE DO CUPOM */}
                                         {appointment.couponId && appointment.coupon && (
                                             <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 mb-3">
                                                 <div className="flex items-start gap-2">
@@ -309,6 +311,28 @@ export default function HistoricoPage() {
                                             </div>
                                         )}
 
+                                        {/* ✅ MOSTRAR JUSTIFICATIVA SE EXISTIR */}
+                                        {appointment.justification && (
+                                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-3">
+                                                <div className="flex items-start gap-2">
+                                                    <FileText className="text-blue-600 flex-shrink-0 mt-0.5" size={18} />
+                                                    <div className="flex-1">
+                                                        <p className="font-bold text-blue-900 text-sm mb-1">
+                                                            ✅ Justificativa Enviada
+                                                        </p>
+                                                        <p className="text-sm text-blue-800 mb-2">
+                                                            {appointment.justification}
+                                                        </p>
+                                                        {appointment.justifiedAt && (
+                                                            <p className="text-xs text-blue-600">
+                                                                Enviada em {new Date(appointment.justifiedAt).toLocaleDateString('pt-BR')} às {new Date(appointment.justifiedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         {/* Botões de ação */}
                                         <div className="flex gap-3 mt-4">
                                             {canReschedule(appointment) && (
@@ -318,6 +342,17 @@ export default function HistoricoPage() {
                                                 >
                                                     <CalendarIcon size={16} />
                                                     Reagendar
+                                                </button>
+                                            )}
+
+                                            {/* ✅ BOTÃO DE JUSTIFICAR FALTA */}
+                                            {canJustify(appointment) && (
+                                                <button
+                                                    onClick={() => setJustifyAppointment(appointment)}
+                                                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-semibold transition-colors cursor-pointer"
+                                                >
+                                                    <FileText size={16} />
+                                                    Justificar Falta
                                                 </button>
                                             )}
 
@@ -363,6 +398,18 @@ export default function HistoricoPage() {
                     appointment={rescheduleAppointment}
                     onClose={() => setRescheduleAppointment(null)}
                     onSuccess={handleRescheduleSuccess}
+                />
+            )}
+
+            {/* ✅ MODAL DE JUSTIFICATIVA */}
+            {justifyAppointment && (
+                <JustificationModal
+                    appointmentId={justifyAppointment.id}
+                    serviceName={justifyAppointment.service.name}
+                    date={justifyAppointment.date}
+                    time={justifyAppointment.time}
+                    onClose={() => setJustifyAppointment(null)}
+                    onSuccess={handleJustificationSuccess}
                 />
             )}
         </>

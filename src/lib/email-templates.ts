@@ -68,8 +68,9 @@ export const passwordResetEmailTemplate = (name: string, resetUrl: string) => {
                         <td style="padding: 30px 40px; background-color: #f9f9f9; border-radius: 0 0 8px 8px; text-align: center;">
                             <p style="color: #999999; font-size: 13px; line-height: 20px; margin: 0 0 10px 0;">
                                 <strong>Henrique Bilro Cabeleireiros</strong><br>
-                                São Gonçalo do Amarante/RN<br>
-                                (84) 99999-9999
+                                Av. Rio Doce, 3101 – Potengi, Natal / RN<br>
+                                (84) 98881-4965<br>
+                (84) 99965-1972
                             </p>
                             
                             <p style="color: #999999; font-size: 12px; margin: 10px 0 0 0;">
@@ -102,8 +103,9 @@ Se você não solicitou esta alteração, pode ignorar este email com segurança
 
 ---
 Henrique Bilro Cabeleireiros
-São Gonçalo do Amarante/RN
-(84) 99999-9999
+Av. Rio Doce, 3101 – Potengi, Natal / RN
+(84) 98881-4965
+(84) 99965-1972
 
 © ${new Date().getFullYear()} Henrique Bilro Cabeleireiros. Todos os direitos reservados.
     `.trim();

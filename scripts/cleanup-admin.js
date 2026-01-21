@@ -54,7 +54,7 @@ async function cleanup() {
                     name: 'Rosie',
                     password: hashedPassword,
                     role: 'ADMIN',
-                    phone: '(84) 99999-9999',
+                    phone: '(84) 98881-4965' + '(84) 99965-1972',
                     emailVerified: new Date()
                 }
             })
