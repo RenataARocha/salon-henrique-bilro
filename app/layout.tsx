@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next'
 import { Playfair_Display, Inter } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 import { Providers } from '@/components/Providers'
 
@@ -17,24 +18,67 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Henrique Bilro Cabeleireiros',
-  description: 'Salão de beleza em Natal/RN com agendamento online. Especialistas em transformar seu visual.',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+  },
+
+  icons: {
+    icon: [
+      { url: '/favicon.ico' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon.ico', sizes: '32x32' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
+  },
+
+  title: {
+    default: 'Henrique Bilro Cabeleireiros - Salão de Beleza em Natal/RN',
+    template: '%s | Henrique Bilro Cabeleireiros',
+  },
+
+  description:
+    'Salão de beleza em Natal/RN no bairro Potengi. Especialistas em corte, coloração e tratamentos capilares. Agende online com Rosie Bilro.',
 
   keywords: [
-    'salão de beleza em Natal',
-    'cabeleireiro em Natal RN',
+    'salão de beleza Natal',
+    'cabeleireiro Natal RN',
     'Henrique Bilro Cabeleireiros',
     'salão Potengi Natal',
-    'corte feminino e masculino Natal',
+    'corte feminino Natal',
+    'corte masculino Natal',
+    'coloração capilar Natal',
+    'mechas Natal',
   ],
+
+  authors: [{ name: 'Henrique Bilro Cabeleireiros' }],
+  creator: 'Henrique Bilro Cabeleireiros',
+  publisher: 'Henrique Bilro Cabeleireiros',
 
   openGraph: {
     title: 'Henrique Bilro Cabeleireiros',
-    description: 'Salão de beleza em Natal/RN. Agende seu horário e transforme seu visual.',
-    url: 'https://henriquebilro.com',
+    description:
+      'Transforme seu visual no melhor salão de beleza do Potengi. Agende online.',
+    url: 'https://salon-henrique-bilro.vercel.app',
     siteName: 'Henrique Bilro Cabeleireiros',
     locale: 'pt_BR',
     type: 'website',
+    images: [
+      {
+        url: '/og-image.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Henrique Bilro Cabeleireiros',
+      },
+    ],
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Henrique Bilro Cabeleireiros',
+    description: 'Salão de beleza em Natal/RN. Agende online.',
+    images: ['/og-image.jpg'],
   },
 
   robots: {
@@ -42,11 +86,12 @@ export const metadata: Metadata = {
     follow: true,
   },
 
-  other: {
-    'geo.region': 'BR-RN',
-    'geo.placename': 'Natal',
-    'geo.position': '-5.7407769;-35.2541181',
-    'ICBM': '-5.7407769, -35.2541181',
+  alternates: {
+    canonical: 'https://salon-henrique-bilro.vercel.app',
+  },
+
+  verification: {
+    // google: 'COLE_AQUI_O_CODIGO_DA_SEARCH_CONSOLE',
   },
 }
 
@@ -59,6 +104,45 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${playfair.variable} ${inter.variable}`}>
       <body className="antialiased">
         <Providers>{children}</Providers>
+
+        {/* Schema.org - SEO Local */}
+        <Script
+          id="schema-hairsalon"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'HairSalon',
+              name: 'Henrique Bilro Cabeleireiros',
+              image: 'https://salon-henrique-bilro.vercel.app/logo.png',
+              url: 'https://salon-henrique-bilro.vercel.app',
+              telephone: '+5584988814965',
+              address: {
+                '@type': 'PostalAddress',
+                streetAddress: 'Av. Rio Doce, 3101',
+                addressLocality: 'Natal',
+                addressRegion: 'RN',
+                addressCountry: 'BR',
+              },
+              openingHoursSpecification: [
+                {
+                  '@type': 'OpeningHoursSpecification',
+                  dayOfWeek: [
+                    'Tuesday',
+                    'Wednesday',
+                    'Thursday',
+                    'Friday',
+                    'Saturday',
+                  ],
+                  opens: '09:00',
+                  closes: '19:00',
+                },
+              ],
+              sameAs: ['https://instagram.com/rosebilro'],
+            }),
+          }}
+        />
       </body>
     </html>
   )
