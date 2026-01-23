@@ -91,7 +91,7 @@ export const metadata: Metadata = {
   },
 
   verification: {
-    // google: 'COLE_AQUI_O_CODIGO_DA_SEARCH_CONSOLE',
+    google: 'google5a53402402b793f9',
   },
 }
 
