@@ -32,6 +32,9 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
     apple: '/apple-touch-icon.png',
   },
+  verification: {
+    google: 'hXeWeGInBZl0q9WLs_RfAKDC61OR0wfqfAMwdomyPeY', // ✅ Cole aqui o código
+  },
 
   title: {
     default: 'Henrique Bilro Cabeleireiros - Salão de Beleza em Natal/RN',
