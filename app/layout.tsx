@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     type: 'website',
     images: [
       {
-        url: '/og-image.jpg',
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'Henrique Bilro Cabeleireiros',
@@ -78,7 +78,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Henrique Bilro Cabeleireiros',
     description: 'Salão de beleza em Natal/RN. Agende online.',
-    images: ['/og-image.jpg'],
+    images: ['/og-image.png'],
   },
 
   robots: {
