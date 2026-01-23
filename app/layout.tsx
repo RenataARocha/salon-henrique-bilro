@@ -27,13 +27,10 @@ export const metadata: Metadata = {
     icon: [
       { url: '/favicon.ico' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon.ico', sizes: '32x32' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' }, // Corrigi aqui também
     ],
     shortcut: '/favicon.ico',
     apple: '/apple-touch-icon.png',
-  },
-  verification: {
-    google: 'hXeWeGInBZl0q9WLs_RfAKDC61OR0wfqfAMwdomyPeY', // ✅ Cole aqui o código
   },
 
   title: {
@@ -94,7 +91,7 @@ export const metadata: Metadata = {
   },
 
   verification: {
-    google: 'google5a53402402b793f9',
+    google: 'hXeWeGInBZl0q9WLs_RfAKDC61OR0wfqfAMwdomyPeY', // ✅ Deixe apenas este
   },
 }
 
