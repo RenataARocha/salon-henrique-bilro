@@ -12,7 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "backup": "node scripts/backup.js",
+    "backup": "node scripts/backup-completo.js",
     "backup:full": "node scripts/backup.js",
     "make-admin": "node scripts/make-admin.js",
     "cleanup-admin": "node scripts/cleanup-admin.js"

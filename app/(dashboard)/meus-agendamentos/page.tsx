@@ -237,7 +237,7 @@ export default function HistoricoPage() {
                                         <div className="flex items-start justify-between mb-4">
                                             <div className="flex-1">
                                                 <h3 className="text-xl font-bold text-charcoal mb-2">
-                                                    {appointment.service.name}
+                                                    {appointment.service?.name || 'Serviço não identificado'}
                                                 </h3>
                                                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                                                     <span className="flex items-center gap-1">
@@ -254,7 +254,7 @@ export default function HistoricoPage() {
                                                         {appointment.time}
                                                     </span>
                                                     <span className="text-gray-400">•</span>
-                                                    <span>{appointment.service.duration} min</span>
+                                                    <span>{appointment.service?.duration || 60} min</span>
                                                 </div>
                                                 {appointment.notes && (
                                                     <p className="text-sm text-gray-600 mt-2">
@@ -271,15 +271,15 @@ export default function HistoricoPage() {
                                                 {appointment.couponId ? (
                                                     <div className="text-right">
                                                         <span className="text-2xl font-bold text-green-600">
-                                                            R$ {(appointment.finalPrice ?? appointment.service.price).toFixed(2)}
+                                                            R$ {(appointment.finalPrice ?? appointment.service?.price ?? 0).toFixed(2)}
                                                         </span>
                                                         <p className="text-xs text-gray-500 line-through">
-                                                            R$ {appointment.service.price.toFixed(2)}
+                                                            R$ {(appointment.service?.price ?? 0).toFixed(2)}
                                                         </p>
                                                     </div>
                                                 ) : (
                                                     <span className="text-2xl font-bold text-gold">
-                                                        R$ {appointment.service.price.toFixed(2)}
+                                                        R$ {(appointment.service?.price ?? 0).toFixed(2)}
                                                     </span>
                                                 )}
                                             </div>
@@ -405,7 +405,7 @@ export default function HistoricoPage() {
             {justifyAppointment && (
                 <JustificationModal
                     appointmentId={justifyAppointment.id}
-                    serviceName={justifyAppointment.service.name}
+                    serviceName={justifyAppointment.service?.name || 'Serviço'}
                     date={justifyAppointment.date}
                     time={justifyAppointment.time}
                     onClose={() => setJustifyAppointment(null)}

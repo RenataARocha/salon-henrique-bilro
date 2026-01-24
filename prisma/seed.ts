@@ -1,4 +1,4 @@
-// prisma/seed.ts - CORRIGIDO (apenas renatabolos12@gmail.com)
+// prisma/seed.ts
 
 import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
@@ -14,7 +14,7 @@ async function main() {
     await prisma.user.deleteMany()
     await prisma.availableSlot.deleteMany()
 
-    // ✅ CRIAR ADMIN ÚNICO
+    // ✅ CRIAR ADMIN COM DOIS TELEFONES
     const hashedPassword = await bcrypt.hash('MinhaSenh@123!', 12)
 
     const admin = await prisma.user.create({
@@ -22,13 +22,16 @@ async function main() {
             name: 'Rosie',
             email: 'renatabolos12@gmail.com',
             password: hashedPassword,
-            phone: '(84) 98881-4965' + '(84) 99965-1972',
+            phone: '(84) 98881-4965',        // ✅ TELEFONE PRINCIPAL
+            secondaryPhone: '(84) 99965-1972', // ✅ TELEFONE SECUNDÁRIO
             role: 'ADMIN',
             emailVerified: new Date()
         }
     })
 
     console.log('✅ Admin criado:', admin.email)
+    console.log('📞 Telefone 1:', admin.phone)
+    console.log('📞 Telefone 2:', admin.secondaryPhone)
 
     // Cliente de teste
     const clientPassword = await bcrypt.hash('cliente123', 12)

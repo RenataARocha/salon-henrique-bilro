@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { Menu, X, LogOut, Calendar, Settings, List } from 'lucide-react'
 import Logo from './Logo'
 import { motion } from 'framer-motion'
+import NotificationBell from './NotificationBell'
 
 export default function Navbar() {
     const { data: session } = useSession()
@@ -101,6 +102,9 @@ export default function Navbar() {
                                     <span className="text-white text-sm">
                                         Olá, <span className="text-gold font-semibold">{user.name?.split(' ')[0]}</span>
                                     </span>
+                                    {session?.user?.role === 'ADMIN' && (
+                                        <NotificationBell />
+                                    )}
                                     <button
                                         onClick={handleLogout}
                                         className="text-white hover:text-red-400 transition-colors"
