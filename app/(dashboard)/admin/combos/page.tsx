@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Gift, Percent, X, Check } from 'lucide-react'
+import { Plus, Edit2, Trash2, Gift, Percent, X, Check, Send } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { motion } from 'framer-motion'
+import ModalEnvioMassa from '@/components/ModalEnvioMassa'
 
 interface Service {
     id: string
@@ -33,7 +34,8 @@ export default function AdminCombosPage() {
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [editingCombo, setEditingCombo] = useState<Combo | null>(null)
-
+    const [modalEnvioAberto, setModalEnvioAberto] = useState(false)
+    const [comboSelecionado, setComboSelecionado] = useState<{ id: string; name: string } | null>(null)
     // Form state
     const [formData, setFormData] = useState({
         name: '',
@@ -307,6 +309,19 @@ export default function AdminCombosPage() {
                                         <span>Destaque na Home</span>
                                     </div>
                                 )}
+
+                                {/* Botão de Envio em Massa */}
+                                <button
+                                    onClick={() => {
+                                        setComboSelecionado({ id: combo.id, name: combo.name })
+                                        setModalEnvioAberto(true)
+                                    }}
+                                    className="w-full mb-3 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 bg-green-100 text-green-700 hover:bg-green-200"
+                                >
+                                    <Send size={16} />
+                                    📢 Enviar para Clientes
+                                </button>
+
                                 <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-center gap-3">
                                         <div className="bg-gold/10 p-3 rounded-lg">
@@ -566,6 +581,20 @@ export default function AdminCombosPage() {
                     </div>
                 )}
             </div>
+
+            {/* Modal de Envio em Massa */}
+            {modalEnvioAberto && comboSelecionado && (
+                <ModalEnvioMassa
+                    isOpen={modalEnvioAberto}
+                    onClose={() => {
+                        setModalEnvioAberto(false)
+                        setComboSelecionado(null)
+                    }}
+                    tipo="combo"
+                    itemId={comboSelecionado.id}
+                    itemName={comboSelecionado.name}
+                />
+            )}
         </div >
     )
 }

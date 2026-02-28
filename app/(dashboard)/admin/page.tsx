@@ -7,6 +7,9 @@ import { useState, useEffect } from 'react'
 import { Calendar, Users, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import AlertaAgendamentos48h from '@/components/AlertaAgendamentos48h'
+import NotificationBell from '@/components/NotificationBell'
+import DashboardMetricas from '@/components/DashboardMetricas'
 
 interface QuickStats {
     todayAppointments: number
@@ -117,13 +120,12 @@ export default function AdminDashboard() {
             href: '/admin/horarios-bloqueados',
             color: 'bg-red-500'
         },
-
     ]
 
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto">
-                {/* Header com botão Home */}
+                {/* Header com botão Home e Sino de Notificações */}
                 <motion.div
                     className="mb-8"
                     initial={{ opacity: 0, y: -20 }}
@@ -140,15 +142,31 @@ export default function AdminDashboard() {
                             </p>
                         </div>
 
-                        {/* Botão Voltar ao Início */}
-                        <Link
-                            href="/"
-                            className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
-                        >
-                            <Home size={20} />
-                            Voltar ao Início
-                        </Link>
+                        {/* Botões do Header */}
+                        <div className="flex items-center gap-3">
+                            {/* Sino de Notificações */}
+                            <NotificationBell />
+
+                            {/* Botão Voltar ao Início */}
+                            <Link
+                                href="/"
+                                className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                            >
+                                <Home size={20} />
+                                Voltar ao Início
+                            </Link>
+                        </div>
                     </div>
+                </motion.div>
+
+                {/* Dashboard de Métricas */}
+                <motion.div
+                    className="mb-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                    <DashboardMetricas />
                 </motion.div>
 
                 {/* Estatísticas Rápidas */}
@@ -156,7 +174,7 @@ export default function AdminDashboard() {
                     className="mb-8 bg-gradient-gold rounded-2xl p-8 text-white shadow-xl"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
                 >
                     <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                         <BarChart3 size={28} />
@@ -246,6 +264,7 @@ export default function AdminDashboard() {
                     ))}
                 </div>
             </div>
-        </div >
+            <AlertaAgendamentos48h />
+        </div>
     )
 }

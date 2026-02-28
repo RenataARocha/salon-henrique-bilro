@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Search, Calendar, Tag, Percent, ArrowLeft, Home } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion'
+import ModalEnvioMassa from '@/components/ModalEnvioMassa'
+import { Send } from 'lucide-react'
 interface Cupom {
     id: string;
     code: string;
@@ -36,6 +38,8 @@ export default function AdminCuponsPage() {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterAtivo, setFilterAtivo] = useState<'todos' | 'ativos' | 'inativos'>('todos');
+    const [modalEnvioAberto, setModalEnvioAberto] = useState(false)
+    const [cupomSelecionado, setCupomSelecionado] = useState<{ id: string; code: string } | null>(null)
 
     const [formData, setFormData] = useState<FormData>({
         code: '',
@@ -235,6 +239,7 @@ export default function AdminCuponsPage() {
                         </button>
                     </div>
 
+
                     {/* Filtros */}
                     <div className="flex gap-4 flex-wrap">
                         <div className="flex-1 min-w-[300px]">
@@ -280,7 +285,9 @@ export default function AdminCuponsPage() {
                             </button>
                         </div>
                     </div>
+
                 </motion.div>
+
 
                 {/* Lista de Cupons */}
                 <div className="grid gap-4">
@@ -365,6 +372,17 @@ export default function AdminCuponsPage() {
                                             title="Excluir"
                                         >
                                             <Trash2 size={20} />
+                                        </button>
+
+                                        <button
+                                            onClick={() => {
+                                                setCupomSelecionado({ id: cupom.id, code: cupom.code })
+                                                setModalEnvioAberto(true)
+                                            }}
+                                            className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
+                                            title="Enviar para Clientes"
+                                        >
+                                            <Send size={20} />
                                         </button>
                                     </div>
                                 </div>
@@ -517,6 +535,20 @@ export default function AdminCuponsPage() {
                 </div>
             )
             }
+
+            {/* Modal de Envio em Massa */}
+            {modalEnvioAberto && cupomSelecionado && (
+                <ModalEnvioMassa
+                    isOpen={modalEnvioAberto}
+                    onClose={() => {
+                        setModalEnvioAberto(false)
+                        setCupomSelecionado(null)
+                    }}
+                    tipo="cupom"
+                    itemId={cupomSelecionado.id}
+                    itemName={cupomSelecionado.code}
+                />
+            )}
         </div >
     );
 }

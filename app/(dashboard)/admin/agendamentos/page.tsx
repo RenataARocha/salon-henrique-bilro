@@ -535,7 +535,7 @@ export default function AdminAgendamentosPage() {
         const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
         monthEnd.setHours(23, 59, 59, 999)
 
-        let filtered = appointments.filter(apt => {
+        const filtered = appointments.filter(apt => {
             if (searchTerm) {
                 const search = searchTerm.toLowerCase()
                 const matchName = apt.user.name.toLowerCase().includes(search)

@@ -1,9 +1,11 @@
 // src/app/layout.tsx
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Playfair_Display, Inter } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { Providers } from '@/components/Providers'
+import WhatsAppButton from '@/components/WhatsAppButton'
+import ScrollToTopButton from '@/components/ScrollToTopButton'
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -17,17 +19,18 @@ const inter = Inter({
   display: 'swap',
 })
 
-export const metadata: Metadata = {
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-  },
+// ✅ VIEWPORT SEPARADO
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
 
+export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.ico' },
       { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' }, // Corrigi aqui também
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
     ],
     shortcut: '/favicon.ico',
     apple: '/apple-touch-icon.png',
@@ -91,7 +94,7 @@ export const metadata: Metadata = {
   },
 
   verification: {
-    google: 'hXeWeGInBZl0q9WLs_RfAKDC61OR0wfqfAMwdomyPeY', // ✅ Deixe apenas este
+    google: 'hXeWeGInBZl0q9WLs_RfAKDC61OR0wfqfAMwdomyPeY',
   },
 }
 
@@ -143,6 +146,9 @@ export default function RootLayout({
             }),
           }}
         />
+
+        <ScrollToTopButton />
+        <WhatsAppButton />
       </body>
     </html>
   )

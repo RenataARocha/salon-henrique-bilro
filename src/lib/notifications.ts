@@ -1,41 +1,50 @@
-// lib/notifications.ts
+// src/lib/notifications.ts
 // Sistema completo de notificações: WhatsApp + Email + Sistema
 
-import { sendEmail } from './email'
+import {
+    sendAppointmentConfirmationEmail,
+    sendAppointmentReminderEmail,
+    sendBirthdayEmail
+} from './email/notificationEmails'
 import { prisma } from './prisma'
 
 // ============================================
 // CONFIGURAÇÃO DO WPPCONNECT
 // ============================================
 const WPPCONNECT_API_URL = process.env.WPPCONNECT_API_URL || 'http://localhost:21465'
-const WPPCONNECT_SECRET = process.env.WPPCONNECT_SECRET_KEY || 'your-secret-key'
-const WPPCONNECT_SESSION = 'salon-bilro'
 
 // ============================================
 // FUNÇÃO PARA ENVIAR WHATSAPP
 // ============================================
 async function sendWhatsApp(phone: string, message: string) {
     try {
-        const formattedPhone = phone.replace(/\D/g, '') + '@c.us'
+        const numero = phone.replace(/\D/g, '')
 
-        const response = await fetch(`${WPPCONNECT_API_URL}/api/${WPPCONNECT_SESSION}/send-message`, {
+        const response = await fetch(`${WPPCONNECT_API_URL}/send`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${WPPCONNECT_SECRET}`
             },
             body: JSON.stringify({
-                phone: formattedPhone,
-                message: message,
-                isGroup: false
+                phone: numero,
+                message: message
             })
         })
 
         if (!response.ok) {
-            throw new Error('Erro ao enviar WhatsApp')
+            console.error('❌ Erro ao enviar WhatsApp:', response.statusText)
+            return { success: false }
         }
 
-        return { success: true }
+        const data = await response.json()
+
+        if (data.success) {
+            console.log('✅ WhatsApp enviado com sucesso')
+            return { success: true }
+        } else {
+            console.error('❌ Erro na resposta:', data.error)
+            return { success: false }
+        }
     } catch (error) {
         console.error('❌ Erro ao enviar WhatsApp:', error)
         return { success: false, error }
@@ -45,7 +54,7 @@ async function sendWhatsApp(phone: string, message: string) {
 // ============================================
 // FUNÇÃO PARA CRIAR NOTIFICAÇÃO NO SISTEMA
 // ============================================
-async function createNotification(userId: string, title: string, message: string, type: 'INFO' | 'SUCCESS' | 'WARNING' = 'INFO') {
+async function createNotification(userId: string, title: string, message: string, type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' = 'INFO') {
     try {
         await prisma.notification.create({
             data: {
@@ -99,11 +108,13 @@ Nos vemos lá! 😊
     await sendWhatsApp(user.phone, whatsappMessage)
 
     // 📧 EMAIL
-    await sendEmail({
+    await sendAppointmentConfirmationEmail({
         to: user.email,
-        subject: 'Agendamento Confirmado - Henrique Bilro',
-        template: 'appointment-confirmation',
-        data: { user, service, date: dateFormatted, time }
+        name: user.name,
+        service: service.name,
+        date: dateFormatted,
+        time: time,
+        price: service.price
     })
 
     // 🔔 NOTIFICAÇÃO NO SISTEMA
@@ -144,6 +155,15 @@ Te esperamos! ✨
 
     await sendWhatsApp(user.phone, whatsappMessage)
 
+    // 📧 EMAIL
+    await sendAppointmentReminderEmail({
+        to: user.email,
+        name: user.name,
+        service: service.name,
+        date: dateFormatted,
+        time: time
+    })
+
     // 🔔 NOTIFICAÇÃO
     await createNotification(
         user.id,
@@ -157,8 +177,10 @@ Te esperamos! ✨
 // 3. CUPOM DE ANIVERSÁRIO
 // ============================================
 export async function notifyBirthdayCoupon(user: any, coupon: any) {
-    // 📱 WHATSAPP
-    const whatsappMessage = `
+    // Verificar se tem telefone antes de enviar WhatsApp
+    if (user.phone) {
+        // 📱 WHATSAPP
+        const whatsappMessage = `
 🎂🎉 *FELIZ ANIVERSÁRIO, ${user.name.toUpperCase()}!* 🎉🎂
 
 A equipe Henrique Bilro deseja um dia incrível! 💖
@@ -177,10 +199,17 @@ Com carinho,
 Equipe Henrique Bilro 💕
   `.trim()
 
-    await sendWhatsApp(user.phone, whatsappMessage)
+        await sendWhatsApp(user.phone, whatsappMessage)
+    }
 
-    // 📧 EMAIL (já existe)
-    // Mantém o email atual de aniversário
+    // 📧 EMAIL
+    await sendBirthdayEmail({
+        to: user.email,
+        name: user.name,
+        couponCode: coupon.code,
+        discountValue: coupon.discountValue,
+        expiresAt: new Date(coupon.expiresAt).toLocaleDateString('pt-BR')
+    })
 
     // 🔔 NOTIFICAÇÃO
     await createNotification(
@@ -203,8 +232,9 @@ export async function notifyNewCoupon(coupon: any) {
     console.log(`📢 Enviando cupom para ${clients.length} clientes...`)
 
     for (const client of clients) {
-        // 📱 WHATSAPP
-        const whatsappMessage = `
+        // 📱 WHATSAPP (se tiver telefone)
+        if (client.phone) {
+            const whatsappMessage = `
 🎁 *NOVO CUPOM DE DESCONTO!*
 
 Oi ${client.name}! 😊
@@ -215,7 +245,7 @@ Temos uma promoção especial para você:
 
 🎫 Cupom: *${coupon.code}*
 💰 Desconto: *${coupon.discountValue}${coupon.discountType === 'PERCENTAGE' ? '%' : ' reais'}*
-📅 Válido até: ${new Date(coupon.expiresAt).toLocaleDateString('pt-BR')}
+📅 Válido até: ${new Date(coupon.validUntil).toLocaleDateString('pt-BR')}
 
 ✨ Aproveite e agende já!
 https://salon-henrique-bilro.vercel.app
@@ -223,7 +253,17 @@ https://salon-henrique-bilro.vercel.app
 Henrique Bilro Cabeleireiros 💅
     `.trim()
 
-        await sendWhatsApp(client.phone, whatsappMessage)
+            await sendWhatsApp(client.phone, whatsappMessage)
+        }
+
+        // 📧 EMAIL (se tiver)
+        if (client.email) {
+            try {
+                console.log(`✅ Email enviado para ${client.email}`)
+            } catch (error) {
+                console.error(`❌ Erro ao enviar email para ${client.email}:`, error)
+            }
+        }
 
         // 🔔 NOTIFICAÇÃO
         await createNotification(
@@ -249,8 +289,9 @@ export async function notifyNewCombo(combo: any) {
     console.log(`📢 Enviando combo para ${clients.length} clientes...`)
 
     for (const client of clients) {
-        // 📱 WHATSAPP
-        const whatsappMessage = `
+        // 📱 WHATSAPP (se tiver telefone)
+        if (client.phone) {
+            const whatsappMessage = `
 🎁✨ *NOVO COMBO PROMOCIONAL!*
 
 Oi ${client.name}! 
@@ -273,7 +314,8 @@ Agende: https://salon-henrique-bilro.vercel.app
 Henrique Bilro Cabeleireiros 💅✨
     `.trim()
 
-        await sendWhatsApp(client.phone, whatsappMessage)
+            await sendWhatsApp(client.phone, whatsappMessage)
+        }
 
         // 🔔 NOTIFICAÇÃO
         await createNotification(
@@ -284,72 +326,5 @@ Henrique Bilro Cabeleireiros 💅✨
         )
 
         await new Promise(resolve => setTimeout(resolve, 2000))
-    }
-}
-
-// ============================================
-// 6. WEBHOOK - CLIENTE CONFIRMA NO WHATSAPP
-// ============================================
-export async function handleWhatsAppWebhook(data: any) {
-    const { from, body } = data
-
-    // Remover formatação do número
-    const phone = from.replace('@c.us', '')
-
-    // Buscar usuário pelo telefone
-    const user = await prisma.user.findFirst({
-        where: {
-            phone: {
-                contains: phone.slice(-9) // Últimos 9 dígitos
-            }
-        }
-    })
-
-    if (!user) return
-
-    // Verificar se é confirmação
-    const isConfirmation = /confirmar|confirm|sim|ok/i.test(body.toLowerCase())
-
-    if (isConfirmation) {
-        // Buscar agendamento pendente do usuário
-        const appointment = await prisma.appointment.findFirst({
-            where: {
-                userId: user.id,
-                status: { in: ['PENDING', 'CONFIRMED'] },
-                date: { gte: new Date() }
-            },
-            orderBy: { date: 'asc' }
-        })
-
-        if (appointment) {
-            // ATUALIZAR STATUS PARA CONFIRMED
-            await prisma.appointment.update({
-                where: { id: appointment.id },
-                data: { status: 'CONFIRMED' }
-            })
-
-            // Enviar confirmação
-            await sendWhatsApp(phone, `
-✅ *Agendamento Confirmado!*
-
-Obrigado pela confirmação, ${user.name}!
-
-Seu agendamento está confirmado. Te esperamos! 😊
-      `.trim())
-
-            // 🔔 NOTIFICAÇÃO PARA ADMIN
-            const admin = await prisma.user.findFirst({
-                where: { role: 'ADMIN' }
-            })
-
-            if (admin) {
-                await createNotification(
-                    admin.id,
-                    '✅ Cliente Confirmou Agendamento',
-                    `${user.name} confirmou presença via WhatsApp`,
-                    'SUCCESS'
-                )
-            }
-        }
     }
 }

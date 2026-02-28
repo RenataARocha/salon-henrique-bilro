@@ -26,6 +26,7 @@ model User {
   reviews        Review[]
   blockedTimes   BlockedTime[]
   couponUsages   CouponUsage[]
+  notifications  Notification[]
 
   @@map("users")
 }
@@ -257,4 +258,22 @@ enum BlockedTimeType {
   MAINTENANCE
   SPECIAL_EVENT
   OTHER
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  type      String   @default("INFO")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
 }
