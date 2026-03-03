@@ -4,7 +4,7 @@
 
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
-import { Calendar, Users, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3 } from 'lucide-react'
+import { Calendar, Users, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3, Briefcase, ClipboardList, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import AlertaAgendamentos48h from '@/components/AlertaAgendamentos48h'
@@ -51,11 +51,43 @@ export default function AdminDashboard() {
             color: 'bg-blue-500'
         },
         {
+            title: 'Comanda Diária',
+            description: 'Registrar serviços executados pelos funcionários',
+            icon: ClipboardList,
+            href: '/admin/comanda',
+            color: 'bg-orange-500',
+            badge: 'NOVO'
+        },
+        {
+            title: 'Funcionários',
+            description: 'Gerenciar equipe e acompanhar desempenho',
+            icon: Briefcase,
+            href: '/admin/funcionarios',
+            color: 'bg-teal-500',
+            badge: 'NOVO'
+        },
+        {
+            title: 'Relatórios Funcionários',
+            description: 'Comissões, faturamento e desempenho da equipe',
+            icon: BarChart3,
+            href: '/admin/relatorios/funcionarios',
+            color: 'bg-violet-500',
+            badge: 'NOVO'
+        },
+        {
+            title: 'Comissões',
+            description: 'Gerenciar pagamentos de comissões da equipe',
+            icon: Wallet,
+            href: '/admin/comissoes',
+            color: 'bg-emerald-500',
+            badge: 'NOVO'
+        },
+        {
             title: 'Financeiro',
             description: 'Dashboard financeiro e relatórios de receita',
             icon: DollarSign,
             href: '/admin/financeiro',
-            color: 'bg-emerald-500'
+            color: 'bg-green-600'
         },
         {
             title: 'Relatórios',
@@ -244,8 +276,17 @@ export default function AdminDashboard() {
                         >
                             <Link
                                 href={item.href}
-                                className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all hover:scale-105 group block"
+                                className="bg-white rounded-2xl shadow-lg p-8 hover:shadow-2xl transition-all hover:scale-105 group block relative overflow-hidden"
                             >
+                                {/* Badge NOVO */}
+                                {item.badge && (
+                                    <div className="absolute top-4 right-4">
+                                        <span className="bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg animate-pulse">
+                                            {item.badge}
+                                        </span>
+                                    </div>
+                                )}
+
                                 <div className="flex items-start gap-6">
                                     <div className={`${item.color} p-4 rounded-xl text-white group-hover:scale-110 transition-transform`}>
                                         <item.icon size={32} />

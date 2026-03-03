@@ -1,11 +1,12 @@
 // app/api/appointments/route.ts
-// ✅ SUBSTITUA O ARQUIVO COMPLETO POR ESTE CÓDIGO
+// ✅ VERSÃO CORRIGIDA COM NOTIFICAÇÕES
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { parseDateSafe } from '@/lib/dateUtils'
+import { notifyAppointmentCreated } from '@/lib/notifications'
 
 // GET - Listar agendamentos do usuário logado
 export async function GET(request: Request) {
@@ -227,7 +228,6 @@ export async function POST(request: Request) {
             }
         }
 
-        // ✅ USAR parseDateSafe
         const appointmentDate = parseDateSafe(date)
 
         console.log('📅 [CRIAR AGENDAMENTO]:', {
@@ -235,7 +235,7 @@ export async function POST(request: Request) {
             parseada: appointmentDate.toISOString()
         })
 
-        // ✅ Verificar conflito
+        // Verificar conflito
         const existingAppointment = await prisma.appointment.findFirst({
             where: {
                 date: appointmentDate,
@@ -289,13 +289,13 @@ export async function POST(request: Request) {
             }
         }
 
-        // ✅ Criar agendamento
+        // Criar agendamento
         const appointment = await prisma.appointment.create({
             data: {
                 userId: session.user.id,
                 serviceId: serviceId || null,
                 comboId: comboId || null,
-                date: appointmentDate, // ✅ Usar data parseada
+                date: appointmentDate,
                 time,
                 notes: notes || null,
                 paymentMethod: normalizedPaymentMethod,
@@ -333,6 +333,24 @@ export async function POST(request: Request) {
             id: appointment.id,
             date: appointment.date.toISOString()
         })
+
+        // ✅ ENVIAR NOTIFICAÇÕES (WhatsApp + Email + Sistema)
+        try {
+            await notifyAppointmentCreated({
+                user: appointment.user,
+                service: appointment.service || {
+                    name: appointment.combo?.name || 'Serviço',
+                    price: appointment.finalPrice
+                },
+                date: appointment.date,
+                time: appointment.time
+            })
+
+            console.log('✅ Notificações enviadas com sucesso!')
+        } catch (notificationError) {
+            console.error('⚠️ Erro ao enviar notificações:', notificationError)
+            // NÃO bloqueia o agendamento se notificação falhar
+        }
 
         return NextResponse.json({
             success: true,

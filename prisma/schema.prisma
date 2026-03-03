@@ -58,7 +58,8 @@ model Service {
   updatedAt     DateTime       @updatedAt
   appointments  Appointment[]
   reviews       Review[]
-  comboServices ComboService[] // ✅ MANTER APENAS ESTA LINHA (remover "combos")
+  comboServices ComboService[]
+  staffServices StaffService[] // ✅ NOVO - Serviços executados por funcionários
 
   @@map("services")
 }
@@ -73,8 +74,9 @@ model ServiceCombo {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  services     ComboService[]
-  appointments Appointment[]
+  services      ComboService[]
+  appointments  Appointment[]
+  staffServices StaffService[] // ✅ NOVO - Combos executados por funcionários
 
   @@map("service_combos")
 }
@@ -109,10 +111,9 @@ model Appointment {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   userId          String
-  serviceId       String? // ✅ TORNAR OPCIONAL
-  comboId         String? // ✅ ADICIONAR
+  serviceId       String?
+  comboId         String?
 
-  // ✅ RELAÇÕES CORRETAS (sem duplicatas)
   user          User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   service       Service?                   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   combo         ServiceCombo?              @relation(fields: [comboId], references: [id])
@@ -276,4 +277,123 @@ model Notification {
   @@index([read])
   @@index([createdAt])
   @@map("notifications")
+}
+
+// ============================================
+// ✅ NOVO: SISTEMA DE COMANDA/FUNCIONÁRIOS
+// ============================================
+
+// FUNCIONÁRIOS (STAFF)
+model Staff {
+  id    String  @id @default(cuid())
+  name  String
+  email String? @unique
+  phone String?
+  photo String? // URL da foto no Cloudinary
+  cpf   String? @unique
+
+  // Profissional
+  specialties       String[] // ["Corte", "Coloração", "Manicure"]
+  commissionPercent Float    @default(30) // % de comissão (30%)
+
+  // Status
+  active   Boolean  @default(true)
+  hireDate DateTime @default(now())
+
+  // Horários de trabalho (opcional)
+  workSchedule Json? // { "seg": "9-18", "ter": "9-18", ... }
+
+  // Relações
+  services       StaffService[]
+  monthlyReports StaffMonthlyReport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+  @@index([name])
+  @@map("staff")
+}
+
+// SERVIÇOS EXECUTADOS (COMANDA)
+model StaffService {
+  id String @id @default(cuid())
+
+  // Quem fez
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  // O que foi feito
+  serviceId String?
+  service   Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  comboId String?
+  combo   ServiceCombo? @relation(fields: [comboId], references: [id], onDelete: SetNull)
+
+  // Para quem (cliente)
+  clientName  String
+  clientPhone String?
+
+  // Valores
+  serviceValue    Float // Valor do serviço
+  commissionValue Float // Valor da comissão calculada
+
+  // Quando
+  executedAt DateTime @default(now()) // Data/hora que o serviço foi executado
+  duration   Int? // Duração em minutos
+
+  // Pagamento
+  paymentMethod  PaymentMethod @default(DINHEIRO)
+  commissionPaid Boolean       @default(false) // Comissão foi paga ao funcionário?
+  paidAt         DateTime?
+
+  // Observações
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([staffId, executedAt])
+  @@index([executedAt])
+  @@index([commissionPaid])
+  @@map("staff_services")
+}
+
+// RELATÓRIOS MENSAIS CONSOLIDADOS
+model StaffMonthlyReport {
+  id String @id @default(cuid())
+
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  // Período
+  year  Int
+  month Int // 1-12
+
+  // Totais
+  totalServices   Int   @default(0)
+  totalRevenue    Float @default(0) // Total faturado
+  totalCommission Float @default(0) // Total de comissão
+
+  // Pagamento
+  paid         Boolean   @default(false)
+  paidAt       DateTime?
+  paymentNotes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([staffId, year, month])
+  @@index([year, month])
+  @@index([paid])
+  @@map("staff_monthly_reports")
+}
+
+// ENUM para formas de pagamento
+enum PaymentMethod {
+  DINHEIRO
+  CARTAO_DEBITO
+  CARTAO_CREDITO
+  PIX
+  TRANSFERENCIA
 }

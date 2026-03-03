@@ -4,9 +4,10 @@
 import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
+const SITE_URL = process.env.NEXTAUTH_URL || 'https://salon-henrique-bilro.vercel.app'
 
 // ============================================
-// 1. EMAIL DE AGENDAMENTO CRIADO
+// 1. EMAIL DE AGENDAMENTO CRIADO COM BOTÃO
 // ============================================
 export async function sendAppointmentConfirmationEmail(data: {
     to: string
@@ -15,6 +16,7 @@ export async function sendAppointmentConfirmationEmail(data: {
     date: string
     time: string
     price: number
+    appointmentId?: string
 }) {
     try {
         await resend.emails.send({
@@ -31,7 +33,7 @@ export async function sendAppointmentConfirmationEmail(data: {
 }
 
 // ============================================
-// 2. EMAIL DE LEMBRETE
+// 2. EMAIL DE LEMBRETE COM BOTÃO
 // ============================================
 export async function sendAppointmentReminderEmail(data: {
     to: string
@@ -39,6 +41,7 @@ export async function sendAppointmentReminderEmail(data: {
     service: string
     date: string
     time: string
+    appointmentId?: string
 }) {
     try {
         await resend.emails.send({
@@ -88,7 +91,12 @@ function appointmentConfirmationTemplate(data: {
     date: string
     time: string
     price: number
+    appointmentId?: string
 }) {
+    const confirmUrl = data.appointmentId
+        ? `${SITE_URL}/api/appointments/confirm?id=${data.appointmentId}&token=${generateToken(data.appointmentId)}`
+        : ''
+
     return `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -104,7 +112,7 @@ function appointmentConfirmationTemplate(data: {
                     
                     <!-- Header -->
                     <tr>
-                        <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); border-radius: 12px 12px 0 0;">
+                        <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%); border-radius: 12px 12px 0 0;">
                             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">
                                 ✨ Agendamento Confirmado!
                             </h1>
@@ -122,7 +130,7 @@ function appointmentConfirmationTemplate(data: {
                                 Seu agendamento foi realizado com sucesso:
                             </p>
                             
-                            <div style="background: linear-gradient(135deg, #fdf2f8 0%, #faf5ff 100%); padding: 25px; border-radius: 10px; margin: 0 0 30px 0; border-left: 4px solid #ec4899;">
+                            <div style="background: linear-gradient(135deg, #fffbf0 0%, #fff8dc 100%); padding: 25px; border-radius: 10px; margin: 0 0 30px 0; border-left: 4px solid #d4af37;">
                                 <p style="margin: 0 0 15px 0; color: #333; font-size: 16px;">
                                     <strong>📅 Data:</strong> ${data.date}
                                 </p>
@@ -137,7 +145,24 @@ function appointmentConfirmationTemplate(data: {
                                 </p>
                             </div>
 
-                            <div style="background: #fff7ed; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 0 0 30px 0;">
+                            ${confirmUrl ? `
+                            <!-- Botão Confirmar -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="${confirmUrl}" style="display: inline-block; background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);">
+                                            ✅ CONFIRMAR PRESENÇA
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="font-size: 14px; color: #999; text-align: center; margin: 20px 0 30px 0;">
+                                Clique no botão acima para confirmar sua presença
+                            </p>
+                            ` : ''}
+
+                            <div style="background: #fff7ed; padding: 20px; border-radius: 8px; border-left: 4px solid #d4af37; margin: 0 0 20px 0;">
                                 <p style="margin: 0 0 10px 0; color: #92400e; font-size: 14px; font-weight: bold;">
                                     📍 Local:
                                 </p>
@@ -149,7 +174,7 @@ function appointmentConfirmationTemplate(data: {
                                 </p>
                             </div>
 
-                            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                            <div style="background: #fef3c7; padding: 20px; border-radius: 8px; border-left: 4px solid #d4af37;">
                                 <p style="margin: 0 0 10px 0; color: #92400e; font-size: 14px; font-weight: bold;">
                                     ⚠️ Importante:
                                 </p>
@@ -188,13 +213,18 @@ function appointmentReminderTemplate(data: {
     service: string
     date: string
     time: string
+    appointmentId?: string
 }) {
+    const confirmUrl = data.appointmentId
+        ? `${SITE_URL}/api/appointments/confirm?id=${data.appointmentId}&token=${generateToken(data.appointmentId)}`
+        : ''
+
     return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0;">
 </head>
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
     <table role="presentation" style="width: 100%; border-collapse: collapse;">
@@ -203,7 +233,7 @@ function appointmentReminderTemplate(data: {
                 <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                     
                     <tr>
-                        <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 12px 12px 0 0;">
+                        <td style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%); border-radius: 12px 12px 0 0;">
                             <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">
                                 ⏰ Lembrete de Agendamento
                             </h1>
@@ -220,7 +250,7 @@ function appointmentReminderTemplate(data: {
                                 Lembrando que você tem agendamento <strong>amanhã</strong>:
                             </p>
                             
-                            <div style="background: #fef3c7; padding: 25px; border-radius: 10px; margin: 0 0 30px 0; border-left: 4px solid #f59e0b;">
+                            <div style="background: #fef3c7; padding: 25px; border-radius: 10px; margin: 0 0 30px 0; border-left: 4px solid #d4af37;">
                                 <p style="margin: 0 0 15px 0; color: #333; font-size: 18px;">
                                     <strong>📅 ${data.date}</strong>
                                 </p>
@@ -232,7 +262,19 @@ function appointmentReminderTemplate(data: {
                                 </p>
                             </div>
 
-                            <p style="color: #666; font-size: 14px; line-height: 22px; margin: 0;">
+                            ${confirmUrl ? `
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                                <tr>
+                                    <td align="center">
+                                        <a href="${confirmUrl}" style="display: inline-block; background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);">
+                                            ✅ CONFIRMAR PRESENÇA
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            ` : ''}
+
+                            <p style="color: #666; font-size: 14px; line-height: 22px; margin: 30px 0 0 0;">
                                 📍 Av. Rio Doce, 3101 – Potengi, Natal/RN<br><br>
                                 Caso precise reagendar ou cancelar, entre em contato o quanto antes!<br>
                                 📞 (84) 98881-4965 | (84) 99965-1972
@@ -277,7 +319,7 @@ function birthdayEmailTemplate(data: {
                 <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.15);">
                     
                     <tr>
-                        <td style="padding: 50px 40px; text-align: center; background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 12px 12px 0 0;">
+                        <td style="padding: 50px 40px; text-align: center; background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%); border-radius: 12px 12px 0 0;">
                             <div style="font-size: 60px; margin-bottom: 10px;">🎂🎉</div>
                             <h1 style="color: #ffffff; margin: 0; font-size: 32px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.2);">
                                 FELIZ ANIVERSÁRIO!
@@ -295,7 +337,7 @@ function birthdayEmailTemplate(data: {
                                 A equipe Henrique Bilro deseja um dia MARAVILHOSO para você!
                             </p>
                             
-                            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 30px; border-radius: 12px; margin: 0 0 30px 0; border: 3px dashed #f59e0b; text-align: center;">
+                            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 30px; border-radius: 12px; margin: 0 0 30px 0; border: 3px dashed #d4af37; text-align: center;">
                                 <p style="margin: 0 0 15px 0; color: #92400e; font-size: 18px; font-weight: bold;">
                                     🎁 SEU PRESENTE ESPECIAL
                                 </p>
@@ -303,10 +345,10 @@ function birthdayEmailTemplate(data: {
                                     <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
                                         Cupom de Desconto:
                                     </p>
-                                    <p style="margin: 0 0 10px 0; color: #f59e0b; font-size: 32px; font-weight: bold; letter-spacing: 3px;">
+                                    <p style="margin: 0 0 10px 0; color: #d4af37; font-size: 32px; font-weight: bold; letter-spacing: 3px;">
                                         ${data.couponCode}
                                     </p>
-                                    <p style="margin: 0; color: #f59e0b; font-size: 24px; font-weight: bold;">
+                                    <p style="margin: 0; color: #d4af37; font-size: 24px; font-weight: bold;">
                                         ${data.discountValue}% OFF
                                     </p>
                                 </div>
@@ -320,8 +362,8 @@ function birthdayEmailTemplate(data: {
                             </p>
 
                             <div style="text-align: center;">
-                                <a href="https://salon-henrique-bilro.vercel.app" 
-                                   style="display: inline-block; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);">
+                                <a href="${SITE_URL}" 
+                                   style="display: inline-block; background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);">
                                     🎉 AGENDAR AGORA
                                 </a>
                             </div>
@@ -346,4 +388,9 @@ function birthdayEmailTemplate(data: {
 </body>
 </html>
     `
+}
+
+// Função auxiliar para gerar token simples
+function generateToken(appointmentId: string): string {
+    return Buffer.from(`${appointmentId}:${Date.now()}`).toString('base64')
 }
