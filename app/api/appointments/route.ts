@@ -1,5 +1,5 @@
 // app/api/appointments/route.ts
-// ✅ VERSÃO CORRIGIDA COM NOTIFICAÇÕES
+// ✅ VERSÃO COM FILTRO POR DATA PARA COMANDA
 
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -22,6 +22,7 @@ export async function GET(request: Request) {
 
         const { searchParams } = new URL(request.url)
         const status = searchParams.get('status')
+        const date = searchParams.get('date') // ✅ NOVO: filtro por data específica
         const paymentMethodsParam = searchParams.get('paymentMethod')
 
         const paymentMethods = paymentMethodsParam
@@ -33,14 +34,21 @@ export async function GET(request: Request) {
         const startDate = searchParams.get('startDate')
         const endDate = searchParams.get('endDate')
 
-        const where: any = {
-            userId: session.user.id
+        // ✅ ADMIN vê TODOS os agendamentos, usuário normal só os próprios
+        const where: any = {}
+
+        if (session.user.role !== 'ADMIN') {
+            where.userId = session.user.id
         }
 
         if (status) where.status = status
         if (paymentMethods.length > 0) where.paymentMethod = { in: paymentMethods }
 
-        if (startDate || endDate) {
+        // ✅ NOVO: Filtro por data específica (para comanda)
+        if (date) {
+            const dateObj = parseDateSafe(date)
+            where.date = dateObj
+        } else if (startDate || endDate) {
             where.date = {}
             if (startDate) where.date.gte = parseDateSafe(startDate)
             if (endDate) {

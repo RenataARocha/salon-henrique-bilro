@@ -9,7 +9,7 @@ import { prisma } from '@/lib/prisma'
 // GET - Buscar detalhes completos do funcionário
 export async function GET(
     request: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const session = await getServerSession(authOptions)
@@ -21,7 +21,7 @@ export async function GET(
             )
         }
 
-        const { id } = params
+        const { id } = await params
 
         // Buscar funcionário
         const staff = await prisma.staff.findUnique({

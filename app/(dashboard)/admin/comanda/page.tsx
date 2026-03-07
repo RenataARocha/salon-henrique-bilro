@@ -2,6 +2,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { X } from 'lucide-react'
+import { motion } from 'framer-motion'
 
 interface Staff {
     id: string
@@ -14,13 +16,28 @@ interface Service {
     id: string
     name: string
     price: number
-    duration: number
 }
 
-interface Combo {
+interface Appointment {
     id: string
-    name: string
-    discountPercent: number
+    date: string
+    time: string
+    status: string
+    user: {
+        name: string
+        phone: string | null
+    }
+    service: {
+        id: string
+        name: string
+        price: number
+    } | null
+    combo: {
+        id: string
+        name: string
+    } | null
+    finalPrice: number
+    paymentMethod: string | null
 }
 
 interface StaffService {
@@ -33,6 +50,7 @@ interface StaffService {
     paymentMethod: string
     notes: string | null
     staff: {
+        id: string
         name: string
         photo: string | null
     }
@@ -46,47 +64,37 @@ interface StaffService {
 
 export default function ComandaPage() {
     const [staff, setStaff] = useState<Staff[]>([])
-    const [services, setServices] = useState<Service[]>([])
-    const [combos, setCombos] = useState<Combo[]>([])
     const [todayServices, setTodayServices] = useState<StaffService[]>([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
+    const [editingService, setEditingService] = useState<StaffService | null>(null)
 
-    const [formData, setFormData] = useState({
-        staffId: '',
-        serviceId: '',
-        comboId: '',
-        clientName: '',
-        clientPhone: '',
-        serviceValue: 0,
-        paymentMethod: 'DINHEIRO',
-        executedAt: new Date().toISOString().slice(0, 16),
-        notes: ''
-    })
+    // Estados do modal
+    const [modalStaffId, setModalStaffId] = useState('')
+    const [modalDate, setModalDate] = useState(new Date().toISOString().split('T')[0])
+    const [appointments, setAppointments] = useState<Appointment[]>([])
+    const [selectedAppointments, setSelectedAppointments] = useState<string[]>([])
+    const [loadingAppointments, setLoadingAppointments] = useState(false)
+
+    // Filtros da página
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
+    const [selectedStaffId, setSelectedStaffId] = useState<string>('')
 
     useEffect(() => {
         loadData()
     }, [])
 
+    useEffect(() => {
+        loadFilteredServices()
+    }, [selectedDate, selectedStaffId])
+
     async function loadData() {
         try {
-            // Carregar funcionários ativos
             const staffRes = await fetch('/api/staff?active=true')
             const staffData = await staffRes.json()
             if (staffData.success) setStaff(staffData.data)
 
-            // Carregar serviços
-            const servicesRes = await fetch('/api/services')
-            const servicesData = await servicesRes.json()
-            if (servicesData.success) setServices(servicesData.data)
-
-            // Carregar combos
-            const combosRes = await fetch('/api/combos')
-            const combosData = await combosRes.json()
-            if (combosData.success) setCombos(combosData.data)
-
-            // Carregar serviços de hoje
-            await loadTodayServices()
+            await loadFilteredServices()
         } catch (error) {
             console.error('Erro ao carregar dados:', error)
         } finally {
@@ -94,10 +102,14 @@ export default function ComandaPage() {
         }
     }
 
-    async function loadTodayServices() {
+    async function loadFilteredServices() {
         try {
-            const today = new Date().toISOString().split('T')[0]
-            const res = await fetch(`/api/staff/services?date=${today}`)
+            let url = `/api/staff/services?date=${selectedDate}`
+            if (selectedStaffId) {
+                url += `&staffId=${selectedStaffId}`
+            }
+
+            const res = await fetch(url)
             const data = await res.json()
 
             if (data.success) {
@@ -108,83 +120,121 @@ export default function ComandaPage() {
         }
     }
 
-    function handleServiceSelect(serviceId: string) {
-        const service = services.find(s => s.id === serviceId)
+    function openAddModal() {
+        setEditingService(null)
+        setModalStaffId('')
+        setModalDate(new Date().toISOString().split('T')[0])
+        setAppointments([])
+        setSelectedAppointments([])
+        setShowModal(true)
+    }
 
-        if (service) {
-            setFormData(prev => ({
-                ...prev,
-                serviceId,
-                comboId: '',
-                serviceValue: service.price
-            }))
+    function openEditModal(service: StaffService) {
+        setEditingService(service)
+        setShowModal(true)
+    }
+
+    async function loadAppointments() {
+        if (!modalStaffId || !modalDate) {
+            alert('Selecione funcionário e data')
+            return
+        }
+
+        try {
+            setLoadingAppointments(true)
+
+            // Buscar agendamentos CONFIRMADOS daquele dia (não COMPLETED)
+            const url = `/api/appointments?date=${modalDate}&status=CONFIRMED`
+            const res = await fetch(url)
+            const data = await res.json()
+
+            if (data.success) {
+                setAppointments(data.data || [])
+            }
+        } catch (error) {
+            console.error('Erro ao carregar agendamentos:', error)
+        } finally {
+            setLoadingAppointments(false)
         }
     }
 
-    function handleComboSelect(comboId: string) {
-        const combo = combos.find(c => c.id === comboId)
-
-        if (combo) {
-            // Buscar serviços do combo para calcular preço
-            const comboServices = services.filter(s =>
-                combo.services?.some((cs: any) => cs.serviceId === s.id)
-            )
-
-            const originalPrice = comboServices.reduce((sum, s) => sum + s.price, 0)
-            const discountedPrice = originalPrice * (1 - combo.discountPercent / 100)
-
-            setFormData(prev => ({
-                ...prev,
-                comboId,
-                serviceId: '',
-                serviceValue: discountedPrice
-            }))
-        }
+    function toggleAppointment(appointmentId: string) {
+        setSelectedAppointments(prev =>
+            prev.includes(appointmentId)
+                ? prev.filter(id => id !== appointmentId)
+                : [...prev, appointmentId]
+        )
     }
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
 
-        if (!formData.staffId || (!formData.serviceId && !formData.comboId)) {
-            alert('Selecione funcionário e serviço/combo')
+        if (editingService) {
+            // Modo edição - manter lógica antiga
             return
         }
 
-        if (!formData.clientName) {
-            alert('Nome do cliente é obrigatório')
+        if (selectedAppointments.length === 0) {
+            alert('Selecione pelo menos um agendamento')
             return
         }
+
+        const selectedStaff = staff.find(s => s.id === modalStaffId)
+        if (!selectedStaff) return
 
         try {
-            const res = await fetch('/api/staff/services', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            })
+            // Registrar cada agendamento selecionado como serviço executado
+            for (const appointmentId of selectedAppointments) {
+                const appointment = appointments.find(a => a.id === appointmentId)
+                if (!appointment) continue
 
-            const data = await res.json()
+                const serviceValue = appointment.finalPrice || appointment.service?.price || 0
+                const commissionValue = serviceValue * (selectedStaff.commissionPercent / 100)
 
-            if (data.success) {
-                alert(data.message)
-                setShowModal(false)
-                setFormData({
-                    staffId: '',
-                    serviceId: '',
-                    comboId: '',
-                    clientName: '',
-                    clientPhone: '',
-                    serviceValue: 0,
-                    paymentMethod: 'DINHEIRO',
-                    executedAt: new Date().toISOString().slice(0, 16),
-                    notes: ''
+                // ✅ CORRIGIR FORMATO DA DATA
+                const dateStr = new Date(appointment.date).toISOString().split('T')[0] // 2026-03-05
+                const executedAtStr = `${dateStr}T${appointment.time}:00` // 2026-03-05T18:00:00
+
+                // ✅ NORMALIZAR PAYMENT METHOD (remover "_DE_")
+                let paymentMethod = appointment.paymentMethod || 'DINHEIRO'
+                paymentMethod = paymentMethod.replace('_DE_', '_') // CARTAO_DE_DEBITO → CARTAO_DEBITO
+
+                const data = {
+                    staffId: modalStaffId,
+                    serviceId: appointment.service?.id || null,
+                    comboId: appointment.combo?.id || null,
+                    clientName: appointment.user.name,
+                    clientPhone: appointment.user.phone || '',
+                    serviceValue,
+                    paymentMethod, // ✅ NORMALIZADO
+                    executedAt: executedAtStr, // ✅ FORMATO CORRETO
+                    notes: `Agendamento #${appointment.id.slice(0, 8)}`
+                }
+
+                const res = await fetch('/api/staff/services', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
                 })
-                loadTodayServices()
-            } else {
-                alert(data.error)
+
+                const result = await res.json()
+                if (!result.success) {
+                    console.error('Erro ao registrar:', result.error)
+                }
             }
+
+            alert(`${selectedAppointments.length} serviço(s) registrado(s) com sucesso!`)
+            setShowModal(false)
+
+            // ✅ Atualizar filtro de visualização para a data registrada
+            setSelectedDate(modalDate)
+            setSelectedStaffId(modalStaffId)
+
+            // Recarregar serviços
+            loadFilteredServices()
         } catch (error) {
             console.error('Erro:', error)
-            alert('Erro ao registrar serviço')
+            alert('Erro ao registrar serviços')
         }
     }
 
@@ -199,7 +249,7 @@ export default function ComandaPage() {
             const data = await res.json()
 
             if (data.success) {
-                loadTodayServices()
+                loadFilteredServices()
             }
         } catch (error) {
             console.error('Erro:', error)
@@ -227,359 +277,393 @@ export default function ComandaPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
+            <div className="flex items-center justify-center min-h-screen bg-beige">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
             </div>
         )
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">📝 Comanda Diária</h1>
-                    <p className="text-gray-600 mt-1">
-                        📅 {new Date().toLocaleDateString('pt-BR', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
-                    </p>
-                </div>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition"
+        <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <motion.div
+                    className="flex justify-between items-center mb-8"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
                 >
-                    + Registrar Serviço
-                </button>
-            </div>
+                    <div>
+                        <h1 className="text-4xl font-bold text-charcoal">📝 Comanda Diária</h1>
+                        <p className="text-gray-600 mt-2">
+                            📅 {new Date(selectedDate).toLocaleDateString('pt-BR', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            })}
+                        </p>
+                    </div>
+                    <button
+                        onClick={openAddModal}
+                        className="bg-gradient-gold text-white px-6 py-3 rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105"
+                    >
+                        + Registrar Serviço
+                    </button>
+                </motion.div>
 
-            {/* Resumo do Dia */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
-                    <p className="text-blue-100 text-sm font-semibold mb-2">Total de Serviços</p>
-                    <p className="text-4xl font-bold">{todayServices.length}</p>
-                </div>
-                <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
-                    <p className="text-green-100 text-sm font-semibold mb-2">Faturamento</p>
-                    <p className="text-4xl font-bold">
-                        R$ {todayServices.reduce((sum, s) => sum + s.serviceValue, 0).toFixed(2)}
-                    </p>
-                </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg">
-                    <p className="text-purple-100 text-sm font-semibold mb-2">Comissões</p>
-                    <p className="text-4xl font-bold">
-                        R$ {todayServices.reduce((sum, s) => sum + s.commissionValue, 0).toFixed(2)}
-                    </p>
-                </div>
-            </div>
+                {/* Filtros */}
+                <motion.div
+                    className="bg-white rounded-xl shadow-md p-6 mb-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                >
+                    <h2 className="text-lg font-bold text-charcoal mb-4">Filtros de Visualização</h2>
 
-            {/* Serviços Agrupados por Funcionário */}
-            <div className="space-y-6">
-                {staffGroups.length > 0 ? (
-                    staffGroups.map((group: any) => (
-                        <div key={group.staff.name} className="bg-white rounded-xl shadow-md overflow-hidden">
-                            {/* Header do Funcionário */}
-                            <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        {group.staff.photo ? (
-                                            <img
-                                                src={group.staff.photo}
-                                                alt={group.staff.name}
-                                                className="w-12 h-12 rounded-full object-cover border-2 border-white"
-                                            />
-                                        ) : (
-                                            <div className="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl font-bold">
-                                                {group.staff.name.charAt(0)}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-semibold text-charcoal mb-2">
+                                Data
+                            </label>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={e => setSelectedDate(e.target.value)}
+                                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-charcoal mb-2">
+                                Funcionário (opcional)
+                            </label>
+                            <select
+                                value={selectedStaffId}
+                                onChange={e => setSelectedStaffId(e.target.value)}
+                                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                            >
+                                <option value="">Todos</option>
+                                {staff.map(s => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </motion.div>
+
+                {/* Resumo do Dia */}
+                <motion.div
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                >
+                    <div className="bg-gradient-to-br from-gold to-gold-dark text-white p-6 rounded-xl shadow-lg">
+                        <p className="text-gold-light text-sm font-semibold mb-2">Total de Serviços</p>
+                        <p className="text-4xl font-bold">{todayServices.length}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
+                        <p className="text-green-100 text-sm font-semibold mb-2">Faturamento</p>
+                        <p className="text-4xl font-bold">
+                            R$ {todayServices.reduce((sum, s) => sum + s.serviceValue, 0).toFixed(2)}
+                        </p>
+                    </div>
+                    <div className="bg-gradient-to-br from-charcoal to-gray-700 text-white p-6 rounded-xl shadow-lg">
+                        <p className="text-gray-300 text-sm font-semibold mb-2">Comissões</p>
+                        <p className="text-4xl font-bold">
+                            R$ {todayServices.reduce((sum, s) => sum + s.commissionValue, 0).toFixed(2)}
+                        </p>
+                    </div>
+                </motion.div>
+
+                {/* Serviços Agrupados por Funcionário */}
+                <div className="space-y-6">
+                    {staffGroups.length > 0 ? (
+                        staffGroups.map((group: any, index) => (
+                            <motion.div
+                                key={group.staff.name}
+                                className="bg-white rounded-xl shadow-md overflow-hidden"
+                                initial={{ opacity: 0, y: 30 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.6 + (index * 0.1) }}
+                            >
+                                {/* Header do Funcionário */}
+                                <div className="bg-gradient-gold text-white p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            {group.staff.photo ? (
+                                                <img
+                                                    src={group.staff.photo}
+                                                    alt={group.staff.name}
+                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white"
+                                                />
+                                            ) : (
+                                                <div className="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl font-bold">
+                                                    {group.staff.name.charAt(0)}
+                                                </div>
+                                            )}
+                                            <div>
+                                                <h3 className="font-bold text-lg">{group.staff.name}</h3>
+                                                <p className="text-sm text-gold-light">
+                                                    {group.services.length} {group.services.length === 1 ? 'serviço' : 'serviços'}
+                                                </p>
                                             </div>
-                                        )}
-                                        <div>
-                                            <h3 className="font-bold text-lg">{group.staff.name}</h3>
-                                            <p className="text-sm text-pink-100">
-                                                {group.services.length} {group.services.length === 1 ? 'serviço' : 'serviços'}
-                                            </p>
                                         </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm text-pink-100">Faturamento</p>
-                                        <p className="text-2xl font-bold">R$ {group.totalValue.toFixed(2)}</p>
-                                        <p className="text-xs text-pink-100">Comissão: R$ {group.totalCommission.toFixed(2)}</p>
+                                        <div className="text-right">
+                                            <p className="text-sm text-gold-light">Faturamento</p>
+                                            <p className="text-2xl font-bold">R$ {group.totalValue.toFixed(2)}</p>
+                                            <p className="text-xs text-gold-light">Comissão: R$ {group.totalCommission.toFixed(2)}</p>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Lista de Serviços */}
-                            <div className="divide-y divide-gray-200">
-                                {group.services.map((service: StaffService) => (
-                                    <div key={service.id} className="p-4 hover:bg-gray-50 transition">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="text-lg">
-                                                        {service.service ? '💅' : '🎁'}
-                                                    </span>
-                                                    <h4 className="font-semibold text-gray-900">
-                                                        {service.service?.name || service.combo?.name}
-                                                    </h4>
-                                                    <span className="text-xs text-gray-500">
-                                                        {new Date(service.executedAt).toLocaleTimeString('pt-BR', {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                    </span>
+                                {/* Lista de Serviços */}
+                                <div className="divide-y divide-gray-200">
+                                    {group.services.map((service: StaffService) => (
+                                        <div key={service.id} className="p-4 hover:bg-beige/50 transition cursor-pointer" onClick={() => openEditModal(service)}>
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-lg">
+                                                            {service.service ? '💅' : '🎁'}
+                                                        </span>
+                                                        <h4 className="font-semibold text-charcoal">
+                                                            {service.service?.name || service.combo?.name}
+                                                        </h4>
+                                                        <span className="text-xs text-gray-500">
+                                                            {new Date(service.executedAt).toLocaleTimeString('pt-BR', {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit'
+                                                            })}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                        <span>👤 {service.clientName}</span>
+                                                        {service.clientPhone && <span>📞 {service.clientPhone}</span>}
+                                                        <span className="px-2 py-1 bg-gold/20 text-gold rounded-full text-xs">
+                                                            {service.paymentMethod.replace('_', ' ')}
+                                                        </span>
+                                                    </div>
+                                                    {service.notes && (
+                                                        <p className="text-sm text-gray-500 mt-2 italic">
+                                                            💬 {service.notes}
+                                                        </p>
+                                                    )}
                                                 </div>
-                                                <div className="flex items-center gap-4 text-sm text-gray-600">
-                                                    <span>👤 {service.clientName}</span>
-                                                    {service.clientPhone && <span>📞 {service.clientPhone}</span>}
-                                                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                                                        {service.paymentMethod.replace('_', ' ')}
-                                                    </span>
-                                                </div>
-                                                {service.notes && (
-                                                    <p className="text-sm text-gray-500 mt-2 italic">
-                                                        💬 {service.notes}
+                                                <div className="text-right ml-4">
+                                                    <p className="text-xl font-bold text-charcoal">
+                                                        R$ {service.serviceValue.toFixed(2)}
                                                     </p>
-                                                )}
-                                            </div>
-                                            <div className="text-right ml-4">
-                                                <p className="text-xl font-bold text-gray-900">
-                                                    R$ {service.serviceValue.toFixed(2)}
-                                                </p>
-                                                <p className="text-sm text-green-600 font-semibold">
-                                                    Comissão: R$ {service.commissionValue.toFixed(2)}
-                                                </p>
-                                                <button
-                                                    onClick={() => handleDelete(service.id)}
-                                                    className="mt-2 text-xs text-red-600 hover:text-red-800"
-                                                >
-                                                    🗑️ Remover
-                                                </button>
+                                                    <p className="text-sm text-gold font-semibold">
+                                                        Comissão: R$ {service.commissionValue.toFixed(2)}
+                                                    </p>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            handleDelete(service.id)
+                                                        }}
+                                                        className="mt-2 text-xs text-red-600 hover:text-red-800"
+                                                    >
+                                                        🗑️ Remover
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            </motion.div>
+                        ))
+                    ) : (
+                        <div className="bg-white rounded-xl shadow-md p-12 text-center">
+                            <div className="text-6xl mb-4">📝</div>
+                            <p className="text-gray-500 text-lg">Nenhum serviço registrado nesta data</p>
+                            <button
+                                onClick={openAddModal}
+                                className="mt-4 text-gold hover:underline font-semibold"
+                            >
+                                Registrar primeiro serviço
+                            </button>
                         </div>
-                    ))
-                ) : (
-                    <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                        <div className="text-6xl mb-4">📝</div>
-                        <p className="text-gray-500 text-lg">Nenhum serviço registrado hoje</p>
-                        <button
-                            onClick={() => setShowModal(true)}
-                            className="mt-4 text-pink-600 hover:underline"
+                    )}
+                </div>
+
+                {/* Modal Registrar Serviço */}
+                {showModal && !editingService && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <motion.div
+                            className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
                         >
-                            Registrar primeiro serviço do dia
-                        </button>
+                            <div className="sticky top-0 bg-gradient-gold text-white p-6 rounded-t-xl flex justify-between items-center">
+                                <h2 className="text-2xl font-bold">📝 Registrar Serviços Executados</h2>
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="text-white hover:text-gray-200 transition"
+                                >
+                                    <X size={28} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                                {/* Passo 1: Selecionar Funcionário e Data */}
+                                <div className="bg-gold/10 border-2 border-gold rounded-lg p-4">
+                                    <h3 className="font-bold text-charcoal mb-4">1️⃣ Selecione o Funcionário e a Data</h3>
+
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-charcoal mb-2">
+                                                Funcionário *
+                                            </label>
+                                            <select
+                                                required
+                                                value={modalStaffId}
+                                                onChange={e => setModalStaffId(e.target.value)}
+                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                {staff.map(s => (
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.name} (Comissão: {s.commissionPercent}%)
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-charcoal mb-2">
+                                                Data *
+                                            </label>
+                                            <input
+                                                type="date"
+                                                required
+                                                value={modalDate}
+                                                onChange={e => setModalDate(e.target.value)}
+                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={loadAppointments}
+                                        disabled={!modalStaffId || !modalDate || loadingAppointments}
+                                        className="w-full bg-charcoal text-white px-6 py-3 rounded-lg font-semibold hover:bg-charcoal/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {loadingAppointments ? '⏳ Buscando...' : '🔍 Buscar Agendamentos Confirmados'}
+                                    </button>
+                                </div>
+
+                                {/* Passo 2: Selecionar Agendamentos */}
+                                {appointments.length > 0 && (
+                                    <div className="bg-beige/50 border-2 border-gray-300 rounded-lg p-4">
+                                        <h3 className="font-bold text-charcoal mb-4">
+                                            2️⃣ Selecione os Agendamentos Confirmados ({appointments.length} encontrados)
+                                        </h3>
+
+                                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                                            {appointments.map(apt => (
+                                                <label
+                                                    key={apt.id}
+                                                    className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${selectedAppointments.includes(apt.id)
+                                                            ? 'bg-gold/20 border-gold'
+                                                            : 'bg-white border-gray-200 hover:border-gold/50'
+                                                        }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedAppointments.includes(apt.id)}
+                                                        onChange={() => toggleAppointment(apt.id)}
+                                                        className="mt-1 w-5 h-5 text-gold rounded focus:ring-gold"
+                                                    />
+
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-lg">{apt.service ? '💅' : '🎁'}</span>
+                                                            <h4 className="font-semibold text-charcoal">
+                                                                {apt.service?.name || apt.combo?.name || 'Serviço'}
+                                                            </h4>
+                                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                                                {apt.time}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                                            <p>👤 Cliente: <span className="font-semibold">{apt.user.name}</span></p>
+                                                            <p>💰 Valor: <span className="font-semibold text-gold">R$ {(apt.finalPrice || apt.service?.price || 0).toFixed(2)}</span></p>
+                                                            {apt.user.phone && <p>📞 {apt.user.phone}</p>}
+                                                            {apt.paymentMethod && (
+                                                                <p>💳 {apt.paymentMethod.replace('_', ' ')}</p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {appointments.length === 0 && modalStaffId && modalDate && !loadingAppointments && (
+                                    <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 text-center">
+                                        <p className="text-orange-700 font-semibold">
+                                            ⚠️ Nenhum agendamento confirmado encontrado para esta data
+                                        </p>
+                                        <p className="text-sm text-orange-600 mt-2">
+                                            Os agendamentos precisam estar com status "CONFIRMED" para aparecerem aqui
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Resumo */}
+                                {selectedAppointments.length > 0 && (
+                                    <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4">
+                                        <h3 className="font-bold text-green-800 mb-2">
+                                            ✅ {selectedAppointments.length} serviço(s) selecionado(s)
+                                        </h3>
+                                        <p className="text-sm text-green-700">
+                                            Total a registrar: R$ {appointments
+                                                .filter(a => selectedAppointments.includes(a.id))
+                                                .reduce((sum, a) => sum + (a.finalPrice || a.service?.price || 0), 0)
+                                                .toFixed(2)}
+                                        </p>
+                                        <p className="text-sm text-green-700">
+                                            Comissão estimada: R$ {appointments
+                                                .filter(a => selectedAppointments.includes(a.id))
+                                                .reduce((sum, a) => {
+                                                    const value = a.finalPrice || a.service?.price || 0
+                                                    const commission = value * ((staff.find(s => s.id === modalStaffId)?.commissionPercent || 0) / 100)
+                                                    return sum + commission
+                                                }, 0)
+                                                .toFixed(2)}
+                                        </p>
+                                    </div>
+                                )}
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowModal(false)}
+                                        className="flex-1 px-6 py-3 border-2 border-gray-300 text-charcoal rounded-lg font-semibold hover:bg-gray-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={selectedAppointments.length === 0}
+                                        className="flex-1 px-6 py-3 bg-gradient-gold text-white rounded-lg font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Registrar {selectedAppointments.length > 0 ? `(${selectedAppointments.length})` : ''}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
                     </div>
                 )}
             </div>
-
-            {/* Modal Registrar Serviço */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-purple-600 text-white p-6 rounded-t-xl">
-                            <h2 className="text-2xl font-bold">📝 Registrar Serviço</h2>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            {/* Funcionário */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Funcionário *
-                                </label>
-                                <select
-                                    required
-                                    value={formData.staffId}
-                                    onChange={e => setFormData({ ...formData, staffId: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                >
-                                    <option value="">Selecione...</option>
-                                    {staff.map(s => (
-                                        <option key={s.id} value={s.id}>
-                                            {s.name} (Comissão: {s.commissionPercent}%)
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {/* Serviço ou Combo */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Serviço
-                                    </label>
-                                    <select
-                                        value={formData.serviceId}
-                                        onChange={e => handleServiceSelect(e.target.value)}
-                                        disabled={!!formData.comboId}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none disabled:bg-gray-100"
-                                    >
-                                        <option value="">Selecione...</option>
-                                        {services.map(s => (
-                                            <option key={s.id} value={s.id}>
-                                                {s.name} - R$ {s.price.toFixed(2)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Combo
-                                    </label>
-                                    <select
-                                        value={formData.comboId}
-                                        onChange={e => handleComboSelect(e.target.value)}
-                                        disabled={!!formData.serviceId}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none disabled:bg-gray-100"
-                                    >
-                                        <option value="">Selecione...</option>
-                                        {combos.map(c => (
-                                            <option key={c.id} value={c.id}>
-                                                {c.name} ({c.discountPercent}% OFF)
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Cliente */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Cliente *
-                                    </label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.clientName}
-                                        onChange={e => setFormData({ ...formData, clientName: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                        placeholder="Nome do cliente"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Telefone
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.clientPhone}
-                                        onChange={e => setFormData({ ...formData, clientPhone: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                        placeholder="(84) 99999-9999"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Valor e Pagamento */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Valor do Serviço *
-                                    </label>
-                                    <input
-                                        type="number"
-                                        required
-                                        step="0.01"
-                                        min="0"
-                                        value={formData.serviceValue}
-                                        onChange={e => setFormData({ ...formData, serviceValue: Number(e.target.value) })}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Forma de Pagamento *
-                                    </label>
-                                    <select
-                                        required
-                                        value={formData.paymentMethod}
-                                        onChange={e => setFormData({ ...formData, paymentMethod: e.target.value })}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                    >
-                                        <option value="DINHEIRO">💵 Dinheiro</option>
-                                        <option value="CARTAO_DEBITO">💳 Cartão Débito</option>
-                                        <option value="CARTAO_CREDITO">💳 Cartão Crédito</option>
-                                        <option value="PIX">📱 PIX</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Data/Hora */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Data e Hora *
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    required
-                                    value={formData.executedAt}
-                                    onChange={e => setFormData({ ...formData, executedAt: e.target.value })}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                />
-                            </div>
-
-                            {/* Observações */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Observações
-                                </label>
-                                <textarea
-                                    value={formData.notes}
-                                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                    rows={3}
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                    placeholder="Detalhes adicionais..."
-                                />
-                            </div>
-
-                            {/* Resumo da Comissão */}
-                            {formData.staffId && formData.serviceValue > 0 && (
-                                <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
-                                    <div className="flex justify-between items-center text-sm">
-                                        <span className="text-gray-700">Valor do Serviço:</span>
-                                        <span className="font-bold text-gray-900">
-                                            R$ {formData.serviceValue.toFixed(2)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm mt-2">
-                                        <span className="text-gray-700">
-                                            Comissão ({staff.find(s => s.id === formData.staffId)?.commissionPercent}%):
-                                        </span>
-                                        <span className="font-bold text-green-600">
-                                            R$ {(formData.serviceValue * (staff.find(s => s.id === formData.staffId)?.commissionPercent || 0) / 100).toFixed(2)}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg"
-                                >
-                                    Registrar
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }

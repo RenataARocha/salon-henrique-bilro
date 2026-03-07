@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 
 interface Staff {
     id: string
@@ -173,250 +174,265 @@ export default function FuncionariosPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600"></div>
+            <div className="flex items-center justify-center min-h-screen bg-beige">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
             </div>
         )
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">👥 Funcionários</h1>
-                    <p className="text-gray-600 mt-1">Gerencie sua equipe</p>
-                </div>
-                <button
-                    onClick={openAddModal}
-                    className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition"
+        <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="max-w-7xl mx-auto">
+                {/* Header */}
+                <motion.div
+                    className="flex justify-between items-center mb-8"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
                 >
-                    + Novo Funcionário
-                </button>
-            </div>
-
-            {/* Lista de Funcionários */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {staff.map(s => (
-                    <div
-                        key={s.id}
-                        className={`bg-white rounded-xl shadow-md p-6 border-2 ${s.active ? 'border-green-200' : 'border-gray-200 opacity-60'
-                            }`}
-                    >
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                {s.photo ? (
-                                    <Image
-                                        src={s.photo}
-                                        alt={s.name}
-                                        width={60}
-                                        height={60}
-                                        className="rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-15 h-15 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
-                                        {s.name.charAt(0)}
-                                    </div>
-                                )}
-                                <div>
-                                    <h3 className="font-bold text-lg text-gray-900">{s.name}</h3>
-                                    <span className={`text-sm px-2 py-1 rounded-full ${s.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                                        }`}>
-                                        {s.active ? '🟢 Ativo' : '⚪ Inativo'}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2 text-sm text-gray-600 mb-4">
-                            {s.phone && (
-                                <p className="flex items-center gap-2">
-                                    📞 {s.phone}
-                                </p>
-                            )}
-                            {s.email && (
-                                <p className="flex items-center gap-2">
-                                    📧 {s.email}
-                                </p>
-                            )}
-                            <p className="flex items-center gap-2">
-                                💰 Comissão: <span className="font-semibold text-pink-600">{s.commissionPercent}%</span>
-                            </p>
-                            <p className="flex items-center gap-2">
-                                📊 Serviços realizados: <span className="font-semibold">{s._count.services}</span>
-                            </p>
-                        </div>
-
-                        <div className="mb-4">
-                            <p className="text-xs text-gray-500 mb-2">Especialidades:</p>
-                            <div className="flex flex-wrap gap-1">
-                                {s.specialties.map(spec => (
-                                    <span
-                                        key={spec}
-                                        className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full"
-                                    >
-                                        {spec}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => openEditModal(s)}
-                                className="flex-1 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600 transition"
-                            >
-                                ✏️ Editar
-                            </button>
-                            <button
-                                onClick={() => router.push(`/admin/funcionarios/${s.id}`)}
-                                className="flex-1 bg-purple-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-purple-600 transition"
-                            >
-                                📊 Histórico
-                            </button>
-                            <button
-                                onClick={() => handleToggleActive(s.id, s.active)}
-                                className={`px-4 py-2 rounded-lg text-sm transition ${s.active
-                                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                        : 'bg-green-100 text-green-600 hover:bg-green-200'
-                                    }`}
-                            >
-                                {s.active ? '🔴' : '🟢'}
-                            </button>
-                        </div>
+                    <div>
+                        <h1 className="text-4xl font-bold text-charcoal">👥 Funcionários</h1>
+                        <p className="text-gray-600 mt-2">Gerencie sua equipe</p>
                     </div>
-                ))}
-            </div>
-
-            {staff.length === 0 && (
-                <div className="text-center py-12">
-                    <p className="text-gray-500 text-lg">Nenhum funcionário cadastrado ainda</p>
                     <button
                         onClick={openAddModal}
-                        className="mt-4 text-pink-600 hover:underline"
+                        className="bg-gradient-gold text-white px-6 py-3 rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105"
                     >
-                        Cadastrar primeiro funcionário
+                        + Novo Funcionário
                     </button>
-                </div>
-            )}
+                </motion.div>
 
-            {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-gradient-to-r from-pink-500 to-purple-600 text-white p-6 rounded-t-xl">
-                            <h2 className="text-2xl font-bold">
-                                {editingStaff ? '✏️ Editar Funcionário' : '➕ Novo Funcionário'}
-                            </h2>
-                        </div>
-
-                        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Nome *
-                                </label>
-                                <input
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Telefone
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={formData.phone}
-                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                        className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                        placeholder="(84) 99999-9999"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                        className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                    />
+                {/* Lista de Funcionários */}
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {staff.map((s, index) => (
+                        <motion.div
+                            key={s.id}
+                            className={`bg-white rounded-xl shadow-md p-6 border-2 ${s.active ? 'border-gold/30' : 'border-gray-200 opacity-60'
+                                }`}
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: index * 0.1 }}
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    {s.photo ? (
+                                        <Image
+                                            src={s.photo}
+                                            alt={s.name}
+                                            width={60}
+                                            height={60}
+                                            className="rounded-full object-cover border-2 border-gold"
+                                        />
+                                    ) : (
+                                        <div className="w-15 h-15 rounded-full bg-gradient-gold flex items-center justify-center text-white text-2xl font-bold">
+                                            {s.name.charAt(0)}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h3 className="font-bold text-lg text-charcoal">{s.name}</h3>
+                                        <span className={`text-sm px-2 py-1 rounded-full ${s.active ? 'bg-gold/20 text-gold' : 'bg-gray-100 text-gray-500'
+                                            }`}>
+                                            {s.active ? '🟢 Ativo' : '⚪ Inativo'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    CPF
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formData.cpf}
-                                    onChange={e => setFormData({ ...formData, cpf: e.target.value })}
-                                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                    placeholder="000.000.000-00"
-                                />
+                            <div className="space-y-2 text-sm text-gray-600 mb-4">
+                                {s.phone && (
+                                    <p className="flex items-center gap-2">
+                                        📞 {s.phone}
+                                    </p>
+                                )}
+                                {s.email && (
+                                    <p className="flex items-center gap-2">
+                                        📧 {s.email}
+                                    </p>
+                                )}
+                                <p className="flex items-center gap-2">
+                                    💰 Comissão: <span className="font-semibold text-gold">{s.commissionPercent}%</span>
+                                </p>
+                                <p className="flex items-center gap-2">
+                                    📊 Serviços realizados: <span className="font-semibold">{s._count.services}</span>
+                                </p>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Comissão (%) *
-                                </label>
-                                <input
-                                    type="number"
-                                    required
-                                    min="0"
-                                    max="100"
-                                    value={formData.commissionPercent}
-                                    onChange={e => setFormData({ ...formData, commissionPercent: Number(e.target.value) })}
-                                    className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-pink-500 focus:outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Especialidades * (selecione pelo menos uma)
-                                </label>
-                                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-3">
-                                    {availableSpecialties.map(spec => (
-                                        <label key={spec} className="flex items-center gap-2 cursor-pointer hover:bg-purple-50 p-2 rounded">
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.specialties.includes(spec)}
-                                                onChange={() => toggleSpecialty(spec)}
-                                                className="w-4 h-4 text-pink-600 rounded focus:ring-pink-500"
-                                            />
-                                            <span className="text-sm text-gray-700">{spec}</span>
-                                        </label>
+                            <div className="mb-4">
+                                <p className="text-xs text-gray-500 mb-2">Especialidades:</p>
+                                <div className="flex flex-wrap gap-1">
+                                    {s.specialties.map(spec => (
+                                        <span
+                                            key={spec}
+                                            className="text-xs bg-gold/20 text-gold px-2 py-1 rounded-full"
+                                        >
+                                            {spec}
+                                        </span>
                                     ))}
                                 </div>
                             </div>
 
-                            <div className="flex gap-3 pt-4">
+                            <div className="flex gap-2">
                                 <button
-                                    type="button"
-                                    onClick={() => setShowModal(false)}
-                                    className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50"
+                                    onClick={() => openEditModal(s)}
+                                    className="flex-1 bg-gold text-white px-4 py-2 rounded-lg text-sm hover:bg-gold-dark transition"
                                 >
-                                    Cancelar
+                                    ✏️ Editar
                                 </button>
                                 <button
-                                    type="submit"
-                                    className="flex-1 px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg"
+                                    onClick={() => router.push(`/admin/funcionarios/${s.id}`)}
+                                    className="flex-1 bg-charcoal text-white px-4 py-2 rounded-lg text-sm hover:bg-charcoal/80 transition"
                                 >
-                                    {editingStaff ? 'Atualizar' : 'Cadastrar'}
+                                    📊 Histórico
+                                </button>
+                                <button
+                                    onClick={() => handleToggleActive(s.id, s.active)}
+                                    className={`px-4 py-2 rounded-lg text-sm transition ${s.active
+                                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                            : 'bg-green-100 text-green-600 hover:bg-green-200'
+                                        }`}
+                                >
+                                    {s.active ? '🔴' : '🟢'}
                                 </button>
                             </div>
-                        </form>
-                    </div>
+                        </motion.div>
+                    ))}
                 </div>
-            )}
+
+                {staff.length === 0 && (
+                    <div className="text-center py-12">
+                        <p className="text-gray-500 text-lg">Nenhum funcionário cadastrado ainda</p>
+                        <button
+                            onClick={openAddModal}
+                            className="mt-4 text-gold hover:underline"
+                        >
+                            Cadastrar primeiro funcionário
+                        </button>
+                    </div>
+                )}
+
+                {/* Modal */}
+                {showModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <motion.div
+                            className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div className="sticky top-0 bg-gradient-gold text-white p-6 rounded-t-xl">
+                                <h2 className="text-2xl font-bold">
+                                    {editingStaff ? '✏️ Editar Funcionário' : '➕ Novo Funcionário'}
+                                </h2>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Nome *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={formData.name}
+                                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                        className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-charcoal mb-2">
+                                            Telefone
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.phone}
+                                            onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                            className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                            placeholder="(84) 99999-9999"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-charcoal mb-2">
+                                            Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        CPF
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.cpf}
+                                        onChange={e => setFormData({ ...formData, cpf: e.target.value })}
+                                        className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                        placeholder="000.000.000-00"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Comissão (%) *
+                                    </label>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="0"
+                                        max="100"
+                                        value={formData.commissionPercent}
+                                        onChange={e => setFormData({ ...formData, commissionPercent: Number(e.target.value) })}
+                                        className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                        Especialidades * (selecione pelo menos uma)
+                                    </label>
+                                    <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border-2 border-gray-200 rounded-lg p-3">
+                                        {availableSpecialties.map(spec => (
+                                            <label key={spec} className="flex items-center gap-2 cursor-pointer hover:bg-gold/10 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.specialties.includes(spec)}
+                                                    onChange={() => toggleSpecialty(spec)}
+                                                    className="w-4 h-4 text-gold rounded focus:ring-gold"
+                                                />
+                                                <span className="text-sm text-charcoal">{spec}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowModal(false)}
+                                        className="flex-1 px-6 py-3 border-2 border-gray-300 text-charcoal rounded-lg font-semibold hover:bg-gray-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 px-6 py-3 bg-gradient-gold text-white rounded-lg font-semibold hover:shadow-lg"
+                                    >
+                                        {editingStaff ? 'Atualizar' : 'Cadastrar'}
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
