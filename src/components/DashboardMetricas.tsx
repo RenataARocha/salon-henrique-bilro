@@ -138,7 +138,7 @@ export default function DashboardMetricas() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-gradient-to-r from-pink-500 to-purple-600 rounded-xl p-6 text-white">
+            <div className="bg-gradient-gold rounded-xl p-6 text-white">
                 <h2 className="text-2xl font-bold mb-2">📊 Dashboard de Métricas</h2>
                 <p className="text-white/90">
                     Acompanhe o desempenho do sistema de notificações em tempo real

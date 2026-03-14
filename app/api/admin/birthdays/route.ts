@@ -42,26 +42,32 @@ export async function GET(request: NextRequest) {
             users
                 .filter(user => {
                     if (!user.birthDate) return false
-                    const birthMonth = new Date(user.birthDate).getMonth() + 1
+                    // ✅ USAR UTC para evitar problemas de timezone
+                    const birthMonth = new Date(user.birthDate).getUTCMonth() + 1
                     return birthMonth === Number(month)
                 })
                 .map(async user => {
+                    // ✅ CORRIGIDO - Usar UTC para evitar problemas de timezone
                     const birthDate = new Date(user.birthDate!)
+                    const birthDay = birthDate.getUTCDate()
+                    const birthMonth = birthDate.getUTCMonth() + 1
+                    const birthYear = birthDate.getUTCFullYear()
+
                     const today = new Date()
 
                     const thisYearBirthday = new Date(
                         Number(year),
-                        birthDate.getMonth(),
-                        birthDate.getDate()
+                        birthMonth - 1,
+                        birthDay
                     )
 
                     const daysUntil = Math.ceil(
                         (thisYearBirthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
                     )
 
-                    const age = Number(year) - birthDate.getFullYear()
+                    const age = Number(year) - birthYear
 
-                    // 🔥 BUSCA TODOS OS AGENDAMENTOS (sem filtro de status)
+                    // ✅ BUSCA TODOS OS AGENDAMENTOS (incluindo service E combo)
                     const appointments = await prisma.appointment.findMany({
                         where: {
                             userId: user.id
@@ -71,10 +77,15 @@ export async function GET(request: NextRequest) {
                                 select: {
                                     name: true
                                 }
+                            },
+                            combo: { // ✅ ADICIONAR COMBO
+                                select: {
+                                    name: true
+                                }
                             }
                         },
                         orderBy: {
-                            date: 'asc' // ⚠️ MUDADO PARA ASC para pegar o primeiro cronologicamente
+                            date: 'asc'
                         }
                     })
 
@@ -94,8 +105,8 @@ export async function GET(request: NextRequest) {
                         email: user.email,
                         phone: user.phone,
                         birthDate: user.birthDate,
-                        birthDay: birthDate.getDate(),
-                        birthMonth: birthDate.getMonth() + 1,
+                        birthDay: birthDay, // ✅ Usando UTC
+                        birthMonth: birthMonth, // ✅ Usando UTC
                         age,
                         daysUntil,
                         isPast: daysUntil < 0,
@@ -105,7 +116,8 @@ export async function GET(request: NextRequest) {
                         lastAppointment: lastAppointment
                             ? {
                                 date: lastAppointment.date,
-                                service: lastAppointment.service
+                                service: lastAppointment.service, // ✅ Pode ser null
+                                combo: lastAppointment.combo // ✅ Pode ser null
                             }
                             : null
                     }

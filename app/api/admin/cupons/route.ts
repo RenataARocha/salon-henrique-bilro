@@ -1,4 +1,4 @@
-// app/api/admin/coupons/route.ts
+// app/api/admin/cupons/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
@@ -53,7 +53,9 @@ export async function GET(request: NextRequest) {
             usageCount: coupon._count.appointments,
             remainingUses: coupon.maxUses ? coupon.maxUses - coupon.usedCount : null,
             isExpired: coupon.validUntil < now,
-            isActive: coupon.active && coupon.validUntil >= now
+            isActive: coupon.active && coupon.validUntil >= now,
+            // ✅ IDENTIFICAR SE É CUPOM DE ANIVERSÁRIO
+            isBirthdayCoupon: coupon.code.startsWith('ANIVERSARIO-')
         }))
 
         return NextResponse.json({
@@ -124,6 +126,10 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        const servicesArray = Array.isArray(applicableServices) && applicableServices.length > 0
+            ? applicableServices
+            : []
+
         // Criar cupom
         const coupon = await prisma.coupon.create({
             data: {
@@ -135,12 +141,9 @@ export async function POST(request: NextRequest) {
                 maxUses: maxUses ? parseInt(maxUses) : null,
                 validFrom: new Date(validFrom),
                 validUntil: new Date(validUntil),
-                applicableServices:
-                    applicableServices && applicableServices.length > 0
-                        ? applicableServices
-                        : null,
+                applicableServices: servicesArray,
                 perUserLimit: perUserLimit || false,
-                daysOfWeek: daysOfWeek || [],
+                daysOfWeek: Array.isArray(daysOfWeek) ? daysOfWeek : [],
                 timeStart: timeStart || null,
                 timeEnd: timeEnd || null,
                 active: true
@@ -191,6 +194,12 @@ export async function PUT(request: NextRequest) {
 
         const body = await request.json()
 
+        const servicesArray = Array.isArray(body.applicableServices) && body.applicableServices.length > 0
+            ? body.applicableServices
+            : []
+
+        const daysArray = Array.isArray(body.daysOfWeek) ? body.daysOfWeek : []
+
         const coupon = await prisma.coupon.update({
             where: { id },
             data: {
@@ -201,9 +210,9 @@ export async function PUT(request: NextRequest) {
                 maxUses: body.maxUses ? parseInt(body.maxUses) : null,
                 validFrom: new Date(body.validFrom),
                 validUntil: new Date(body.validUntil),
-                applicableServices: body.applicableServices || [],
+                applicableServices: servicesArray,
                 perUserLimit: body.perUserLimit || false,
-                daysOfWeek: body.daysOfWeek || [],
+                daysOfWeek: daysArray,
                 timeStart: body.timeStart || null,
                 timeEnd: body.timeEnd || null,
                 active: body.active !== undefined ? body.active : true
@@ -228,7 +237,7 @@ export async function PUT(request: NextRequest) {
     }
 }
 
-// DELETE - Desativar cupom
+// ✅ DELETE - DELETAR PERMANENTEMENTE CUPONS DE ANIVERSÁRIO, DESATIVAR OS DEMAIS
 export async function DELETE(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
@@ -250,24 +259,48 @@ export async function DELETE(request: NextRequest) {
             )
         }
 
-        // Desativar ao invés de deletar (manter histórico)
-        const coupon = await prisma.coupon.update({
+        // ✅ Buscar cupom para verificar se é de aniversário
+        const coupon = await prisma.coupon.findUnique({
+            where: { id }
+        })
+
+        if (!coupon) {
+            return NextResponse.json(
+                { success: false, message: 'Cupom não encontrado' },
+                { status: 404 }
+            )
+        }
+
+        // ✅ SE FOR CUPOM DE ANIVERSÁRIO → DELETAR PERMANENTEMENTE
+        if (coupon.code.startsWith('ANIVERSARIO-')) {
+            await prisma.coupon.delete({
+                where: { id }
+            })
+
+            return NextResponse.json({
+                success: true,
+                message: 'Cupom de aniversário excluído permanentemente!'
+            })
+        }
+
+        // ✅ SE FOR CUPOM NORMAL → APENAS DESATIVAR
+        const deactivatedCoupon = await prisma.coupon.update({
             where: { id },
             data: { active: false }
         })
 
         return NextResponse.json({
             success: true,
-            data: coupon,
+            data: deactivatedCoupon,
             message: 'Cupom desativado com sucesso!'
         })
 
     } catch (error) {
-        console.error('❌ Erro ao desativar cupom:', error)
+        console.error('❌ Erro ao processar cupom:', error)
         return NextResponse.json(
             {
                 success: false,
-                message: 'Erro ao desativar cupom'
+                message: 'Erro ao processar cupom'
             },
             { status: 500 }
         )

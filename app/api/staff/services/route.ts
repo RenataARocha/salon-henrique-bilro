@@ -123,6 +123,7 @@ export async function POST(request: Request) {
             staffId,
             serviceId,
             comboId,
+            appointmentId, // ✅ ADICIONAR appointmentId
             clientName,
             clientPhone,
             serviceValue,
@@ -160,6 +161,23 @@ export async function POST(request: Request) {
             )
         }
 
+        // ✅ VERIFICAR SE JÁ FOI REGISTRADO (evitar duplicação)
+        if (appointmentId) {
+            const existingRecord = await prisma.staffService.findFirst({
+                where: {
+                    staffId,
+                    appointmentId
+                }
+            })
+
+            if (existingRecord) {
+                return NextResponse.json(
+                    { success: false, error: 'Este agendamento já foi registrado para este funcionário' },
+                    { status: 400 }
+                )
+            }
+        }
+
         // Buscar funcionário para pegar % de comissão
         const staff = await prisma.staff.findUnique({
             where: { id: staffId }
@@ -179,6 +197,7 @@ export async function POST(request: Request) {
         const staffService = await prisma.staffService.create({
             data: {
                 staffId,
+                appointmentId: appointmentId || null, // ✅ ADICIONAR appointmentId
                 serviceId: serviceId || null,
                 comboId: comboId || null,
                 clientName,
@@ -225,41 +244,40 @@ export async function PATCH(request: Request) {
 
         if (!session?.user || session.user.role !== 'ADMIN') {
             return NextResponse.json(
-                { success: false, error: 'Acesso negado' },
-                { status: 403 }
+                { success: false, error: 'Não autorizado' },
+                { status: 401 }
             )
         }
 
         const body = await request.json()
-        const { ids, paid } = body
+        const { ids } = body
 
-        if (!ids || !Array.isArray(ids)) {
+        if (!Array.isArray(ids) || ids.length === 0) {
             return NextResponse.json(
                 { success: false, error: 'IDs inválidos' },
                 { status: 400 }
             )
         }
 
-        // Atualizar múltiplos serviços
-        await prisma.staffService.updateMany({
+        // Atualizar múltiplos registros
+        const updated = await prisma.staffService.updateMany({
             where: {
                 id: { in: ids }
             },
             data: {
-                commissionPaid: paid,
-                paidAt: paid ? new Date() : null
+                commissionPaid: true
             }
         })
 
         return NextResponse.json({
             success: true,
-            message: paid ? 'Comissões marcadas como pagas' : 'Status atualizado'
+            data: updated
         })
 
     } catch (error) {
-        console.error('Erro ao atualizar status:', error)
+        console.error('Erro ao marcar como pago:', error)
         return NextResponse.json(
-            { success: false, error: 'Erro ao atualizar status' },
+            { success: false, error: 'Erro ao marcar como pago' },
             { status: 500 }
         )
     }

@@ -349,7 +349,7 @@ export default function ClientesPage() {
 
                 {/* Lista de Clientes */}
                 {filteredClients.length > 0 ? (
-                    <div className="grid gap-4">
+                    <div className="grid gap-4 max-h-[80vh] overflow-y-auto p-4">
                         <p className="text-gray-600 animate-fade-in">
                             {filteredClients.length} {filteredClients.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
                         </p>

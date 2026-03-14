@@ -2,8 +2,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, ChevronDown, ChevronUp } from 'lucide-react'
+import { X, ChevronDown, ChevronUp, Home, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 
 interface StaffServiceDetail {
     id: string
@@ -175,6 +176,7 @@ export default function ComissoesPage() {
     return (
         <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto">
+
                 {/* Header */}
                 <motion.div
                     className="mb-8"
@@ -184,7 +186,34 @@ export default function ComissoesPage() {
                 >
                     <h1 className="text-4xl font-bold text-charcoal">💰 Comissões Detalhadas</h1>
                     <p className="text-gray-600 mt-2">Gerencie os pagamentos de cada serviço executado</p>
+
+
                 </motion.div>
+
+                {/* Navegação */}
+                <motion.div
+                    className="mb-6 justify-end flex gap-3"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
+                    <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                    >
+
+                        <ArrowLeft size={20} />
+                        Painel
+                    </Link>
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                    >
+                        <Home size={20} />
+                        Voltar ao início
+                    </Link>
+                </motion.div>
+
 
                 {/* Filtros */}
                 <motion.div
@@ -271,7 +300,7 @@ export default function ComissoesPage() {
                 </motion.div>
 
                 {/* Lista por Funcionário */}
-                <div className="space-y-6">
+                <div className="space-y-6 max-h-[90vh] overflow-y-auto p-4">
                     {staffCommissions.length > 0 ? (
                         staffCommissions.map((staff, index) => {
                             const isExpanded = expandedStaff.includes(staff.staffId)
@@ -280,14 +309,14 @@ export default function ComissoesPage() {
                             return (
                                 <motion.div
                                     key={staff.staffId}
-                                    className="bg-white rounded-xl shadow-md overflow-hidden"
+                                    className="bg-white rounded-xl shadow-md overflow-hidden max-h-[90vh] overflow-y-auto"
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.6, delay: 0.6 + (index * 0.1) }}
                                 >
                                     {/* Header do Funcionário */}
                                     <div
-                                        className="bg-gradient-gold text-white p-6 cursor-pointer"
+                                        className="bg-gradient-gold text-white p-6 cursor-pointer "
                                         onClick={() => toggleStaffExpand(staff.staffId)}
                                     >
                                         <div className="flex items-center justify-between">
@@ -299,7 +328,7 @@ export default function ComissoesPage() {
                                                         className="w-12 h-12 rounded-full object-cover border-2 border-white"
                                                     />
                                                 ) : (
-                                                    <div className="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl font-bold">
+                                                    <div className="w-12 h-12 rounded-full bg-gold-dark bg-opacity-20 flex items-center justify-center text-xl font-bold">
                                                         {staff.staffName.charAt(0)}
                                                     </div>
                                                 )}
@@ -342,10 +371,10 @@ export default function ComissoesPage() {
                                                     <div
                                                         key={service.id}
                                                         className={`bg-white rounded-lg p-4 border-2 transition ${selectedServices.includes(service.id)
-                                                                ? 'border-gold bg-gold/5'
-                                                                : service.commissionPaid
-                                                                    ? 'border-green-200 bg-green-50'
-                                                                    : 'border-gray-200'
+                                                            ? 'border-gold bg-gold/5'
+                                                            : service.commissionPaid
+                                                                ? 'border-green-200 bg-green-50'
+                                                                : 'border-gray-200'
                                                             }`}
                                                     >
                                                         <div className="flex items-start justify-between">

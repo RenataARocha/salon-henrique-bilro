@@ -290,7 +290,7 @@ export default function AdminCuponsPage() {
 
 
                 {/* Lista de Cupons */}
-                <div className="grid gap-4">
+                <div className="grid gap-4 max-h-[90vh] overflow-y-auto p-4">
                     {cuponsFiltrados.length === 0 ? (
                         <div className="bg-white rounded-lg shadow-sm p-12 text-center">
                             <Tag className="mx-auto mb-4 text-gray-400" size={48} />

@@ -1,5 +1,4 @@
-//app/(dashboard)/admin/aniversariantes/page.tsx
-
+// app/(dashboard)/admin/aniversariantes/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -26,7 +25,10 @@ interface Birthday {
         date: string
         service: {
             name: string
-        }
+        } | null
+        combo: {
+            name: string
+        } | null
     }
 }
 
@@ -116,6 +118,14 @@ export default function AniversariantesPage() {
         if (daysUntil > 0 && daysUntil <= 3) return 'bg-orange-100 text-orange-700'
         if (daysUntil > 3 && daysUntil <= 7) return 'bg-yellow-100 text-yellow-700'
         return 'bg-gray-100 text-gray-600'
+    }
+
+    // ✅ FUNÇÃO PARA PEGAR NOME DO SERVIÇO/COMBO
+    const getServiceName = (lastAppointment: Birthday['lastAppointment']) => {
+        if (!lastAppointment) return '-'
+        if (lastAppointment.service?.name) return lastAppointment.service.name
+        if (lastAppointment.combo?.name) return lastAppointment.combo.name
+        return 'Serviço não identificado'
     }
 
     if (loading) {
@@ -262,9 +272,10 @@ export default function AniversariantesPage() {
                                             </div>
                                         </div>
 
+                                        {/* ✅ CORRIGIDO - Verifica se service/combo existe */}
                                         {birthday.lastAppointment && (
                                             <p className="text-sm text-gray-600">
-                                                Último serviço: <span className="font-semibold">{birthday.lastAppointment.service.name}</span>
+                                                Último serviço: <span className="font-semibold">{getServiceName(birthday.lastAppointment)}</span>
                                             </p>
                                         )}
                                     </div>

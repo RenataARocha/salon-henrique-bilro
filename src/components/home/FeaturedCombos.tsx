@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Gift, Percent, Clock } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Gift, Percent, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
 import SmartBookingButton from '@/components/SmartBookingButton'
 import SectionTitle from '@/components/ui/SectionTitle'
-import { motion, useInView } from 'framer-motion'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import { Autoplay, Navigation } from 'swiper/modules'
+
+import 'swiper/css'
 
 interface Combo {
     id: string
@@ -24,183 +27,190 @@ interface Combo {
 export default function FeaturedCombos() {
     const [combos, setCombos] = useState<Combo[]>([])
     const [loading, setLoading] = useState(true)
-    const ref = useRef(null)
-    const isInView = useInView(ref, { once: true, margin: "-100px", amount: 0.1 })
 
-    useEffect(() => {
-        fetchCombos()
+    const [prevEl, setPrevEl] = useState<HTMLButtonElement | null>(null)
+    const [nextEl, setNextEl] = useState<HTMLButtonElement | null>(null)
 
-        const interval = setInterval(fetchCombos, 5000)
-
-        const handleUpdate = () => {
-            console.log('🔄 Evento de atualização recebido')
-            fetchCombos()
-        }
-
-        window.addEventListener('combos-updated', handleUpdate)
-
-        return () => {
-            clearInterval(interval)
-            window.removeEventListener('combos-updated', handleUpdate)
-        }
-    }, [])
-
-    const fetchCombos = async () => {
+    const fetchCombos = useCallback(async () => {
         try {
-            const res = await fetch('/api/combos', {
-                cache: 'no-store',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                }
-            })
-
+            const res = await fetch('/api/combos', { cache: 'no-store' })
             const data = await res.json()
 
-            console.log('📦 Resposta da API de combos:', data)
-
             if (data.success && Array.isArray(data.data)) {
-                console.log('🎁 Total de combos recebidos:', data.data.length)
-                console.log('📋 Combos detalhados:', data.data)
                 setCombos(data.data)
             } else {
-                console.warn('⚠️ API retornou dados inválidos:', data)
                 setCombos([])
             }
         } catch (error) {
-            console.error('❌ Erro ao buscar combos:', error)
+            console.error('Erro ao buscar combos', error)
             setCombos([])
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
 
-    // Se não há combos featured, não mostra a seção
-    if (!loading && combos.length === 0) {
-        console.log('⚠️ Nenhum combo featured encontrado - seção oculta')
-        return null
-    }
+    useEffect(() => {
+        fetchCombos()
+        const interval = setInterval(fetchCombos, 5000)
+        const handleUpdate = () => fetchCombos()
+        window.addEventListener('combos-updated', handleUpdate)
+        return () => {
+            clearInterval(interval)
+            window.removeEventListener('combos-updated', handleUpdate)
+        }
+    }, [fetchCombos])
+
+    if (!loading && combos.length === 0) return null
 
     if (loading) {
         return (
-            <section className="py-20 bg-white">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto"></div>
-                        <p className="text-gray-600 mt-4">Carregando combos...</p>
-                    </div>
+            <section className="py-20">
+                <div className="max-w-7xl mx-auto px-4 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto" />
+                    <p className="text-gray-600 mt-4">Carregando combos...</p>
                 </div>
             </section>
         )
     }
 
-    console.log('✅ Renderizando', combos.length, 'combos')
-
     return (
-        <section ref={ref} className="py-20">
+        <section className="py-20">
             <div className="max-w-7xl mx-auto px-4">
+
                 <SectionTitle
                     title="Combos Promocionais"
                     subtitle="Pacotes especiais com desconto"
                 />
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-                    {combos.map((combo, index) => {
-                        console.log(`🎨 Renderizando combo ${index + 1}:`, combo.name)
+                <div className="relative px-8 mt-12">
 
-                        return (
-                            <motion.div
-                                key={combo.id}
-                                className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 border-gold/20 relative group"
-                                initial={{ opacity: 0, y: 50 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5, delay: index * 0.15 }}
-                            >
-                                {/* Badge de Desconto */}
-                                <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg z-10 flex items-center gap-1">
-                                    <Percent size={14} />
-                                    {combo.discountPercent}% OFF
-                                </div>
+                    <button
+                        ref={setPrevEl}
+                        className="absolute left-0 top-1/2 -translate-y-1/2 z-10
+                                   w-11 h-11 rounded-full bg-white shadow-lg border border-gold/30
+                                   flex items-center justify-center text-gold
+                                   hover:bg-gold hover:text-white transition-all duration-200
+                                   disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        <ChevronLeft size={22} />
+                    </button>
 
-                                {/* Header */}
-                                <div className="bg-gradient-gold p-6 text-white relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-black/10"></div>
-                                    <div className="relative z-10">
+                    <Swiper
+                        key={combos.length}
+                        modules={[Autoplay, Navigation]}
+                        spaceBetween={24}
+                        loop={combos.length > 3}
+                        autoplay={{ delay: 3500, disableOnInteraction: false }}
+                        navigation={{ prevEl, nextEl }}
+                        breakpoints={{
+                            0: { slidesPerView: 1 },
+                            640: { slidesPerView: 1 },
+                            768: { slidesPerView: 2 },
+                            1024: { slidesPerView: 3 },
+                        }}
+                    >
+                        {combos.map((combo) => (
+                            <SwiperSlide key={combo.id}>
+
+                                {/* ✅ Sem motion.div — sem opacity:0 inicial que nunca anima dentro do Swiper */}
+                                <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 border-gold/20 relative h-full">
+
+                                    {/* Badge de desconto */}
+                                    <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg z-10 flex items-center gap-1">
+                                        <Percent size={14} />
+                                        {combo.discountPercent}% OFF
+                                    </div>
+
+                                    {/* Header dourado */}
+                                    <div className="bg-gradient-gold p-6 text-white">
                                         <Gift size={32} className="mb-3" />
                                         <h3 className="text-2xl font-bold mb-2">{combo.name}</h3>
                                         {combo.description && (
                                             <p className="text-white/90 text-sm">{combo.description}</p>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* Body */}
-                                <div className="p-6">
-                                    {/* Serviços Inclusos */}
-                                    <div className="mb-6">
-                                        <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                            <Gift size={16} className="text-gold" />
-                                            Serviços inclusos:
-                                        </p>
-                                        <ul className="space-y-2">
-                                            {combo.services.map((service) => (
-                                                <li key={service.id} className="flex items-start gap-2 text-sm text-gray-600">
-                                                    <span className="w-1.5 h-1.5 bg-gold rounded-full mt-1.5 flex-shrink-0"></span>
-                                                    <span className="flex-1">
-                                                        {service.name}
-                                                        <span className="text-gray-400 ml-1">
-                                                            (R$ {service.price.toFixed(2)})
+                                    {/* Conteúdo */}
+                                    <div className="p-6">
+
+                                        <div className="mb-6">
+                                            <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                                <Gift size={16} className="text-gold" />
+                                                Serviços inclusos
+                                            </p>
+                                            <ul className="space-y-2">
+                                                {combo.services.map(service => (
+                                                    <li key={service.id} className="flex gap-2 text-sm text-gray-600">
+                                                        <span className="w-1.5 h-1.5 bg-gold rounded-full mt-1.5 shrink-0" />
+                                                        <span>
+                                                            {service.name}
+                                                            <span className="text-gray-400 ml-1">
+                                                                (R$ {service.price.toFixed(2)})
+                                                            </span>
                                                         </span>
-                                                    </span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
 
-                                    {/* Duração Total */}
-                                    <div className="flex items-center gap-2 text-gray-600 mb-6 bg-gray-50 p-3 rounded-lg">
-                                        <Clock size={18} className="text-gold" />
-                                        <span className="text-sm font-medium">
-                                            Duração total: {combo.services.reduce((sum, s) => sum + s.duration, 0)} min
-                                        </span>
-                                    </div>
-
-                                    {/* Preços */}
-                                    <div className="space-y-2 mb-6 pb-6 border-b">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm text-gray-500">De:</span>
-                                            <span className="text-lg text-gray-400 line-through">
-                                                R$ {combo.originalPrice.toFixed(2)}
+                                        <div className="flex items-center gap-2 text-gray-600 mb-6 bg-gray-50 p-3 rounded-lg">
+                                            <Clock size={18} className="text-gold" />
+                                            <span className="text-sm font-medium">
+                                                {combo.services.reduce((sum, s) => sum + s.duration, 0)} min
                                             </span>
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-semibold text-green-600">
-                                                Economize:
-                                            </span>
-                                            <span className="text-lg font-bold text-green-600">
-                                                R$ {(combo.originalPrice - combo.comboPrice).toFixed(2)}
-                                            </span>
+
+                                        <div className="space-y-2 mb-6 pb-6 border-b">
+                                            <div className="flex justify-between text-gray-500">
+                                                <span>De:</span>
+                                                <span className="line-through">
+                                                    R$ {combo.originalPrice.toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between text-green-600 font-semibold">
+                                                <span>Economize</span>
+                                                <span>
+                                                    R$ {(combo.originalPrice - combo.comboPrice).toFixed(2)}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between pt-2">
+                                                <span className="text-lg font-bold text-charcoal">
+                                                    Por apenas
+                                                </span>
+                                                <span className="text-3xl font-bold text-gold">
+                                                    R$ {combo.comboPrice.toFixed(2)}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center justify-between pt-2">
-                                            <span className="text-lg font-bold text-charcoal">Por apenas:</span>
-                                            <span className="text-3xl font-bold text-gold">
-                                                R$ {combo.comboPrice.toFixed(2)}
-                                            </span>
-                                        </div>
+
+                                        <SmartBookingButton
+                                            variant="button"
+                                            className="w-full bg-gradient-gold text-white py-3 rounded-lg font-semibold hover:shadow-xl transition-all"
+                                        >
+                                            🎁 Agendar Combo
+                                        </SmartBookingButton>
+
                                     </div>
 
-                                    {/* Botão */}
-                                    <SmartBookingButton
-                                        variant="button"
-                                        className="w-full bg-gradient-gold text-white py-3 rounded-lg font-semibold hover:shadow-xl transition-all duration-200 cursor-pointer"
-                                    >
-                                        🎁 Agendar Combo
-                                    </SmartBookingButton>
                                 </div>
-                            </motion.div>
-                        )
-                    })}
+
+                            </SwiperSlide>
+                        ))}
+                    </Swiper>
+
+                    <button
+                        ref={setNextEl}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 z-10
+                                   w-11 h-11 rounded-full bg-white shadow-lg border border-gold/30
+                                   flex items-center justify-center text-gold
+                                   hover:bg-gold hover:text-white transition-all duration-200
+                                   disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                        <ChevronRight size={22} />
+                    </button>
+
                 </div>
+
             </div>
         </section>
     )

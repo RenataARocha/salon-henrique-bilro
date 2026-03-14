@@ -64,10 +64,25 @@ export async function GET(
             take: 10
         })
 
-        // Estatísticas do mês atual
+        // ✅ BUSCAR TODOS OS SERVIÇOS DO MÊS (para calcular comissões pagas)
         const now = new Date()
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
+        const monthServices = await prisma.staffService.findMany({
+            where: {
+                staffId: id,
+                executedAt: {
+                    gte: monthStart
+                }
+            }
+        })
+
+        // ✅ BUSCAR TODOS OS SERVIÇOS (para calcular total de comissões pagas)
+        const allServices = await prisma.staffService.findMany({
+            where: { staffId: id }
+        })
+
+        // Estatísticas do mês atual (COM COMISSÕES PAGAS)
         const monthStats = await prisma.staffService.aggregate({
             where: {
                 staffId: id,
@@ -82,7 +97,7 @@ export async function GET(
             _count: true
         })
 
-        // Estatísticas totais
+        // Estatísticas totais (COM COMISSÕES PAGAS)
         const totalStats = await prisma.staffService.aggregate({
             where: { staffId: id },
             _sum: {
@@ -111,12 +126,20 @@ export async function GET(
                     month: {
                         services: monthStats._count || 0,
                         revenue: monthStats._sum.serviceValue || 0,
-                        commission: monthStats._sum.commissionValue || 0
+                        commission: monthStats._sum.commissionValue || 0,
+                        // ✅ NOVO - COMISSÕES PAGAS DO MÊS
+                        paidCommission: monthServices
+                            .filter(s => s.commissionPaid)
+                            .reduce((sum, s) => sum + s.commissionValue, 0)
                     },
                     total: {
                         services: totalStats._count || 0,
                         revenue: totalStats._sum.serviceValue || 0,
-                        commission: totalStats._sum.commissionValue || 0
+                        commission: totalStats._sum.commissionValue || 0,
+                        // ✅ NOVO - TOTAL DE COMISSÕES PAGAS
+                        paidCommission: allServices
+                            .filter(s => s.commissionPaid)
+                            .reduce((sum, s) => sum + s.commissionValue, 0)
                     }
                 },
                 monthlyReports

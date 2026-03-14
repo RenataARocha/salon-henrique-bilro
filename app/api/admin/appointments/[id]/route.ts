@@ -1,11 +1,10 @@
 // app/api/admin/appointments/[id]/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// GET - Buscar detalhes do agendamento
+// GET - Buscar agendamento específico
 export async function GET(
     request: NextRequest,
     context: { params: Promise<{ id: string }> }
@@ -18,6 +17,7 @@ export async function GET(
                 { status: 401 }
             )
         }
+
         const params = await context.params
         const id = params.id
 
@@ -36,15 +36,16 @@ export async function GET(
                 },
                 service: {
                     select: {
+                        id: true,
                         name: true,
                         price: true,
                         duration: true,
                         description: true,
                     }
                 },
-                // ✅ ADICIONAR COMBO
                 combo: {
                     select: {
+                        id: true,
                         name: true,
                         description: true,
                         discountPercent: true,
@@ -52,12 +53,27 @@ export async function GET(
                             include: {
                                 service: {
                                     select: {
+                                        id: true,
                                         name: true,
                                         price: true,
                                         duration: true
                                     }
                                 }
                             }
+                        }
+                    }
+                },
+                // ✅ ADICIONAR appointmentServices
+                appointmentServices: {
+                    include: {
+                        service: true
+                    }
+                },
+                // ✅ ADICIONAR staffServices (para mostrar funcionário)
+                staffServices: {
+                    include: {
+                        staff: {
+                            select: { name: true }
                         }
                     }
                 }
@@ -92,30 +108,49 @@ export async function GET(
             console.log('⚠️ Histórico não disponível')
         }
 
-        // ✅ CALCULAR PREÇO BASEADO EM SERVIÇO OU COMBO
+        // ✅ FORMATAR RESPOSTA COM staffName
         let finalPrice = 0
         let serviceName = ''
+        let staffName: string | null = null
 
-        if (appointment.combo) {
-            // Calcular preço do combo
+        // ✅ EXTRAIR NOME DO FUNCIONÁRIO
+        if (appointment.staffServices && appointment.staffServices.length > 0) {
+            staffName = appointment.staffServices[0].staff.name
+        }
+
+        // ✅ SE TEM MÚLTIPLOS SERVIÇOS
+        if (appointment.appointmentServices && appointment.appointmentServices.length > 0) {
+            finalPrice = appointment.appointmentServices.reduce(
+                (sum, as) => sum + (as.price * as.quantity),
+                0
+            )
+            serviceName = appointment.appointmentServices
+                .map(as => as.quantity > 1 ? `${as.quantity}x ${as.service.name}` : as.service.name)
+                .join(' + ')
+        }
+        // SE TEM COMBO
+        else if (appointment.combo) {
             const originalPrice = appointment.combo.services.reduce(
                 (sum, cs) => sum + cs.service.price,
                 0
             )
             finalPrice = originalPrice * (1 - appointment.combo.discountPercent / 100)
             serviceName = appointment.combo.name
-        } else if (appointment.service) {
+        }
+        // SE TEM SERVIÇO ÚNICO
+        else if (appointment.service) {
             finalPrice = appointment.service.price
             serviceName = appointment.service.name
         }
 
         const response = {
             ...appointment,
-            serviceName, // ✅ Nome do serviço ou combo
-            finalPrice,  // ✅ Preço calculado
+            serviceName,
+            finalPrice,
+            staffName, // ✅ ADICIONAR staffName
             discountAmount: 0,
             internalNotes: appointment.internalNotes || null,
-            paymentMethod: null,
+            paymentMethod: appointment.paymentMethod || null,
             cancelReason: null,
             rescheduledFrom: null,
             coupon: null,
@@ -158,7 +193,6 @@ export async function PATCH(
         const body = await request.json()
         const { status } = body
 
-        // Verificar se agendamento existe
         const appointment = await prisma.appointment.findUnique({
             where: { id }
         })
@@ -170,7 +204,6 @@ export async function PATCH(
             )
         }
 
-        // Atualizar status
         const updated = await prisma.appointment.update({
             where: { id },
             data: { status }
@@ -198,7 +231,6 @@ export async function DELETE(
     try {
         const session = await getServerSession(authOptions)
 
-        // Verificar autenticação e permissão ADMIN
         if (!session || session.user.role !== 'ADMIN') {
             return NextResponse.json(
                 { success: false, message: 'Não autorizado' },
@@ -209,13 +241,12 @@ export async function DELETE(
         const params = await context.params
         const id = params.id
 
-        // Verificar se agendamento existe
         const appointment = await prisma.appointment.findUnique({
             where: { id },
             include: {
                 user: true,
                 service: true,
-                combo: true // ✅ INCLUIR COMBO
+                combo: true
             }
         })
 
@@ -226,10 +257,8 @@ export async function DELETE(
             )
         }
 
-        // ✅ PEGAR NOME DO SERVIÇO OU COMBO
         const itemName = appointment.combo?.name || appointment.service?.name || 'Serviço'
 
-        // Excluir agendamento
         await prisma.appointment.delete({
             where: { id }
         })
@@ -240,7 +269,7 @@ export async function DELETE(
             data: {
                 id: appointment.id,
                 userName: appointment.user.name,
-                serviceName: itemName, // ✅ USAR NOME CORRETO
+                serviceName: itemName,
                 date: appointment.date,
                 time: appointment.time
             }

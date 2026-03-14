@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/NavBar";
-import { Tag, CheckCircle, XCircle, Loader2, Percent, DollarSign, Gift } from 'lucide-react';
+import { Tag, CheckCircle, XCircle, Loader2, Percent, DollarSign, Gift, Check } from 'lucide-react';
 import Image from 'next/image';
 import SmartCalendar from "@/components/SmartCalendar";
 import { Calendar, AlertCircle } from 'lucide-react';
@@ -148,11 +148,17 @@ function ServiceCardWithCarousel({
     return (
         <div
             onClick={onSelect}
-            className={`rounded-xl border-2 cursor-pointer transition-all overflow-hidden ${isSelected
-                ? "border-gold shadow-lg"
-                : "border-gray-200 hover:border-gold hover:shadow-md"
+            className={`relative rounded-xl border-2 p-4 cursor-pointer transition-all
+    ${isSelected
+                    ? "border-gold bg-gold/10 shadow-lg scale-[1.02]"
+                    : "border-gray-200 hover:border-gold/50"
                 }`}
         >
+            {isSelected && (
+                <div className="absolute top-3 right-3 bg-gold text-white rounded-full p-1 shadow-md">
+                    <Check size={16} />
+                </div>
+            )}
             {hasImages ? (
                 <div className="relative h-48 bg-gray-100">
                     {service.images!.map((image, index) => (
@@ -265,7 +271,7 @@ export default function AgendarPage() {
     const [combos, setCombos] = useState<ServiceCombo[]>([])
     const [loading, setLoading] = useState(false);
 
-    const [selectedService, setSelectedService] = useState<Service | null>(null);
+    const [selectedServices, setSelectedServices] = useState<Map<string, number>>(new Map())
     const [selectedCombo, setSelectedCombo] = useState<ServiceCombo | null>(null)
     const [selectedDate, setSelectedDate] = useState("");
     const [availableSlots, setAvailableSlots] = useState<string[]>([]);
@@ -321,6 +327,53 @@ export default function AgendarPage() {
         } catch (error) {
             console.error('❌ Erro ao buscar combos:', error)
         }
+    }
+
+    function addService(serviceId: string) {
+        setSelectedServices(prev => {
+            const newMap = new Map(prev)
+
+            if (newMap.has(serviceId)) {
+                newMap.delete(serviceId) // desmarca
+            } else {
+                newMap.set(serviceId, 1) // marca
+            }
+
+            return newMap
+        })
+
+        setSelectedCombo(null) // remove combo se escolher serviço
+    }
+
+    const removeService = (serviceId: string) => {
+        const newMap = new Map(selectedServices)
+        const current = newMap.get(serviceId) || 0
+
+        if (current <= 1) {
+            newMap.delete(serviceId)
+        } else {
+            newMap.set(serviceId, current - 1)
+        }
+
+        setSelectedServices(newMap)
+        setCupomValidado(null)
+    }
+
+    const getSelectedServicesDetails = () => {
+        const servicesList: Array<Service & { quantity: number }> = []
+        let totalPrice = 0
+        let totalDuration = 0
+
+        selectedServices.forEach((quantity, serviceId) => {
+            const service = services.find(s => s.id === serviceId)
+            if (service) {
+                servicesList.push({ ...service, quantity })
+                totalPrice += service.price * quantity
+                totalDuration += service.duration * quantity
+            }
+        })
+
+        return { servicesList, totalPrice, totalDuration }
     }
 
     const fetchAvailableSlots = async (date: string) => {
@@ -382,8 +435,9 @@ export default function AgendarPage() {
             return
         }
 
-        // ✅ MODIFICAR ESTA VALIDAÇÃO
-        if (!selectedService && !selectedCombo) {
+        const { servicesList, totalPrice } = getSelectedServicesDetails()
+
+        if (servicesList.length === 0 && !selectedCombo) {
             alert('Selecione um serviço ou combo primeiro')
             return
         }
@@ -393,9 +447,11 @@ export default function AgendarPage() {
 
         try {
             // ✅ CALCULAR VALOR BASE
+            const { totalPrice } = getSelectedServicesDetails()
+
             const valorBase = selectedCombo
                 ? selectedCombo.comboPrice
-                : selectedService!.price
+                : totalPrice
 
             const response = await fetch('/api/cupons/validar', {
                 method: 'POST',
@@ -424,14 +480,21 @@ export default function AgendarPage() {
         setCupomValidado(null);
     };
 
-    // ✅ MODIFICAR ESTA LINHA
+    const { totalPrice } = getSelectedServicesDetails()
+
     const valorFinal = cupomValidado?.valido
         ? cupomValidado.desconto?.valorFinal || 0
-        : (selectedCombo?.comboPrice || selectedService?.price || 0)
+        : (selectedCombo?.comboPrice || totalPrice)
 
     const handleSubmit = async () => {
-        // ✅ MODIFICAR ESTA VALIDAÇÃO
-        if ((!selectedService && !selectedCombo) || !selectedDate || !selectedTime) {
+        const { servicesList, totalPrice } = getSelectedServicesDetails()
+
+        if (servicesList.length === 0 && !selectedCombo) {
+            alert("Por favor, selecione pelo menos um serviço ou combo")
+            return
+        }
+
+        if (!selectedDate || !selectedTime) {
             alert("Por favor, preencha todos os campos obrigatórios")
             return
         }
@@ -444,15 +507,19 @@ export default function AgendarPage() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    // ✅ MODIFICAR PARA ENVIAR COMBO OU SERVIÇO
-                    serviceId: selectedService?.id || null,
+                    services: servicesList.length > 0 ? servicesList.map(s => ({
+                        serviceId: s.id,
+                        quantity: s.quantity,
+                        price: s.price
+                    })) : undefined,
+                    serviceId: servicesList.length === 1 ? servicesList[0].id : null,
                     comboId: selectedCombo?.id || null,
                     date: selectedDate,
                     time: selectedTime,
                     notes,
                     paymentMethod: selectedPaymentMethod,
                     cupomId: cupomValidado?.valido ? cupomValidado.cupom?.id : null,
-                    valorOriginal: selectedCombo?.comboPrice || selectedService?.price,
+                    valorOriginal: selectedCombo?.comboPrice || totalPrice,
                     valorDesconto: cupomValidado?.valido ? cupomValidado.desconto?.valorDesconto : 0,
                     valorFinal: valorFinal
                 }),
@@ -461,9 +528,7 @@ export default function AgendarPage() {
             const data = await res.json()
 
             if (data.success) {
-                alert(
-                    "🎉 Agendamento realizado com sucesso!\n\nVocê receberá uma confirmação no WhatsApp 24h antes."
-                )
+                alert("🎉 Agendamento realizado com sucesso!\n\nVocê receberá uma confirmação no WhatsApp 24h antes.")
                 router.push("/meus-agendamentos")
             } else {
                 alert(data.error || "Erro ao criar agendamento")
@@ -571,7 +636,7 @@ export default function AgendarPage() {
                                                         isSelected={selectedCombo?.id === combo.id}
                                                         onSelect={() => {
                                                             setSelectedCombo(combo)
-                                                            setSelectedService(null)
+                                                            setSelectedServices(new Map())  // Limpar serviços
                                                             setCupomValidado(null)
                                                             setCodigoCupom('')
                                                         }}
@@ -604,21 +669,44 @@ export default function AgendarPage() {
                                         >
                                             <ServiceCardWithCarousel
                                                 service={service}
-                                                isSelected={selectedService?.id === service.id}
-                                                onSelect={() => {
-                                                    setSelectedService(service)
-                                                    setSelectedCombo(null)
-                                                    setCupomValidado(null)
-                                                    setCodigoCupom('')
-                                                }}
+                                                isSelected={selectedServices.has(service.id)}
+                                                onSelect={() => addService(service.id)}
                                             />
                                         </motion.div>
                                     ))}
                                 </div>
 
+                                {/* LISTA DE SERVIÇOS SELECIONADOS */}
+                                {selectedServices.size > 0 && (() => {
+                                    const { servicesList, totalPrice } = getSelectedServicesDetails()
+
+                                    return (
+                                        <div className="bg-beige/50 rounded-lg p-4 space-y-2 mt-6">
+                                            <p className="font-semibold text-charcoal">✂️ Serviços escolhidos:</p>
+
+                                            {servicesList.map(service => (
+                                                <p key={service.id} className="text-sm text-gray-600">
+                                                    • {service.name}
+                                                </p>
+                                            ))}
+
+                                            <div className="border-t pt-2 mt-2">
+                                                <p className="text-sm font-semibold text-gold">
+                                                    Total: R$ {totalPrice.toFixed(2)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )
+                                })()}
+                                {selectedServices.size > 0 && (
+                                    <p className="text-sm text-gray-600 text-center">
+                                        {selectedServices.size} serviço(s) selecionado(s)
+                                    </p>
+                                )}
+
                                 <button
                                     onClick={() => setStep(2)}
-                                    disabled={!selectedService && !selectedCombo}  // ✅ MODIFICAR
+                                    disabled={selectedServices.size === 0 && !selectedCombo}
                                     className="w-full bg-gradient-gold text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Continuar
@@ -669,228 +757,247 @@ export default function AgendarPage() {
                                             </div>
                                         </>
                                     ) : (
-                                        <>
-                                            <p className="text-lg font-bold text-charcoal">
-                                                {selectedService?.name}
-                                            </p>
-                                            <p className="text-gold font-semibold">
-                                                R$ {selectedService?.price.toFixed(2)}
-                                            </p>
-                                        </>
+                                        (() => {
+                                            const { servicesList, totalPrice, totalDuration } = getSelectedServicesDetails()
+
+                                            if (servicesList.length === 0) {
+                                                return <p className="text-gray-500">Nenhum serviço selecionado</p>
+                                            }
+
+                                            return (
+                                                <div className="space-y-2">
+                                                    {servicesList.map(s => (
+                                                        <div key={s.id} className="flex items-center justify-between">
+                                                            <p className="text-sm font-semibold text-charcoal">
+                                                                {s.quantity}x {s.name}
+                                                            </p>
+                                                            <p className="text-gold font-semibold">
+                                                                R$ {(s.price * s.quantity).toFixed(2)}
+                                                            </p>
+                                                        </div>
+                                                    ))}
+                                                    <div className="border-t pt-2 flex justify-between items-center">
+                                                        <p className="font-bold">Total:</p>
+                                                        <p className="text-lg font-bold text-gold">R$ {totalPrice.toFixed(2)}</p>
+                                                    </div>
+                                                    <p className="text-sm text-gray-500">{totalDuration} minutos total</p>
+                                                </div>
+                                            )
+                                        })()
                                     )}
-                                </div>
 
-                                <div className="space-y-3">
-                                    {!mostrarCampoCupom && !cupomValidado?.valido && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setMostrarCampoCupom(true)}
-                                            className="flex items-center gap-2 text-gold hover:text-yellow-600 transition-colors text-sm font-semibold"
-                                        >
-                                            <Tag size={18} />
-                                            🎉 Tenho um cupom de desconto
-                                        </button>
-                                    )}
+                                    <div className="space-y-3">
+                                        {!mostrarCampoCupom && !cupomValidado?.valido && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setMostrarCampoCupom(true)}
+                                                className="flex items-center gap-2 text-gold hover:text-yellow-600 transition-colors text-sm font-semibold"
+                                            >
+                                                <Tag size={18} />
+                                                🎉 Tenho um cupom de desconto
+                                            </button>
+                                        )}
 
-                                    {(mostrarCampoCupom || cupomValidado) && (
-                                        <div className="bg-gradient-to-r from-gold/10 to-yellow-50 rounded-xl p-5 border-2 border-gold/30">
-                                            <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                                <Tag size={18} className="text-gold" />
-                                                Cupom de Desconto
-                                            </label>
+                                        {(mostrarCampoCupom || cupomValidado) && (
+                                            <div className="bg-gradient-to-r from-gold/10 to-yellow-50 rounded-xl p-5 border-2 border-gold/30">
+                                                <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                                    <Tag size={18} className="text-gold" />
+                                                    Cupom de Desconto
+                                                </label>
 
-                                            {cupomValidado?.valido ? (
-                                                <div className="space-y-3">
-                                                    <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                                                        <div className="flex items-start justify-between">
-                                                            <div className="flex items-start gap-2">
-                                                                <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
-                                                                <div>
-                                                                    <p className="font-bold text-green-900">{cupomValidado.cupom?.codigo}</p>
-                                                                    <p className="text-sm text-green-700">{cupomValidado.cupom?.descricao}</p>
+                                                {cupomValidado?.valido ? (
+                                                    <div className="space-y-3">
+                                                        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex items-start gap-2">
+                                                                    <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" size={20} />
+                                                                    <div>
+                                                                        <p className="font-bold text-green-900">{cupomValidado.cupom?.codigo}</p>
+                                                                        <p className="text-sm text-green-700">{cupomValidado.cupom?.descricao}</p>
+                                                                    </div>
                                                                 </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={removerCupom}
+                                                                    className="text-green-600 hover:text-green-700 text-sm font-medium ml-2"
+                                                                >
+                                                                    Remover
+                                                                </button>
                                                             </div>
+                                                        </div>
+
+                                                        <div className="bg-white rounded-lg p-4 space-y-2 text-sm">
+                                                            <div className="flex justify-between text-gray-600">
+                                                                <span>Valor original:</span>
+                                                                <span>R$ {(selectedCombo?.comboPrice || totalPrice).toFixed(2)}</span>
+                                                            </div>
+
+                                                            <div className="flex justify-between text-green-600 font-semibold">
+                                                                <span className="flex items-center gap-1">
+                                                                    {cupomValidado.cupom?.tipoDesconto === 'PERCENTUAL' ? (
+                                                                        <>
+                                                                            <Percent size={14} />
+                                                                            Desconto ({cupomValidado.cupom?.valorDesconto}%):
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <DollarSign size={14} />
+                                                                            Desconto:
+                                                                        </>
+                                                                    )}
+                                                                </span>
+                                                                <span>- R$ {cupomValidado.desconto?.valorDesconto.toFixed(2)}</span>
+                                                            </div>
+
+                                                            <div className="flex justify-between text-lg font-bold text-charcoal pt-2 border-t border-gray-200">
+                                                                <span>Total a pagar:</span>
+                                                                <span className="text-gold">R$ {valorFinal.toFixed(2)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-3">
+                                                        <div className="flex gap-2">
+                                                            <input
+                                                                type="text"
+                                                                value={codigoCupom}
+                                                                onChange={(e) => setCodigoCupom(e.target.value.toUpperCase())}
+                                                                onKeyPress={(e) => e.key === 'Enter' && validarCupom()}
+                                                                placeholder="Digite o código do cupom"
+                                                                disabled={validandoCupom}
+                                                                className="flex-1 px-4 py-3 border-2 border-gold/30 rounded-lg focus:border-gold focus:outline-none uppercase font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                            />
                                                             <button
                                                                 type="button"
-                                                                onClick={removerCupom}
-                                                                className="text-green-600 hover:text-green-700 text-sm font-medium ml-2"
+                                                                onClick={validarCupom}
+                                                                disabled={validandoCupom || !codigoCupom.trim()}
+                                                                className="px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold"
                                                             >
-                                                                Remover
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="bg-white rounded-lg p-4 space-y-2 text-sm">
-                                                        <div className="flex justify-between text-gray-600">
-                                                            <span>Valor original:</span>
-                                                            <span>R$ {selectedService?.price.toFixed(2)}</span>
-                                                        </div>
-
-                                                        <div className="flex justify-between text-green-600 font-semibold">
-                                                            <span className="flex items-center gap-1">
-                                                                {cupomValidado.cupom?.tipoDesconto === 'PERCENTUAL' ? (
+                                                                {validandoCupom ? (
                                                                     <>
-                                                                        <Percent size={14} />
-                                                                        Desconto ({cupomValidado.cupom?.valorDesconto}%):
+                                                                        <Loader2 size={18} className="animate-spin" />
+                                                                        Validando...
                                                                     </>
                                                                 ) : (
-                                                                    <>
-                                                                        <DollarSign size={14} />
-                                                                        Desconto:
-                                                                    </>
+                                                                    'Aplicar'
                                                                 )}
-                                                            </span>
-                                                            <span>- R$ {cupomValidado.desconto?.valorDesconto.toFixed(2)}</span>
+                                                            </button>
                                                         </div>
 
-                                                        <div className="flex justify-between text-lg font-bold text-charcoal pt-2 border-t border-gray-200">
-                                                            <span>Total a pagar:</span>
-                                                            <span className="text-gold">R$ {valorFinal.toFixed(2)}</span>
-                                                        </div>
+                                                        {cupomValidado && !cupomValidado.valido && (
+                                                            <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 flex items-start gap-2">
+                                                                <XCircle className="text-red-600 flex-shrink-0 mt-0.5" size={18} />
+                                                                <p className="text-sm text-red-700">{cupomValidado.erro}</p>
+                                                            </div>
+                                                        )}
+
+                                                        {mostrarCampoCupom && !cupomValidado && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setMostrarCampoCupom(false);
+                                                                    setCodigoCupom('');
+                                                                }}
+                                                                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                                                            >
+                                                                Não tenho cupom
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    <div className="flex gap-2">
-                                                        <input
-                                                            type="text"
-                                                            value={codigoCupom}
-                                                            onChange={(e) => setCodigoCupom(e.target.value.toUpperCase())}
-                                                            onKeyPress={(e) => e.key === 'Enter' && validarCupom()}
-                                                            placeholder="Digite o código do cupom"
-                                                            disabled={validandoCupom}
-                                                            className="flex-1 px-4 py-3 border-2 border-gold/30 rounded-lg focus:border-gold focus:outline-none uppercase font-semibold disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={validarCupom}
-                                                            disabled={validandoCupom || !codigoCupom.trim()}
-                                                            className="px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-semibold"
-                                                        >
-                                                            {validandoCupom ? (
-                                                                <>
-                                                                    <Loader2 size={18} className="animate-spin" />
-                                                                    Validando...
-                                                                </>
-                                                            ) : (
-                                                                'Aplicar'
-                                                            )}
-                                                        </button>
-                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
 
-                                                    {cupomValidado && !cupomValidado.valido && (
-                                                        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 flex items-start gap-2">
-                                                            <XCircle className="text-red-600 flex-shrink-0 mt-0.5" size={18} />
-                                                            <p className="text-sm text-red-700">{cupomValidado.erro}</p>
-                                                        </div>
-                                                    )}
-
-                                                    {mostrarCampoCupom && !cupomValidado && (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setMostrarCampoCupom(false);
-                                                                setCodigoCupom('');
-                                                            }}
-                                                            className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                                                        >
-                                                            Não tenho cupom
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                        <Calendar size={20} className="text-gold" />
-                                        Selecione a Data *
-                                    </label>
-
-                                    <SmartCalendar
-                                        onDateSelect={handleDateChange}
-                                        selectedDate={selectedDate}
-                                        minDate={getMinDate()}
-                                        maxDate={getMaxDate()}
-                                    />
-                                </div>
-
-                                {selectedDate && (
                                     <div className="space-y-2">
-                                        <label className="block text-sm font-semibold text-charcoal">
-                                            Horário Disponível *
+                                        <label className="block text-sm font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                            <Calendar size={20} className="text-gold" />
+                                            Selecione a Data *
                                         </label>
 
-                                        {loading ? (
-                                            <div className="flex items-center justify-center py-8">
-                                                <Loader2 className="h-8 w-8 animate-spin text-gold" />
-                                            </div>
-                                        ) : availableSlots.length > 0 ? (
-                                            <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                                                {availableSlots.map((slot, index) => (
-                                                    <motion.button
-                                                        key={slot}
-                                                        initial={{ opacity: 0, scale: 0.8 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        transition={{ duration: 0.2, delay: index * 0.03 }}
-                                                        onClick={() => setSelectedTime(slot)}
-                                                        className={`py-3 px-4 rounded-lg font-semibold transition-all ${selectedTime === slot
-                                                            ? "bg-gold text-white shadow-lg"
-                                                            : "bg-white border-2 border-gray-300 text-charcoal hover:border-gold"
-                                                            }`}
-                                                    >
-                                                        {slot}
-                                                    </motion.button>
-                                                ))}
-                                            </div>
-                                        ) : selectedDate ? (
-                                            <div className="text-center py-8 bg-gray-50 rounded-lg">
-                                                <p className="text-gray-600">Nenhum horário disponível para esta data</p>
-                                            </div>
-                                        ) : null}
+                                        <SmartCalendar
+                                            onDateSelect={handleDateChange}
+                                            selectedDate={selectedDate}
+                                            minDate={getMinDate()}
+                                            maxDate={getMaxDate()}
+                                        />
                                     </div>
-                                )}
 
-                                {dateMessage && (
-                                    <div className={`rounded-lg p-4 flex items-start gap-3 ${dateMessage.type === 'error' ? 'bg-red-50 border-2 border-red-200' :
-                                        dateMessage.type === 'warning' ? 'bg-yellow-50 border-2 border-yellow-200' :
-                                            'bg-blue-50 border-2 border-blue-200'
-                                        }`}>
-                                        <AlertCircle className={`flex-shrink-0 mt-0.5 ${dateMessage.type === 'error' ? 'text-red-600' :
-                                            dateMessage.type === 'warning' ? 'text-yellow-600' :
-                                                'text-blue-600'
-                                            }`} size={20} />
-                                        <p className={`text-sm font-medium ${dateMessage.type === 'error' ? 'text-red-800' :
-                                            dateMessage.type === 'warning' ? 'text-yellow-800' :
-                                                'text-blue-800'
+                                    {selectedDate && (
+                                        <div className="space-y-2">
+                                            <label className="block text-sm font-semibold text-charcoal">
+                                                Horário Disponível *
+                                            </label>
+
+                                            {loading ? (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <Loader2 className="h-8 w-8 animate-spin text-gold" />
+                                                </div>
+                                            ) : availableSlots.length > 0 ? (
+                                                <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                                                    {availableSlots.map((slot, index) => (
+                                                        <motion.button
+                                                            key={slot}
+                                                            initial={{ opacity: 0, scale: 0.8 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            transition={{ duration: 0.2, delay: index * 0.03 }}
+                                                            onClick={() => setSelectedTime(slot)}
+                                                            className={`py-3 px-4 rounded-lg font-semibold transition-all ${selectedTime === slot
+                                                                ? "bg-gold text-white shadow-lg"
+                                                                : "bg-white border-2 border-gray-300 text-charcoal hover:border-gold"
+                                                                }`}
+                                                        >
+                                                            {slot}
+                                                        </motion.button>
+                                                    ))}
+                                                </div>
+                                            ) : selectedDate ? (
+                                                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                                                    <p className="text-gray-600">Nenhum horário disponível para esta data</p>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    )}
+
+                                    {dateMessage && (
+                                        <div className={`rounded-lg p-4 flex items-start gap-3 ${dateMessage.type === 'error' ? 'bg-red-50 border-2 border-red-200' :
+                                            dateMessage.type === 'warning' ? 'bg-yellow-50 border-2 border-yellow-200' :
+                                                'bg-blue-50 border-2 border-blue-200'
                                             }`}>
-                                            {dateMessage.text}
-                                        </p>
+                                            <AlertCircle className={`flex-shrink-0 mt-0.5 ${dateMessage.type === 'error' ? 'text-red-600' :
+                                                dateMessage.type === 'warning' ? 'text-yellow-600' :
+                                                    'text-blue-600'
+                                                }`} size={20} />
+                                            <p className={`text-sm font-medium ${dateMessage.type === 'error' ? 'text-red-800' :
+                                                dateMessage.type === 'warning' ? 'text-yellow-800' :
+                                                    'text-blue-800'
+                                                }`}>
+                                                {dateMessage.text}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-charcoal">
+                                            Observações (opcional)
+                                        </label>
+                                        <textarea
+                                            value={notes}
+                                            onChange={(e) => setNotes(e.target.value)}
+                                            placeholder="Alguma observação especial para seu agendamento?"
+                                            rows={3}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all resize-none"
+                                        />
                                     </div>
-                                )}
 
-                                <div className="space-y-2">
-                                    <label className="block text-sm font-semibold text-charcoal">
-                                        Observações (opcional)
-                                    </label>
-                                    <textarea
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        placeholder="Alguma observação especial para seu agendamento?"
-                                        rows={3}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all resize-none"
-                                    />
+                                    <button
+                                        onClick={() => setStep(3)}
+                                        disabled={!selectedDate || !selectedTime}
+                                        className="w-full bg-gradient-gold text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Continuar
+                                    </button>
                                 </div>
-
-                                <button
-                                    onClick={() => setStep(3)}
-                                    disabled={!selectedDate || !selectedTime}
-                                    className="w-full bg-gradient-gold text-white py-4 rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Continuar
-                                </button>
                             </div>
                         )}
 
@@ -938,10 +1045,22 @@ export default function AgendarPage() {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <InfoBox
-                                                label="Serviço"
-                                                value={selectedService?.name || ""}
-                                            />
+                                            (() => {
+                                                const { servicesList, totalPrice } = getSelectedServicesDetails()
+                                                return (
+                                                    <div className="bg-beige/50 p-4 rounded-lg">
+                                                        <p className="text-sm text-gray-600 mb-2">Serviços Selecionados:</p>
+                                                        {servicesList.map(s => (
+                                                            <p key={s.id} className="text-sm font-semibold text-charcoal">
+                                                                {s.quantity}x {s.name} - R$ {(s.price * s.quantity).toFixed(2)}
+                                                            </p>
+                                                        ))}
+                                                        <div className="border-t mt-2 pt-2">
+                                                            <p className="font-bold text-gold">Total: R$ {totalPrice.toFixed(2)}</p>
+                                                        </div>
+                                                    </div>
+                                                )
+                                            })()
                                         )}
 
                                         <InfoBox
@@ -958,10 +1077,13 @@ export default function AgendarPage() {
 
                                         <InfoBox
                                             label="Duração"
-                                            value={selectedCombo
-                                                ? `${selectedCombo.services.reduce((sum, s) => sum + s.duration, 0)} minutos`
-                                                : `${selectedService?.duration} minutos`
-                                            }
+                                            value={(() => {
+                                                if (selectedCombo) {
+                                                    return `${selectedCombo.services.reduce((sum, s) => sum + s.duration, 0)} minutos`
+                                                }
+                                                const { totalDuration } = getSelectedServicesDetails()
+                                                return `${totalDuration} minutos`
+                                            })()}
                                         />
 
                                         {notes && <InfoBox label="Observações" value={notes} />}
@@ -1080,7 +1202,7 @@ export default function AgendarPage() {
                                         <div className="flex justify-between items-center">
                                             <span className="text-gray-600">Valor do serviço:</span>
                                             <span className="font-semibold text-charcoal">
-                                                R$ {selectedService?.price.toFixed(2)}
+                                                R$ {(selectedCombo?.comboPrice || totalPrice).toFixed(2)}
                                             </span>
                                         </div>
 

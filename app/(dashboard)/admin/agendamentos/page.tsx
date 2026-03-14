@@ -37,6 +37,7 @@ interface Appointment {
     justifiedAt?: string
     paymentMethod?: string
     serviceId?: string
+    staffName?: string | null
     user: {
         name: string
         email: string
@@ -44,7 +45,11 @@ interface Appointment {
     }
     service?: Service
     combo?: ServiceCombo
-
+    staffServices?: Array<{
+        staff: {
+            name: string
+        }
+    }>
 }
 
 type SortOption = 'date-asc' | 'date-desc' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc'
@@ -195,7 +200,16 @@ function AppointmentDetailsModal({
                                 <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(appointment.status)}`}>
                                     {getStatusLabel(appointment.status)}
                                 </span>
+
+                                {appointment.status === 'COMPLETED' && appointment.staffName && (
+                                    <p className="text-xs text-green-600 font-semibold mt-1 bg-green-50 px-2 py-1 rounded inline-block">
+                                        👤 Executado por: {appointment.staffName}
+                                    </p>
+                                )}
+
                             </div>
+
+
                             <div>
                                 <p className="text-sm text-gray-500 mb-1">Telefone</p>
                                 <p className="font-semibold text-charcoal">{appointment.user.phone}</p>
@@ -420,6 +434,24 @@ export default function AdminAgendamentosPage() {
     // Ações em Massa
     const handleBulkAction = async (action: AppointmentStatus) => {
         if (selectedIds.size === 0) return
+
+        // ✅ VALIDAR: Só pode concluir CONFIRMED
+        if (action === 'COMPLETED') {
+            const selectedAppointments = appointments.filter(a => selectedIds.has(a.id))
+            const invalidStatuses = selectedAppointments.filter(a =>
+                a.status !== 'CONFIRMED'
+            )
+
+            if (invalidStatuses.length > 0) {
+                alert(
+                    `❌ Não é possível concluir estes agendamentos!\n\n` +
+                    `${invalidStatuses.length} agendamento(s) com status inválido.\n\n` +
+                    `Apenas agendamentos CONFIRMADOS podem ser concluídos.\n\n` +
+                    `Status encontrados: ${[...new Set(invalidStatuses.map(a => getStatusLabel(a.status)))].join(', ')}`
+                )
+                return
+            }
+        }
 
         const confirmMessage = `Deseja realmente ${action === 'CONFIRMED' ? 'confirmar' :
             action === 'COMPLETED' ? 'concluir' :
@@ -858,6 +890,7 @@ export default function AdminAgendamentosPage() {
                             <p className={`text-3xl font-bold ${stat.color}`}>
                                 {stat.value}
                             </p>
+
                         </motion.div>
                     ))}
                 </div>
@@ -966,102 +999,114 @@ export default function AdminAgendamentosPage() {
                         </div>
 
                         {/* Lista */}
-                        {filteredAppointments.map((apt, index) => {
-                            const price = apt.combo
-                                ? apt.combo.comboPrice
-                                : apt.service?.price ?? 0
 
-                            const duration = apt.combo
-                                ? apt.combo.services.reduce((total, s) => total + s.duration, 0)
-                                : apt.service?.duration ?? 0
+                        <div className="space-y-4 max-h-[90vh] overflow-y-auto pr-2">
+                            {filteredAppointments.map((apt, index) => {
+                                const price = apt.combo
+                                    ? apt.combo.comboPrice
+                                    : apt.service?.price ?? 0
 
-                            return (
-                                <motion.div
-                                    key={apt.id}
-                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
-                                        }`}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                                >
-                                    {/* card */}
-                                    <div
+                                const duration = apt.combo
+                                    ? apt.combo.services.reduce((total, s) => total + s.duration, 0)
+                                    : apt.service?.duration ?? 0
+
+
+                                return (
+                                    <motion.div
                                         key={apt.id}
-                                        onClick={() => setSelectedAppointmentId(apt.id)}
-                                        className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
+                                        className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
                                             }`}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.3, delay: index * 0.05 }}
                                     >
-                                        <div className="flex items-start justify-between gap-4">
-                                            <div className="flex items-start gap-4">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedIds.has(apt.id)}
-                                                    onChange={() => toggleSelection(apt.id)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="mt-1 rounded text-gold focus:ring-gold"
-                                                />
+                                        {/* card */}
+                                        <div
+                                            key={apt.id}
+                                            onClick={() => setSelectedAppointmentId(apt.id)}
+                                            className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer ${selectedIds.has(apt.id) ? 'ring-2 ring-gold' : ''
+                                                }`}
+                                        >
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="flex items-start gap-4">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedIds.has(apt.id)}
+                                                        onChange={() => toggleSelection(apt.id)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                        className="mt-1 rounded text-gold focus:ring-gold"
+                                                    />
 
-                                                <div>
-                                                    <p className="font-bold text-lg text-charcoal">
-                                                        {apt.user.name}
-                                                    </p>
-
-                                                    <p className="text-sm text-gray-600">
-                                                        {apt.combo ? (
-                                                            <>🎁 <strong>Combo:</strong> {apt.combo.name}</>
-                                                        ) : (
-                                                            <>✂️ {apt.service?.name}</>
-                                                        )}
-                                                    </p>
-
-                                                    <p className="text-sm text-gray-500">
-                                                        📅 {new Date(apt.date).toLocaleDateString('pt-BR')} • ⏰ {apt.time}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="text-right">
-                                                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2 ${getStatusColor(apt.status)}`}>
-                                                    {getStatusLabel(apt.status)}
-                                                </span>
-
-                                                <p className="text-lg font-bold text-gold">
-                                                    R$ {price.toFixed(2)}
-                                                </p>
-
-                                                <p className="text-sm text-gray-500">
-                                                    {duration} min
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* ✅ BADGE DE JUSTIFICATIVA NO CARD */}
-                                        {apt.justification && (
-                                            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                                                <div className="flex items-start gap-2">
-                                                    <FileText className="text-blue-600 flex-shrink-0 mt-0.5" size={16} />
-                                                    <div className="flex-1">
-                                                        <p className="text-xs font-bold text-blue-900 mb-1">
-                                                            ✅ Cliente justificou a falta
+                                                    <div>
+                                                        <p className="font-bold text-lg text-charcoal">
+                                                            {apt.user.name}
                                                         </p>
-                                                        <p className="text-xs text-blue-800 line-clamp-2">
-                                                            {apt.justification}
+
+                                                        <p className="text-sm text-gray-600">
+                                                            {apt.combo ? (
+                                                                <>🎁 <strong>Combo:</strong> {apt.combo.name}</>
+                                                            ) : (
+                                                                <>✂️ {apt.service?.name}</>
+                                                            )}
                                                         </p>
-                                                        {apt.justifiedAt && (
-                                                            <p className="text-xs text-blue-600 mt-1">
-                                                                📅 {new Date(apt.justifiedAt).toLocaleDateString('pt-BR')} às {new Date(apt.justifiedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                                            </p>
-                                                        )}
+
+                                                        {/* ✅ MOSTRAR FUNCIONÁRIO NOS CONCLUÍDOS */}
+                                                        <p className="text-sm text-gray-500">
+                                                            📅 {new Date(apt.date).toLocaleDateString('pt-BR')} • ⏰ {apt.time}
+                                                        </p>
                                                     </div>
                                                 </div>
+
+                                                <div className="text-right">
+                                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold mb-2 ${getStatusColor(apt.status)}`}>
+                                                        {getStatusLabel(apt.status)}
+                                                    </span>
+
+                                                    {apt.status === 'COMPLETED' && apt.staffName && (
+                                                        <p className="text-xs text-green-600 font-semibold mt-1 bg-green-50 px-2 py-1 rounded inline-block">
+                                                            👤 Executado por: {apt.staffName}
+                                                        </p>
+                                                    )}
+
+                                                    <p className="text-lg font-bold text-gold">
+                                                        R$ {price.toFixed(2)}
+                                                    </p>
+
+
+                                                    <p className="text-sm text-gray-500">
+                                                        {duration} min
+                                                    </p>
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
 
-                                </motion.div>
+                                            {/* ✅ BADGE DE JUSTIFICATIVA NO CARD */}
+                                            {apt.justification && (
+                                                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                                                    <div className="flex items-start gap-2">
+                                                        <FileText className="text-blue-600 flex-shrink-0 mt-0.5" size={16} />
+                                                        <div className="flex-1">
+                                                            <p className="text-xs font-bold text-blue-900 mb-1">
+                                                                ✅ Cliente justificou a falta
+                                                            </p>
+                                                            <p className="text-xs text-blue-800 line-clamp-2">
+                                                                {apt.justification}
+                                                            </p>
+                                                            {apt.justifiedAt && (
+                                                                <p className="text-xs text-blue-600 mt-1">
+                                                                    📅 {new Date(apt.justifiedAt).toLocaleDateString('pt-BR')} às {new Date(apt.justifiedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
 
-                            )
-                        })}
+                                    </motion.div>
+
+                                )
+                            })}
+                        </div>
 
                         {/* Modal */}
                         {selectedAppointment && (

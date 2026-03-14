@@ -283,6 +283,19 @@ export async function GET(req: NextRequest) {
             mesPassado: lastMonthRevenue
         });
 
+        const currentDay = now.getDate()
+        const currentRevenue = thisMonthRevenue || 0
+
+        const averagePerDay = currentRevenue / currentDay
+
+        const daysInMonth = new Date(
+            now.getFullYear(),
+            now.getMonth() + 1,
+            0
+        ).getDate()
+
+        const projectedRevenue = averagePerDay * daysInMonth
+
         return NextResponse.json({
             success: true,
             data: {
@@ -311,6 +324,10 @@ export async function GET(req: NextRequest) {
                     topServices,
                     peakHours,
                     monthlyRevenue
+                },
+                projection: {
+                    projectedRevenue,
+                    averagePerDay
                 }
             }
         });

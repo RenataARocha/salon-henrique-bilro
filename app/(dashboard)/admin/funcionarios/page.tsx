@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
+import { ArrowLeft, Home } from 'lucide-react'
 
 interface Staff {
     id: string
@@ -40,17 +42,13 @@ export default function FuncionariosPage() {
 
     const availableSpecialties = [
         'Corte Feminino',
-        'Corte Masculino',
-        'Coloração',
-        'Mechas',
+        'Coloração Completa',
         'Alisamento',
-        'Escova',
-        'Manicure',
-        'Pedicure',
-        'Design de Sobrancelhas',
-        'Maquiagem',
-        'Depilação',
-        'Massagem'
+        'Escova Progressiva',
+        'Iluminados',
+        'Loiro Milhões',
+        'Hidratação Profunda',
+        'Outros'
     ]
 
     useEffect(() => {
@@ -181,7 +179,7 @@ export default function FuncionariosPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
+        <div className="min-h-screen bg-beige py-8 px-4 ">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <motion.div
@@ -202,8 +200,32 @@ export default function FuncionariosPage() {
                     </button>
                 </motion.div>
 
+                {/* Navegação */}
+                <motion.div
+                    className="mb-6 justify-end flex gap-3"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
+                    <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                    >
+
+                        <ArrowLeft size={20} />
+                        Painel
+                    </Link>
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                    >
+                        <Home size={20} />
+                        Voltar ao início
+                    </Link>
+                </motion.div>
+
                 {/* Lista de Funcionários */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-h-[90vh] overflow-y-auto p-4">
                     {staff.map((s, index) => (
                         <motion.div
                             key={s.id}
@@ -287,8 +309,8 @@ export default function FuncionariosPage() {
                                 <button
                                     onClick={() => handleToggleActive(s.id, s.active)}
                                     className={`px-4 py-2 rounded-lg text-sm transition ${s.active
-                                            ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                                            : 'bg-green-100 text-green-600 hover:bg-green-200'
+                                        ? 'bg-red-100 text-red-600 hover:bg-red-200'
+                                        : 'bg-green-100 text-green-600 hover:bg-green-200'
                                         }`}
                                 >
                                     {s.active ? '🔴' : '🟢'}

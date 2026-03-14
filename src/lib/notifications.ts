@@ -130,8 +130,8 @@ Seu agendamento foi realizado com sucesso:
 Av. Rio Doce, 3101 – Potengi, Natal/RN
 
 ⚠️ *Importante:* 
-- Chegar 5 minutos antes
-- Cancelamento até 2h antes
+- Chegar 10 minutos antes
+- Cancelamento com 24h de antecedência
 
 👉 *CONFIRME SUA PRESENÇA:*
 ${confirmUrl}

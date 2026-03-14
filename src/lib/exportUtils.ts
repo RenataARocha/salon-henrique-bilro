@@ -1,73 +1,68 @@
 // lib/exportUtils.ts
 
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
+
+
 // Exportar para CSV
-export function exportToCSV(data: any[], filename: string) {
-    if (data.length === 0) return
+export function exportToExcel(data: any) {
+    const workbook = XLSX.utils.book_new()
 
-    // Pegar as chaves do primeiro objeto
-    const headers = Object.keys(data[0])
-
-    // Criar CSV
-    const csvContent = [
-        headers.join(','),
-        ...data.map(row =>
-            headers.map(header => {
-                const value = row[header]
-                // Escapar vírgulas e aspas
-                if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-                    return `"${value.replace(/"/g, '""')}"`
-                }
-                return value
-            }).join(',')
-        )
-    ].join('\n')
-
-    // Download
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-}
-
-// Exportar Relatório Completo para CSV
-export function exportReportToCSV(data: any) {
-    const reportData = [
-        { secao: '=== RESUMO ===' },
-        { secao: 'Receita Total', valor: `R$ ${data.summary.totalRevenue.toFixed(2)}` },
-        { secao: 'Total de Agendamentos', valor: data.summary.totalAppointments },
-        { secao: 'Ticket Médio', valor: `R$ ${data.summary.avgTicket.toFixed(2)}` },
-        { secao: 'Taxa de Conclusão', valor: `${data.summary.completionRate.toFixed(1)}%` },
-        { secao: 'Novos Clientes', valor: data.summary.newClients },
-        { secao: '' },
-        { secao: '=== TOP SERVIÇOS ===' },
-        ...data.services.slice(0, 10).map((s: any, i: number) => ({
-            posicao: i + 1,
-            servico: s.name,
-            quantidade: s.count,
-            receita: `R$ ${s.revenue.toFixed(2)}`,
-            percentual: `${s.percentage.toFixed(1)}%`
-        })),
-        { secao: '' },
-        { secao: '=== TOP CLIENTES ===' },
-        ...data.topClients.map((c: any, i: number) => ({
-            posicao: i + 1,
-            cliente: c.name,
-            visitas: c.visits,
-            total_gasto: `R$ ${c.totalSpent.toFixed(2)}`
-        })),
-        { secao: '' },
-        { secao: '=== CANCELAMENTOS ===' },
-        { secao: 'Taxa de Cancelamento', valor: `${data.cancellations.rate.toFixed(1)}%` },
-        { secao: 'Total Cancelado', valor: data.cancellations.total },
-        ...data.cancellations.byReason.map((r: any) => ({
-            motivo: r.reason,
-            quantidade: r.count
-        }))
+    // ABA 1 — RESUMO
+    const resumo = [
+        { Métrica: 'Receita Total', Valor: data.summary.totalRevenue },
+        { Métrica: 'Agendamentos', Valor: data.summary.totalAppointments },
+        { Métrica: 'Ticket Médio', Valor: data.summary.avgTicket },
+        { Métrica: 'Taxa Conclusão', Valor: data.summary.completionRate },
+        { Métrica: 'Novos Clientes', Valor: data.summary.newClients }
     ]
 
-    exportToCSV(reportData, 'relatorio_completo')
+    const wsResumo = XLSX.utils.json_to_sheet(resumo)
+    XLSX.utils.book_append_sheet(workbook, wsResumo, 'Resumo')
+
+    // ABA 2 — SERVIÇOS
+    const servicos = data.services.map((s: any) => ({
+        Serviço: s.name,
+        Quantidade: s.count,
+        Receita: s.revenue,
+        Percentual: s.percentage
+    }))
+
+    const wsServicos = XLSX.utils.json_to_sheet(servicos)
+    XLSX.utils.book_append_sheet(workbook, wsServicos, 'Serviços')
+
+    // ABA 3 — CLIENTES
+    const clientes = data.topClients.map((c: any) => ({
+        Cliente: c.name,
+        Visitas: c.visits,
+        Total_Gasto: c.totalSpent
+    }))
+
+    const wsClientes = XLSX.utils.json_to_sheet(clientes)
+    XLSX.utils.book_append_sheet(workbook, wsClientes, 'Clientes')
+
+    // ABA 4 — CANCELAMENTOS
+    const cancelamentos = data.cancellations.byReason.map((r: any) => ({
+        Motivo: r.reason,
+        Quantidade: r.count
+    }))
+
+    const wsCancel = XLSX.utils.json_to_sheet(cancelamentos)
+    XLSX.utils.book_append_sheet(workbook, wsCancel, 'Cancelamentos')
+
+    // GERAR ARQUIVO
+    const excelBuffer = XLSX.write(workbook, {
+        bookType: 'xlsx',
+        type: 'array'
+    })
+
+    const blob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    })
+
+    saveAs(blob, `relatorio_${new Date().toISOString().split('T')[0]}.xlsx`)
 }
+
 
 // Exportar para "PDF" (na verdade vai gerar um HTML imprimível)
 export function exportToPDF(data: any) {

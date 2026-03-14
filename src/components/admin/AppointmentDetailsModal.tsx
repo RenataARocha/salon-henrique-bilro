@@ -222,6 +222,7 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
                                         <p className="font-semibold">{appointment.user.name}</p>
                                     </div>
 
+
                                     {appointment.user.phone && (
                                         <div>
                                             <p className="text-sm text-gray-600">Telefone</p>
@@ -347,6 +348,7 @@ export default function AppointmentDetailsModal({ appointmentId, onClose, onUpda
                                         <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(appointment.status)}`}>
                                             {getStatusLabel(appointment.status)}
                                         </span>
+
                                     </div>
 
                                     {appointment.rescheduledFrom && (

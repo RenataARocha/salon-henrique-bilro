@@ -1,6 +1,3 @@
-// app/api/admin/appointments/route.ts
-// ✅ SUBSTITUA O ARQUIVO COMPLETO POR ESTE CÓDIGO
-
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -32,14 +29,61 @@ export async function GET(request: NextRequest) {
                         }
                     }
                 },
-                coupon: true
+                coupon: true,
+                // ✅ ADICIONAR appointmentServices
+                appointmentServices: {
+                    include: {
+                        service: true
+                    }
+                },
+                // ✅ ADICIONAR staffServices (para mostrar funcionário)
+                staffServices: {
+                    include: {
+                        staff: {
+                            select: { name: true }
+                        }
+                    }
+                }
             },
             orderBy: { date: 'desc' }
         })
 
         // Formatar dados
         const formattedAppointments = appointments.map(apt => {
-            let formattedApt: any = { ...apt, service: apt.service || null, combo: null }
+            let formattedApt: any = {
+                ...apt,
+                service: apt.service || null,
+                combo: null,
+                staffName: null // ✅ ADICIONAR campo staffName
+            }
+
+            // ✅ SE TEM MÚLTIPLOS SERVIÇOS, CRIAR SERVICE VIRTUAL
+            if (apt.appointmentServices && apt.appointmentServices.length > 0) {
+                const totalPrice = apt.appointmentServices.reduce(
+                    (sum, as) => sum + (as.price * as.quantity),
+                    0
+                )
+                const totalDuration = apt.appointmentServices.reduce(
+                    (sum, as) => sum + (as.service.duration * as.quantity),
+                    0
+                )
+
+                const serviceNames = apt.appointmentServices
+                    .map(as => as.quantity > 1 ? `${as.quantity}x ${as.service.name}` : as.service.name)
+                    .join(' + ')
+
+                formattedApt.service = {
+                    id: 'multiple',
+                    name: serviceNames,
+                    price: totalPrice,
+                    duration: totalDuration
+                }
+            }
+
+            // ✅ EXTRAIR NOME DO FUNCIONÁRIO
+            if (apt.staffServices && apt.staffServices.length > 0) {
+                formattedApt.staffName = apt.staffServices[0].staff.name
+            }
 
             if (apt.combo) {
                 const comboServices = apt.combo.services.map(cs => cs.service)
@@ -85,4 +129,4 @@ export async function GET(request: NextRequest) {
             { status: 500 }
         )
     }
-} 
+}

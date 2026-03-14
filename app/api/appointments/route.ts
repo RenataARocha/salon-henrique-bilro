@@ -58,6 +58,28 @@ export async function GET(request: Request) {
             }
         }
 
+        // ✅ EXCLUIR AGENDAMENTOS JÁ REGISTRADOS
+        if (status === 'COMPLETED') {
+            const registeredServices = await prisma.staffService.findMany({
+                select: {
+                    appointmentId: true
+                },
+                where: {
+                    appointmentId: { not: null }
+                }
+            })
+
+            const registeredIds = registeredServices
+                .map(s => s.appointmentId)
+                .filter(id => id !== null) as string[]
+
+            if (registeredIds.length > 0) {
+                where.id = {
+                    notIn: registeredIds
+                }
+            }
+        }
+
         const appointments = await prisma.appointment.findMany({
             where,
             include: {
@@ -74,7 +96,13 @@ export async function GET(request: Request) {
                         }
                     }
                 },
-                coupon: true
+                coupon: true,
+                // ✅ ADICIONAR ISTO:
+                appointmentServices: {
+                    include: {
+                        service: true
+                    }
+                }
             },
             orderBy: { date: 'desc' }
         })
@@ -82,6 +110,24 @@ export async function GET(request: Request) {
         const formattedAppointments = appointments.map(apt => {
             let formattedApt: any = { ...apt, service: apt.service || null, combo: null }
 
+            // ✅ SE TEM MÚLTIPLOS SERVIÇOS, CRIAR UM SERVICE VIRTUAL
+            if (apt.appointmentServices && apt.appointmentServices.length > 0) {
+                const totalPrice = apt.appointmentServices.reduce((sum, as) => sum + (as.price * as.quantity), 0)
+                const totalDuration = apt.appointmentServices.reduce((sum, as) => sum + (as.service.duration * as.quantity), 0)
+
+                const serviceNames = apt.appointmentServices
+                    .map(as => as.quantity > 1 ? `${as.quantity}x ${as.service.name}` : as.service.name)
+                    .join(' + ')
+
+                formattedApt.service = {
+                    id: 'multiple',
+                    name: serviceNames,
+                    price: totalPrice,
+                    duration: totalDuration
+                }
+            }
+
+            // Resto do código do combo...
             if (apt.combo) {
                 const comboServices = apt.combo.services.map(cs => cs.service)
                 const originalPrice = comboServices.reduce((sum, s) => sum + s.price, 0)
@@ -136,6 +182,7 @@ export async function POST(request: Request) {
         const body = await request.json()
 
         const {
+            services,
             serviceId,
             comboId,
             date,
@@ -148,19 +195,16 @@ export async function POST(request: Request) {
             valorFinal
         } = body
 
-        if (!serviceId && !comboId) {
+        // ✅ VALIDAÇÃO CORRIGIDA - Aceitar services OU serviceId OU comboId
+        if (!services?.length && !serviceId && !comboId) {
             return NextResponse.json(
-                { success: false, error: 'Selecione um serviço ou combo' },
+                { success: false, error: 'Selecione pelo menos um serviço ou combo' },
                 { status: 400 }
             )
         }
 
-        if (serviceId && comboId) {
-            return NextResponse.json(
-                { success: false, error: 'Selecione apenas um serviço OU um combo' },
-                { status: 400 }
-            )
-        }
+
+        const appointmentDate = new Date(`${date}T${time}:00`)
 
         const normalizedPaymentMethod = paymentMethod
             ?.normalize('NFD')
@@ -236,8 +280,6 @@ export async function POST(request: Request) {
             }
         }
 
-        const appointmentDate = parseDateSafe(date)
-
         console.log('📅 [CRIAR AGENDAMENTO]:', {
             entrada: date,
             parseada: appointmentDate.toISOString()
@@ -310,8 +352,19 @@ export async function POST(request: Request) {
                 status: 'PENDING',
                 couponId: cupomId || null,
                 discountAmount: valorDesconto || 0,
-                finalPrice: finalPrice
+                finalPrice: finalPrice,
+
+                ...(services?.length > 0 && {
+                    appointmentServices: {
+                        create: services.map((s: any) => ({
+                            serviceId: s.serviceId,
+                            quantity: s.quantity || 1,
+                            price: s.price
+                        }))
+                    }
+                })
             },
+
             include: {
                 service: true,
                 combo: {
@@ -345,6 +398,7 @@ export async function POST(request: Request) {
         // ✅ ENVIAR NOTIFICAÇÕES (WhatsApp + Email + Sistema)
         try {
             await notifyAppointmentCreated({
+                id: appointment.id,
                 user: appointment.user,
                 service: appointment.service || {
                     name: appointment.combo?.name || 'Serviço',
@@ -357,7 +411,6 @@ export async function POST(request: Request) {
             console.log('✅ Notificações enviadas com sucesso!')
         } catch (notificationError) {
             console.error('⚠️ Erro ao enviar notificações:', notificationError)
-            // NÃO bloqueia o agendamento se notificação falhar
         }
 
         return NextResponse.json({

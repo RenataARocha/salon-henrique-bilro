@@ -293,7 +293,7 @@ export default function AdminCombosPage() {
 
                 {/* Lista de Combos */}
                 {combos.length > 0 ? (
-                    <div className="grid md:grid-cols-2 gap-6">
+                    <div className="grid md:grid-cols-2 gap-6 max-h-[90vh] overflow-y-auto p-4">
                         {combos.map((combo, index) => (
                             <motion.div
                                 key={combo.id}

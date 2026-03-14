@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { TrendingUp, DollarSign, Calendar, Clock, Users, Award, Download, Filter, ArrowLeft, Home } from 'lucide-react'
-import { exportReportToCSV, exportToPDF } from '@/lib/exportUtils'
+import { exportToExcel, exportToPDF } from '@/lib/exportUtils'
 import { motion, Variants } from 'framer-motion'
 
 
@@ -115,6 +115,7 @@ export default function RelatoriosPage() {
         }
     }
 
+
     const exportToPDFHandler = () => {
         if (data) {
             exportToPDF(data)
@@ -123,10 +124,9 @@ export default function RelatoriosPage() {
 
     const exportToExcelHandler = () => {
         if (data) {
-            exportReportToCSV(data)
+            exportToExcel(data)
         }
     }
-
     if (loading) {
         return (
             <div className="min-h-screen bg-beige py-8 px-4">
@@ -178,7 +178,7 @@ export default function RelatoriosPage() {
             animate="visible"
         >
 
-            <div className="max-w-7xl mx-auto space-y-8">
+            <div id="report-area" className="max-w-7xl mx-auto space-y-8 ">
                 {/* Header */}
                 <motion.div
                     variants={cardAnimation}

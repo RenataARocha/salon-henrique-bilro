@@ -2,8 +2,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
+import { ArrowLeft, Home, X } from 'lucide-react'
 import { motion } from 'framer-motion'
+import Link from 'next/link'
 
 interface Staff {
     id: string
@@ -79,6 +80,7 @@ export default function ComandaPage() {
     // Filtros da página
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
     const [selectedStaffId, setSelectedStaffId] = useState<string>('')
+    const [showAllDates, setShowAllDates] = useState(false) // ✅ NOVO
 
     useEffect(() => {
         loadData()
@@ -86,7 +88,7 @@ export default function ComandaPage() {
 
     useEffect(() => {
         loadFilteredServices()
-    }, [selectedDate, selectedStaffId])
+    }, [selectedDate, selectedStaffId, showAllDates]) // ✅ ADICIONAR showAllDates
 
     async function loadData() {
         try {
@@ -104,16 +106,26 @@ export default function ComandaPage() {
 
     async function loadFilteredServices() {
         try {
-            let url = `/api/staff/services?date=${selectedDate}`
+            let url = '/api/staff/services?'
+
+            // ✅ SE "TODOS" ESTIVER MARCADO, NÃO FILTRAR POR DATA
+            if (!showAllDates) {
+                url += `date=${selectedDate}&`
+            }
+
             if (selectedStaffId) {
-                url += `&staffId=${selectedStaffId}`
+                url += `staffId=${selectedStaffId}`
             }
 
             const res = await fetch(url)
             const data = await res.json()
 
             if (data.success) {
-                setTodayServices(data.data)
+                // ✅ ORDENAR DO MAIS RECENTE PARA O MAIS ANTIGO
+                const sorted = data.data.sort((a: any, b: any) =>
+                    new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime()
+                )
+                setTodayServices(sorted)
             }
         } catch (error) {
             console.error('Erro ao carregar serviços:', error)
@@ -143,13 +155,32 @@ export default function ComandaPage() {
         try {
             setLoadingAppointments(true)
 
-            // Buscar agendamentos CONFIRMADOS daquele dia (não COMPLETED)
-            const url = `/api/appointments?date=${modalDate}&status=CONFIRMED`
+            // Buscar agendamentos CONCLUÍDOS daquele dia
+            const url = `/api/appointments?date=${modalDate}&status=COMPLETED`
             const res = await fetch(url)
             const data = await res.json()
 
             if (data.success) {
-                setAppointments(data.data || [])
+                // ✅ BUSCAR IDS JÁ REGISTRADOS PARA ESTE FUNCIONÁRIO
+                const registeredRes = await fetch(`/api/staff/services?staffId=${modalStaffId}&date=${modalDate}`)
+                const registeredData = await registeredRes.json()
+
+                const registeredAppointmentIds = new Set(
+                    registeredData.data
+                        ?.filter((s: any) => s.appointmentId)
+                        .map((s: any) => s.appointmentId) || []
+                )
+
+                // ✅ FILTRAR APENAS OS NÃO REGISTRADOS
+                const unregistered = (data.data || []).filter(
+                    (apt: Appointment) => !registeredAppointmentIds.has(apt.id)
+                )
+
+                setAppointments(unregistered)
+
+                if (unregistered.length === 0 && data.data.length > 0) {
+                    alert(`ℹ️ Todos os ${data.data.length} agendamentos concluídos desta data já foram registrados para este funcionário!`)
+                }
             }
         } catch (error) {
             console.error('Erro ao carregar agendamentos:', error)
@@ -192,23 +223,30 @@ export default function ComandaPage() {
                 const commissionValue = serviceValue * (selectedStaff.commissionPercent / 100)
 
                 // ✅ CORRIGIR FORMATO DA DATA
-                const dateStr = new Date(appointment.date).toISOString().split('T')[0] // 2026-03-05
-                const executedAtStr = `${dateStr}T${appointment.time}:00` // 2026-03-05T18:00:00
+                const dateStr = new Date(appointment.date).toISOString().split('T')[0]
+                const executedAtStr = `${dateStr}T${appointment.time}:00`
 
                 // ✅ NORMALIZAR PAYMENT METHOD (remover "_DE_")
                 let paymentMethod = appointment.paymentMethod || 'DINHEIRO'
-                paymentMethod = paymentMethod.replace('_DE_', '_') // CARTAO_DE_DEBITO → CARTAO_DEBITO
+                paymentMethod = paymentMethod.replace('_DE_', '_')
 
-                const data = {
+                // ✅ Criar objeto base
+                const data: any = {
                     staffId: modalStaffId,
-                    serviceId: appointment.service?.id || null,
-                    comboId: appointment.combo?.id || null,
+                    appointmentId: appointment.id,
                     clientName: appointment.user.name,
-                    clientPhone: appointment.user.phone || '',
+                    clientPhone: appointment.user.phone?.replace(/\D/g, '') || '',
                     serviceValue,
-                    paymentMethod, // ✅ NORMALIZADO
-                    executedAt: executedAtStr, // ✅ FORMATO CORRETO
+                    paymentMethod,
+                    executedAt: executedAtStr,
                     notes: `Agendamento #${appointment.id.slice(0, 8)}`
+                }
+
+                // ✅ Adicionar serviceId OU comboId (não ambos)
+                if (appointment.combo) {
+                    data.comboId = appointment.combo.id
+                } else if (appointment.service) {
+                    data.serviceId = appointment.service.id
                 }
 
                 const res = await fetch('/api/staff/services', {
@@ -220,6 +258,7 @@ export default function ComandaPage() {
                 const result = await res.json()
                 if (!result.success) {
                     console.error('Erro ao registrar:', result.error)
+                    alert(`Erro ao registrar: ${result.error}`)
                 }
             }
 
@@ -229,6 +268,7 @@ export default function ComandaPage() {
             // ✅ Atualizar filtro de visualização para a data registrada
             setSelectedDate(modalDate)
             setSelectedStaffId(modalStaffId)
+            setShowAllDates(false) // ✅ DESMARCAR "TODOS"
 
             // Recarregar serviços
             loadFilteredServices()
@@ -239,7 +279,7 @@ export default function ComandaPage() {
     }
 
     async function handleDelete(id: string) {
-        if (!confirm('Deseja remover este registro?')) return
+        if (!confirm('⚠️ Tem certeza que deseja remover este registro?')) return
 
         try {
             const res = await fetch(`/api/staff/services?id=${id}`, {
@@ -249,10 +289,14 @@ export default function ComandaPage() {
             const data = await res.json()
 
             if (data.success) {
+                alert('✅ Registro removido com sucesso!')
                 loadFilteredServices()
+            } else {
+                alert('❌ Erro ao remover registro')
             }
         } catch (error) {
             console.error('Erro:', error)
+            alert('❌ Erro ao remover registro')
         }
     }
 
@@ -284,8 +328,9 @@ export default function ComandaPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
+        <div className="min-h-screen bg-beige py-8 px-4 ">
             <div className="max-w-7xl mx-auto">
+
                 {/* Header */}
                 <motion.div
                     className="flex justify-between items-center mb-8"
@@ -296,12 +341,16 @@ export default function ComandaPage() {
                     <div>
                         <h1 className="text-4xl font-bold text-charcoal">📝 Comanda Diária</h1>
                         <p className="text-gray-600 mt-2">
-                            📅 {new Date(selectedDate).toLocaleDateString('pt-BR', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                            })}
+                            {showAllDates && selectedStaffId ? (
+                                `📋 Todos os serviços de ${staff.find(s => s.id === selectedStaffId)?.name}`
+                            ) : (
+                                `📅 ${new Date(selectedDate).toLocaleDateString('pt-BR', {
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                })}`
+                            )}
                         </p>
                     </div>
                     <button
@@ -310,7 +359,34 @@ export default function ComandaPage() {
                     >
                         + Registrar Serviço
                     </button>
+
                 </motion.div>
+
+
+                {/* Navegação */}
+                <motion.div
+                    className="mb-6 justify-end flex gap-3"
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                >
+                    <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                    >
+
+                        <ArrowLeft size={20} />
+                        Painel
+                    </Link>
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                    >
+                        <Home size={20} />
+                        Voltar ao início
+                    </Link>
+                </motion.div>
+
 
                 {/* Filtros */}
                 <motion.div
@@ -321,7 +397,7 @@ export default function ComandaPage() {
                 >
                     <h2 className="text-lg font-bold text-charcoal mb-4">Filtros de Visualização</h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                         <div>
                             <label className="block text-sm font-semibold text-charcoal mb-2">
                                 Data
@@ -329,8 +405,12 @@ export default function ComandaPage() {
                             <input
                                 type="date"
                                 value={selectedDate}
-                                onChange={e => setSelectedDate(e.target.value)}
-                                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                onChange={e => {
+                                    setSelectedDate(e.target.value)
+                                    setShowAllDates(false) // ✅ DESMARCAR "TODOS"
+                                }}
+                                disabled={showAllDates} // ✅ DESABILITAR SE "TODOS" MARCADO
+                                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                             />
                         </div>
 
@@ -352,11 +432,27 @@ export default function ComandaPage() {
                             </select>
                         </div>
                     </div>
+
+                    {/* ✅ CHECKBOX "TODOS OS SERVIÇOS" */}
+                    {selectedStaffId && (
+                        <div className="flex items-center gap-2 mt-4 p-3 bg-gold/10 rounded-lg">
+                            <input
+                                type="checkbox"
+                                id="showAllDates"
+                                checked={showAllDates}
+                                onChange={e => setShowAllDates(e.target.checked)}
+                                className="w-5 h-5 text-gold rounded focus:ring-gold"
+                            />
+                            <label htmlFor="showAllDates" className="text-sm font-semibold text-charcoal cursor-pointer">
+                                📋 Mostrar todos os serviços deste funcionário (todas as datas)
+                            </label>
+                        </div>
+                    )}
                 </motion.div>
 
                 {/* Resumo do Dia */}
                 <motion.div
-                    className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 "
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
@@ -380,7 +476,7 @@ export default function ComandaPage() {
                 </motion.div>
 
                 {/* Serviços Agrupados por Funcionário */}
-                <div className="space-y-6">
+                <div className="space-y-6 max-h-[90vh] overflow-y-auto p-4">
                     {staffGroups.length > 0 ? (
                         staffGroups.map((group: any, index) => (
                             <motion.div
@@ -391,8 +487,8 @@ export default function ComandaPage() {
                                 transition={{ duration: 0.6, delay: 0.6 + (index * 0.1) }}
                             >
                                 {/* Header do Funcionário */}
-                                <div className="bg-gradient-gold text-white p-4">
-                                    <div className="flex items-center justify-between">
+                                <div className="bg-gradient-gold text-white p-4 ">
+                                    <div className="flex items-center justify-between ">
                                         <div className="flex items-center gap-3">
                                             {group.staff.photo ? (
                                                 <img
@@ -401,7 +497,7 @@ export default function ComandaPage() {
                                                     className="w-12 h-12 rounded-full object-cover border-2 border-white"
                                                 />
                                             ) : (
-                                                <div className="w-12 h-12 rounded-full bg-white bg-opacity-20 flex items-center justify-center text-xl font-bold">
+                                                <div className="w-12 h-12 rounded-full  bg-gold-dark bg-opacity-20 flex items-center justify-center text-xl font-bold">
                                                     {group.staff.name.charAt(0)}
                                                 </div>
                                             )}
@@ -421,9 +517,9 @@ export default function ComandaPage() {
                                 </div>
 
                                 {/* Lista de Serviços */}
-                                <div className="divide-y divide-gray-200">
+                                <div className="divide-y divide-gray-200 ">
                                     {group.services.map((service: StaffService) => (
-                                        <div key={service.id} className="p-4 hover:bg-beige/50 transition cursor-pointer" onClick={() => openEditModal(service)}>
+                                        <div key={service.id} className="p-4 hover:bg-beige/50 transition">
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-2 mb-2">
@@ -434,7 +530,10 @@ export default function ComandaPage() {
                                                             {service.service?.name || service.combo?.name}
                                                         </h4>
                                                         <span className="text-xs text-gray-500">
-                                                            {new Date(service.executedAt).toLocaleTimeString('pt-BR', {
+                                                            📅 {new Date(service.executedAt).toLocaleDateString('pt-BR')}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500">
+                                                            ⏰ {new Date(service.executedAt).toLocaleTimeString('pt-BR', {
                                                                 hour: '2-digit',
                                                                 minute: '2-digit'
                                                             })}
@@ -465,7 +564,7 @@ export default function ComandaPage() {
                                                             e.stopPropagation()
                                                             handleDelete(service.id)
                                                         }}
-                                                        className="mt-2 text-xs text-red-600 hover:text-red-800"
+                                                        className="mt-2 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 hover:shadow-md"
                                                     >
                                                         🗑️ Remover
                                                     </button>
@@ -477,9 +576,9 @@ export default function ComandaPage() {
                             </motion.div>
                         ))
                     ) : (
-                        <div className="bg-white rounded-xl shadow-md p-12 text-center">
+                        <div className="bg-white rounded-xl shadow-md p-12 text-center ">
                             <div className="text-6xl mb-4">📝</div>
-                            <p className="text-gray-500 text-lg">Nenhum serviço registrado nesta data</p>
+                            <p className="text-gray-500 text-lg">Nenhum serviço registrado{showAllDates ? '' : ' nesta data'}</p>
                             <button
                                 onClick={openAddModal}
                                 className="mt-4 text-gold hover:underline font-semibold"
@@ -554,7 +653,7 @@ export default function ComandaPage() {
                                         disabled={!modalStaffId || !modalDate || loadingAppointments}
                                         className="w-full bg-charcoal text-white px-6 py-3 rounded-lg font-semibold hover:bg-charcoal/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {loadingAppointments ? '⏳ Buscando...' : '🔍 Buscar Agendamentos Confirmados'}
+                                        {loadingAppointments ? '⏳ Buscando...' : '🔍 Buscar Agendamentos Concluídos'}
                                     </button>
                                 </div>
 
@@ -562,16 +661,16 @@ export default function ComandaPage() {
                                 {appointments.length > 0 && (
                                     <div className="bg-beige/50 border-2 border-gray-300 rounded-lg p-4">
                                         <h3 className="font-bold text-charcoal mb-4">
-                                            2️⃣ Selecione os Agendamentos Confirmados ({appointments.length} encontrados)
+                                            2️⃣ Selecione os Agendamentos Concluídos ({appointments.length} encontrados)
                                         </h3>
 
-                                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                                        <div className="space-y-3 max-h-96 overflow-y-auto ">
                                             {appointments.map(apt => (
                                                 <label
                                                     key={apt.id}
                                                     className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${selectedAppointments.includes(apt.id)
-                                                            ? 'bg-gold/20 border-gold'
-                                                            : 'bg-white border-gray-200 hover:border-gold/50'
+                                                        ? 'bg-gold/20 border-gold'
+                                                        : 'bg-white border-gray-200 hover:border-gold/50'
                                                         }`}
                                                 >
                                                     <input
@@ -610,10 +709,13 @@ export default function ComandaPage() {
                                 {appointments.length === 0 && modalStaffId && modalDate && !loadingAppointments && (
                                     <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 text-center">
                                         <p className="text-orange-700 font-semibold">
-                                            ⚠️ Nenhum agendamento confirmado encontrado para esta data
+                                            ⚠️ Nenhum agendamento concluído encontrado para esta data
                                         </p>
                                         <p className="text-sm text-orange-600 mt-2">
-                                            Os agendamentos precisam estar com status "CONFIRMED" para aparecerem aqui
+                                            Os agendamentos precisam estar com status &quot;CONCLUÍDO&quot; para aparecerem aqui.
+                                        </p>
+                                        <p className="text-sm text-orange-600 mt-1">
+                                            Vá em <strong>Agendamentos</strong> e marque os serviços realizados como <strong>🎉 Concluído</strong>.
                                         </p>
                                     </div>
                                 )}

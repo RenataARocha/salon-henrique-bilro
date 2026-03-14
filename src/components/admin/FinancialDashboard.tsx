@@ -22,6 +22,10 @@ interface AnalyticsData {
         peakHours: Array<{ hour: string; appointments: number }>;
         monthlyRevenue: Array<{ month: string; revenue: number; appointments: number }>;
     };
+    projection: {
+        projectedRevenue: number
+        averagePerDay: number
+    }
 }
 
 const COLORS = ['#ec4899', '#8b5cf6', '#f59e0b', '#10b981', '#3b82f6', '#ef4444'];
@@ -30,11 +34,22 @@ const FinancialDashboard = () => {
     const [data, setData] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState('month');
-    const [monthlyGoal] = useState(50000);
+    const [monthlyGoal, setMonthlyGoal] = useState(0);
+    const [editingGoal, setEditingGoal] = useState(false);
+    const [goalInput, setGoalInput] = useState(0);
 
     useEffect(() => {
         loadAnalytics();
+        loadGoal();
+        saveGoal();
     }, [period]);
+
+    const formatCurrency = (value) => {
+        return value.toLocaleString('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+        })
+    }
 
     const loadAnalytics = async () => {
         setLoading(true);
@@ -52,6 +67,36 @@ const FinancialDashboard = () => {
         }
     };
 
+    const loadGoal = async () => {
+        const res = await fetch('/api/admin/settings/financial-goal')
+        const data = await res.json()
+
+        if (data.success) {
+            setMonthlyGoal(data.goal)
+            setGoalInput(data.goal)
+        }
+    }
+
+    const saveGoal = async () => {
+        const res = await fetch('/api/admin/settings/financial-goal', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                goal: goalInput
+            })
+        })
+
+        const data = await res.json()
+
+        if (data.success) {
+            setMonthlyGoal(data.goal)
+            setEditingGoal(false)
+        }
+    }
+
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -68,7 +113,9 @@ const FinancialDashboard = () => {
         );
     }
 
-    const goalProgress = (data.comparisons.month.revenue / monthlyGoal) * 100;
+    const goalProgress = monthlyGoal
+        ? (data.comparisons.month.revenue / monthlyGoal) * 100
+        : 0;
     const goalRemaining = monthlyGoal - data.comparisons.month.revenue;
 
     const cardAnimation: Variants = {
@@ -183,7 +230,7 @@ const FinancialDashboard = () => {
                 <div className="space-y-4">
                     <div className="flex justify-between items-baseline">
                         <span className="text-3xl font-bold text-gray-800">
-                            R$ {monthlyGoal.toLocaleString('pt-BR')}
+                            {formatCurrency(monthlyGoal)}
                         </span>
                         <span className="text-lg text-gray-600">
                             {goalProgress.toFixed(1)}% atingido
@@ -200,7 +247,7 @@ const FinancialDashboard = () => {
 
                     {goalRemaining > 0 && (
                         <p className="text-gray-600">
-                            Faltam <span className="font-bold text-pink-600">R$ {goalRemaining.toFixed(2)}</span> para atingir a meta
+                            Faltam <span className="font-bold text-pink-600">{formatCurrency(goalRemaining)}</span> para atingir a meta
                         </p>
                     )}
                     {goalRemaining <= 0 && (
@@ -208,6 +255,61 @@ const FinancialDashboard = () => {
                             🎉 Meta atingida! Parabéns!
                         </p>
                     )}
+
+                    {!editingGoal && (
+                        <button
+                            onClick={() => setEditingGoal(true)}
+                            className="text-sm text-pink-600"
+                        >
+                            Editar meta
+                        </button>
+                    )}
+
+                    {editingGoal && (
+                        <div className="flex gap-2 items-center">
+                            <input
+                                type="text"
+                                value={formatCurrency(goalInput)}
+                                onChange={(e) => {
+                                    const raw = e.target.value.replace(/\D/g, "")
+                                    setGoalInput(Number(raw))
+                                }}
+                                className="border rounded px-3 py-2 w-40"
+                            />
+
+                            <button
+                                onClick={saveGoal}
+                                className="bg-pink-500 text-white px-4 py-2 rounded"
+                            >
+                                Salvar
+                            </button>
+
+                            <button
+                                onClick={() => setEditingGoal(false)}
+                                className="text-gray-500"
+                            >
+                                Cancelar
+                            </button>
+                        </div>
+
+
+                    )}
+                </div>
+                <div className="bg-white rounded-xl shadow p-6">
+                    <h3 className="font-bold mb-2">
+                        📈 Previsão do mês
+                    </h3>
+
+                    <p className={`text-3xl font-bold ${data.projection.projectedRevenue >= monthlyGoal
+                            ? "text-green-600"
+                            : "text-orange-500"
+                        }`}>
+                        {formatCurrency(data.projection.projectedRevenue)}
+                    </p>
+
+                    <p className="text-sm text-gray-500">
+                        Baseado na média diária
+                    </p>
                 </div>
             </motion.div>
 
