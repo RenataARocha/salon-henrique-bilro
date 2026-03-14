@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyNewCombo } from '@/lib/notifications'
 
 // GET - Listar TODOS os combos (admin)
 export async function GET(request: NextRequest) {
@@ -129,6 +130,22 @@ export async function POST(request: NextRequest) {
                 }
             }
         })
+
+        try {
+            const services = combo.services.map(cs => cs.service)
+            const originalPrice = services.reduce((sum, s) => sum + s.price, 0)
+            const comboPrice = originalPrice * (1 - combo.discountPercent / 100)
+
+            await notifyNewCombo({
+                ...combo,
+                services,
+                originalPrice,
+                comboPrice
+            })
+            console.log('✅ Notificações de combo enviadas!')
+        } catch (notificationError) {
+            console.error('⚠️ Erro ao enviar notificações:', notificationError)
+        }
 
         return NextResponse.json({
             success: true,

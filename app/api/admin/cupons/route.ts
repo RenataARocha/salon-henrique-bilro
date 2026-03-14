@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyNewCoupon } from '@/lib/notifications'
+
 
 // GET - Listar todos os cupons
 export async function GET(request: NextRequest) {
@@ -131,6 +133,7 @@ export async function POST(request: NextRequest) {
             : []
 
         // Criar cupom
+        // Criar cupom
         const coupon = await prisma.coupon.create({
             data: {
                 code: code.toUpperCase(),
@@ -150,8 +153,17 @@ export async function POST(request: NextRequest) {
             }
         })
 
+        // 👇 enviar notificações
+        try {
+            await notifyNewCoupon(coupon)
+            console.log('✅ Notificações de cupom enviadas!')
+        } catch (notificationError) {
+            console.error('⚠️ Erro ao enviar notificações:', notificationError)
+        }
+
         console.log('✅ Cupom criado:', coupon)
 
+        // 👇 resposta da API
         return NextResponse.json({
             success: true,
             data: coupon,

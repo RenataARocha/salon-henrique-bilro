@@ -1,6 +1,6 @@
 // app/api/admin/birthdays/send-offer/route.ts
 
-
+import { notifyBirthdayCoupon } from '@/lib/notifications'
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
@@ -118,9 +118,16 @@ export async function POST(request: NextRequest) {
 
         // TODO: Enviar WhatsApp (quando integrado)
         let whatsappSent = false
-        if (sendWhatsApp && user.phone) {
-            // Implementar quando tiver Twilio configurado
-            whatsappSent = false
+        if (user.phone) {
+            try {
+                await notifyBirthdayCoupon(user, {
+                    ...coupon,
+                    expiresAt: coupon.validUntil
+                })
+                whatsappSent = true
+            } catch (err) {
+                console.error('Erro ao enviar WhatsApp aniversário:', err)
+            }
         }
 
         return NextResponse.json({
