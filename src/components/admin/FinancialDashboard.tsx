@@ -44,7 +44,7 @@ const FinancialDashboard = () => {
         saveGoal();
     }, [period]);
 
-    const formatCurrency = (value) => {
+    const formatCurrency = (value: number) => {
         return value.toLocaleString('pt-BR', {
             style: 'currency',
             currency: 'BRL'
@@ -301,8 +301,8 @@ const FinancialDashboard = () => {
                     </h3>
 
                     <p className={`text-3xl font-bold ${data.projection.projectedRevenue >= monthlyGoal
-                            ? "text-green-600"
-                            : "text-orange-500"
+                        ? "text-green-600"
+                        : "text-orange-500"
                         }`}>
                         {formatCurrency(data.projection.projectedRevenue)}
                     </p>
