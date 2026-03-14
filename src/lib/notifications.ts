@@ -9,65 +9,61 @@ import {
 import { prisma } from './prisma'
 
 // ============================================
-// CONFIGURAÇÃO DO WPPCONNECT
+// CONFIGURAÇÃO DA EVOLUTION API
 // ============================================
-const WPPCONNECT_API_URL = process.env.WPPCONNECT_API_URL || 'http://localhost:21465'
+const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'https://evolution-api-production-3c9c.up.railway.app'
+const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
+const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'salon-bilro'
 const SITE_URL = process.env.NEXTAUTH_URL || 'https://salon-henrique-bilro.vercel.app'
 
 // ============================================
 // NORMALIZAR TELEFONE (aceita com/sem 9)
 // ============================================
 function normalizePhone(phone: string): string {
-    // Remove tudo que não é número
     const clean = phone.replace(/\D/g, '')
 
-    // Se tem 13 dígitos: 55 84 9 8639-9847 → Remove o 9 extra
     if (clean.length === 13 && clean.startsWith('5584')) {
-        return clean.slice(0, 4) + clean.slice(5) // 558486399847
+        return clean.slice(0, 4) + clean.slice(5)
     }
-
-    // Se tem 12 dígitos: 55 84 8639-9847 → Já está certo
     if (clean.length === 12) {
-        return clean // 558486399847
+        return clean
     }
-
-    // Se tem 11 dígitos: 84 9 8639-9847 → Remove o 9
     if (clean.length === 11 && clean.startsWith('84')) {
-        return '55' + clean.slice(0, 2) + clean.slice(3) // 558486399847
+        return '55' + clean.slice(0, 2) + clean.slice(3)
     }
-
-    // Se tem 10 dígitos: 84 8639-9847 → Adiciona 55
     if (clean.length === 10) {
-        return '55' + clean // 558486399847
+        return '55' + clean
     }
-
-    // Se tem 8 dígitos: 8639-9847 → Adiciona 55 + DDD 84
     if (clean.length === 8) {
-        return '5584' + clean // 558486399847
+        return '5584' + clean
     }
 
     return clean
 }
 
 // ============================================
-// FUNÇÃO PARA ENVIAR WHATSAPP
+// FUNÇÃO PARA ENVIAR WHATSAPP (EVOLUTION API)
 // ============================================
 async function sendWhatsApp(phone: string, message: string) {
     try {
         const numero = normalizePhone(phone)
 
-        console.log('📱 Tentando enviar WhatsApp:', { original: phone, normalizado: numero })
+        console.log('📱 Enviando WhatsApp via Evolution API:', { original: phone, normalizado: numero })
 
-        const response = await fetch(`${WPPCONNECT_API_URL}/send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                phone: numero,
-                message: message
-            })
-        })
+        const response = await fetch(
+            `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': EVOLUTION_API_KEY
+                },
+                body: JSON.stringify({
+                    number: numero,
+                    text: message
+                })
+            }
+        )
 
         if (!response.ok) {
             console.error('❌ Erro ao enviar WhatsApp:', response.statusText)
@@ -75,14 +71,9 @@ async function sendWhatsApp(phone: string, message: string) {
         }
 
         const data = await response.json()
+        console.log('✅ WhatsApp enviado com sucesso para:', numero)
+        return { success: true, data }
 
-        if (data.success) {
-            console.log('✅ WhatsApp enviado com sucesso para:', numero)
-            return { success: true }
-        } else {
-            console.error('❌ Erro na resposta:', data.error)
-            return { success: false }
-        }
     } catch (error) {
         console.error('❌ Erro ao enviar WhatsApp:', error)
         return { success: false, error }
