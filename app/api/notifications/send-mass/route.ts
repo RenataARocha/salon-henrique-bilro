@@ -44,10 +44,7 @@ export async function POST(request: Request) {
             }
 
             // Enviar notificação de cupom para um cliente
-            await notifyNewCoupon({
-                ...cupom,
-                expiresAt: cupom.validUntil
-            })
+            await notifyNewCoupon(cupom, cliente)
 
         } else if (tipo === 'combo') {
             // Buscar combo
@@ -82,7 +79,7 @@ export async function POST(request: Request) {
                 originalPrice,
                 comboPrice,
                 services: combo.services.map(cs => cs.service)
-            })
+            }, cliente)
         }
 
         return NextResponse.json({ success: true })

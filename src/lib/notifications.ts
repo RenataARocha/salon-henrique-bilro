@@ -106,14 +106,10 @@ async function createNotification(userId: string, title: string, message: string
 // ============================================
 export async function notifyAppointmentCreated(appointment: any) {
     const { user, service, date, time, id } = appointment
-
     const dateFormatted = new Date(date).toLocaleDateString('pt-BR')
-
-    // Gerar link de confirmação
     const confirmToken = Buffer.from(`${id}:${Date.now()}`).toString('base64')
     const confirmUrl = `${SITE_URL}/api/appointments/confirm?id=${id}&token=${confirmToken}`
 
-    // 📱 WHATSAPP
     const whatsappMessage = `
 🎉 *Agendamento Confirmado!*
 
@@ -129,21 +125,18 @@ Seu agendamento foi realizado com sucesso:
 📍 *Local:* Henrique Bilro Cabeleireiros
 Av. Rio Doce, 3101 – Potengi, Natal/RN
 
-⚠️ *Importante:* 
+⚠️ *Importante:*
 - Chegar 10 minutos antes
-- Cancelamento com 24h de antecedência
+- Cancelamentos com 24h de antecedência
 
 👉 *CONFIRME SUA PRESENÇA:*
 ${confirmUrl}
 
-Clique no link acima para confirmar!
-
 Nos vemos lá! 😊
-  `.trim()
+    `.trim()
 
-    await sendWhatsApp(user.phone, whatsappMessage)
+    if (user.phone) await sendWhatsApp(user.phone, whatsappMessage)
 
-    // 📧 EMAIL
     await sendAppointmentConfirmationEmail({
         to: user.email,
         name: user.name,
@@ -154,7 +147,6 @@ Nos vemos lá! 😊
         appointmentId: id
     })
 
-    // 🔔 NOTIFICAÇÃO NO SISTEMA
     await createNotification(
         user.id,
         'Agendamento Criado',
@@ -164,16 +156,14 @@ Nos vemos lá! 😊
 }
 
 // ============================================
-// 2. LEMBRETE 2 DIAS ANTES
+// 2. LEMBRETE 48H ANTES
 // ============================================
 export async function notifyAppointmentReminder(appointment: any) {
     const { user, service, date, time, id } = appointment
     const dateFormatted = new Date(date).toLocaleDateString('pt-BR')
-
     const confirmToken = Buffer.from(`${id}:${Date.now()}`).toString('base64')
     const confirmUrl = `${SITE_URL}/api/appointments/confirm?id=${id}&token=${confirmToken}`
 
-    // 📱 WHATSAPP
     const whatsappMessage = `
 ⏰ *Lembrete de Agendamento*
 
@@ -189,14 +179,13 @@ Lembrando que você tem agendamento amanhã:
 👉 *CONFIRME SUA PRESENÇA:*
 ${confirmUrl}
 
-Caso precise reagendar ou cancelar, entre em contato o quanto antes! 📞
+Caso precise cancelar, faça com 24h de antecedência! 📞
 
 Te esperamos! ✨
-  `.trim()
+    `.trim()
 
-    await sendWhatsApp(user.phone, whatsappMessage)
+    if (user.phone) await sendWhatsApp(user.phone, whatsappMessage)
 
-    // 📧 EMAIL
     await sendAppointmentReminderEmail({
         to: user.email,
         name: user.name,
@@ -206,7 +195,6 @@ Te esperamos! ✨
         appointmentId: id
     })
 
-    // 🔔 NOTIFICAÇÃO
     await createNotification(
         user.id,
         '⏰ Lembrete de Agendamento',
@@ -237,12 +225,11 @@ Agende pelo site: ${SITE_URL}
 
 Com carinho,
 Equipe Henrique Bilro 💕
-  `.trim()
+        `.trim()
 
         await sendWhatsApp(user.phone, whatsappMessage)
     }
 
-    // 📧 EMAIL
     await sendBirthdayEmail({
         to: user.email,
         name: user.name,
@@ -251,7 +238,6 @@ Equipe Henrique Bilro 💕
         expiresAt: new Date(coupon.expiresAt).toLocaleDateString('pt-BR')
     })
 
-    // 🔔 NOTIFICAÇÃO
     await createNotification(
         user.id,
         '🎂 Feliz Aniversário!',
@@ -261,14 +247,15 @@ Equipe Henrique Bilro 💕
 }
 
 // ============================================
-// 4. NOVO CUPOM DE DESCONTO (PARA TODAS)
+// 4. NOVO CUPOM DE DESCONTO
 // ============================================
-export async function notifyNewCoupon(coupon: any) {
-    const clients = await prisma.user.findMany({
-        where: { role: 'CLIENT' }
-    })
+export async function notifyNewCoupon(coupon: any, clienteEspecifico?: any) {
 
-    console.log(`📢 Enviando cupom para ${clients.length} clientes...`)
+    const clients = clienteEspecifico
+        ? [clienteEspecifico]
+        : await prisma.user.findMany({ where: { role: 'CLIENT' } })
+
+    console.log(`📢 Enviando cupom para ${clients.length} cliente(s)...`)
 
     for (const client of clients) {
         if (client.phone) {
@@ -289,7 +276,7 @@ Temos uma promoção especial para você:
 ${SITE_URL}
 
 Henrique Bilro Cabeleireiros 💅
-    `.trim()
+            `.trim()
 
             await sendWhatsApp(client.phone, whatsappMessage)
         }
@@ -301,19 +288,22 @@ Henrique Bilro Cabeleireiros 💅
             'INFO'
         )
 
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        if (!clienteEspecifico) {
+            await new Promise(resolve => setTimeout(resolve, 2000))
+        }
     }
 }
 
 // ============================================
 // 5. NOVO COMBO PROMOCIONAL
 // ============================================
-export async function notifyNewCombo(combo: any) {
-    const clients = await prisma.user.findMany({
-        where: { role: 'CLIENT' }
-    })
+export async function notifyNewCombo(combo: any, clienteEspecifico?: any) {
 
-    console.log(`📢 Enviando combo para ${clients.length} clientes...`)
+    const clients = clienteEspecifico
+        ? [clienteEspecifico]
+        : await prisma.user.findMany({ where: { role: 'CLIENT' } })
+
+    console.log(`📢 Enviando combo para ${clients.length} cliente(s)...`)
 
     for (const client of clients) {
         if (client.phone) {
@@ -338,7 +328,7 @@ Corre que é por tempo limitado! ⏰
 Agende: ${SITE_URL}
 
 Henrique Bilro Cabeleireiros 💅✨
-    `.trim()
+            `.trim()
 
             await sendWhatsApp(client.phone, whatsappMessage)
         }
@@ -350,6 +340,8 @@ Henrique Bilro Cabeleireiros 💅✨
             'INFO'
         )
 
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        if (!clienteEspecifico) {
+            await new Promise(resolve => setTimeout(resolve, 2000))
+        }
     }
 }
