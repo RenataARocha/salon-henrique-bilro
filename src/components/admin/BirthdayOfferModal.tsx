@@ -1,7 +1,7 @@
 // src/components/admin/BirthdayOfferModal.tsx
 
 import { useState, useEffect } from 'react'
-import { X, Gift, Mail, MessageCircle, Percent, DollarSign } from 'lucide-react'
+import { X, Gift, Mail, Percent, DollarSign } from 'lucide-react'
 
 interface Birthday {
     id: string
@@ -31,7 +31,7 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
         validDays: 30,
         applicableServices: null as string[] | null,
         sendEmail: true,
-        sendWhatsApp: false
+        sendWhatsApp: true // ✅ Sempre true agora — envio automático
     })
 
     useEffect(() => {
@@ -60,35 +60,17 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     userId: birthday.id,
-                    ...formData
+                    ...formData,
+                    sendWhatsApp: true // ✅ Sempre envia pelo WhatsApp automaticamente
                 })
             })
 
             const data = await res.json()
 
             if (data.success) {
-                alert('✅ Oferta criada e enviada com sucesso!')
-
-                // 👉 WHATSAPP (abre conversa com mensagem pronta)
-                if (formData.sendWhatsApp && birthday.phone) {
-                    const message = encodeURIComponent(
-                        `🎉 Oi ${firstName}! Preparamos um presente especial de aniversário pra você 💝\n\n` +
-                        `🎁 Seu cupom: *${couponCode}*\n` +
-                        `⏳ Válido por ${formData.validDays} dias\n\n` +
-                        `Aproveite e agende seu horário 😉`
-                    )
-
-                    const phone = birthday.phone.replace(/\D/g, '')
-
-                    window.open(
-                        `https://wa.me/55${phone}?text=${message}`,
-                        '_blank'
-                    )
-                }
-
+                alert('✅ Oferta criada e enviada com sucesso via WhatsApp e Email!')
                 onSuccess()
-            }
-            else {
+            } else {
                 alert('❌ ' + (data.message || 'Erro ao criar oferta'))
             }
         } catch (error) {
@@ -101,17 +83,10 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
 
     const toggleService = (serviceId: string) => {
         setFormData(prev => {
-            // Se estava como "todos os serviços"
             if (prev.applicableServices === null) {
-                return {
-                    ...prev,
-                    applicableServices: [serviceId]
-                }
+                return { ...prev, applicableServices: [serviceId] }
             }
-
-            // Se já é array
             const alreadySelected = prev.applicableServices.includes(serviceId)
-
             return {
                 ...prev,
                 applicableServices: alreadySelected
@@ -121,15 +96,15 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
         })
     }
 
-
     const firstName = birthday.name.split(' ')[0]
     const couponCode = `ANIVERSARIO-${firstName.toUpperCase()}-${new Date().getFullYear()}`
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8 max-h-[90vh] flex flex-col">
+
                 {/* Header */}
-                <div className="bg-gradient-gold text-white p-6 rounded-t-2xl ">
+                <div className="bg-gradient-gold text-white p-6 rounded-t-2xl">
                     <div className="flex items-start justify-between">
                         <div>
                             <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
@@ -147,14 +122,15 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                     </div>
                 </div>
 
-                <form
-                    onSubmit={handleSubmit}
-                    className="p-6 space-y-6 overflow-y-auto flex-1"
-                >
+                <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
+
                     {/* Preview do Cupom */}
                     <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-6 border-2 border-dashed border-pink-300">
                         <p className="text-sm text-gray-600 mb-2">Cupom que será criado:</p>
                         <p className="text-2xl font-bold text-purple-700">{couponCode}</p>
+                        <p className="text-sm text-gray-500 mt-2">
+                            ✅ Será enviado automaticamente via <strong>WhatsApp</strong> e <strong>Email</strong>
+                        </p>
                     </div>
 
                     {/* Tipo de Desconto */}
@@ -196,7 +172,7 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                         <input
                             type="number"
                             value={formData.discountValue}
-                            onChange={(e) => setFormData({ ...formData, discountValue: parseFloat(e.target.value) })}
+                            onChange={(e) => setFormData({ ...formData, discountValue: parseFloat(e.target.value) || 0 })}
                             min="1"
                             max={formData.discountType === 'PERCENTAGE' ? '100' : undefined}
                             className="w-full px-4 py-3 border-2 rounded-lg focus:border-purple-500 focus:outline-none text-lg font-bold"
@@ -232,10 +208,8 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                                 <input
                                     type="checkbox"
                                     checked={formData.applicableServices === null}
-
-                                    onChange={() =>
-                                        setFormData({ ...formData, applicableServices: null })
-                                    } className="rounded text-purple-500 focus:ring-purple-500"
+                                    onChange={() => setFormData({ ...formData, applicableServices: null })}
+                                    className="rounded text-purple-500 focus:ring-purple-500"
                                 />
                                 <span className="font-semibold text-purple-700">Todos os serviços</span>
                             </label>
@@ -258,41 +232,15 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                         </div>
                     </div>
 
-                    {/* Opções de Envio */}
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                        <p className="font-semibold text-gray-700 mb-3">Enviar para:</p>
-
-                        {birthday.email && (
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.sendEmail}
-                                    onChange={(e) => setFormData({ ...formData, sendEmail: e.target.checked })}
-                                    className="rounded text-purple-500 focus:ring-purple-500 w-5 h-5"
-                                />
-                                <Mail className="text-blue-500" size={20} />
-                                <div>
-                                    <p className="font-semibold">Email</p>
-                                    <p className="text-sm text-gray-600">{birthday.email}</p>
-                                </div>
-                            </label>
-                        )}
-
-                        {birthday.phone && (
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.sendWhatsApp}
-                                    onChange={(e) => setFormData({ ...formData, sendWhatsApp: e.target.checked })}
-                                    className="rounded text-purple-500 focus:ring-purple-500 w-5 h-5"
-                                />
-                                <MessageCircle className="text-green-500" size={20} />
-                                <div>
-                                    <p className="font-semibold">WhatsApp</p>
-                                    <p className="text-sm text-gray-600">{birthday.phone}</p>
-                                </div>
-                            </label>
-                        )}
+                    {/* Info de envio */}
+                    <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                        <p className="font-semibold text-green-800 mb-2">📤 Envio automático:</p>
+                        <div className="space-y-1 text-sm text-green-700">
+                            <p>✅ <strong>Email</strong> — {birthday.email}</p>
+                            {birthday.phone && (
+                                <p>✅ <strong>WhatsApp</strong> — {birthday.phone}</p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Botões */}
@@ -310,7 +258,7 @@ export default function BirthdayOfferModal({ birthday, onClose, onSuccess }: Bir
                             className="flex-1 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg font-semibold disabled:opacity-50 transition-all"
                             disabled={loading}
                         >
-                            {loading ? 'Criando...' : '🎁 Criar e Enviar'}
+                            {loading ? 'Enviando...' : '🎁 Criar e Enviar'}
                         </button>
                     </div>
                 </form>

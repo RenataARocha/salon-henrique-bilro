@@ -1,14 +1,14 @@
-// app/api/auth/register/route.ts 
+// app/api/auth/register/route.ts
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { notifyNewCoupon, notifyNewCombo, notifyBirthdayCoupon } from '@/lib/notifications'
 
 export async function POST(request: Request) {
     console.log('🚀 [REGISTER] Iniciando registro...')
 
     try {
-        // Parse do body
         let body
         try {
             body = await request.json()
@@ -29,9 +29,7 @@ export async function POST(request: Request) {
 
         const { name, email, password, phone, birthDate } = body
 
-        // Validações
         if (!name || !email || !password) {
-            console.log('⚠️ [REGISTER] Campos obrigatórios faltando')
             return NextResponse.json(
                 { success: false, error: 'Preencha todos os campos obrigatórios' },
                 { status: 400 }
@@ -39,101 +37,151 @@ export async function POST(request: Request) {
         }
 
         if (password.length < 6) {
-            console.log('⚠️ [REGISTER] Senha muito curta')
             return NextResponse.json(
                 { success: false, error: 'A senha deve ter no mínimo 6 caracteres' },
                 { status: 400 }
             )
         }
 
-        // Verificar se email já existe
-        console.log('🔍 [REGISTER] Verificando se email existe:', email)
-        try {
-            const existingUser = await prisma.user.findUnique({
-                where: { email: email.toLowerCase().trim() }
-            })
+        const existingUser = await prisma.user.findUnique({
+            where: { email: email.toLowerCase().trim() }
+        })
 
-            if (existingUser) {
-                console.log('⚠️ [REGISTER] Email já cadastrado:', email)
-                return NextResponse.json(
-                    { success: false, error: 'Este email já está cadastrado' },
-                    { status: 400 }
-                )
-            }
-        } catch (error) {
-            console.error('❌ [REGISTER] Erro ao verificar email:', error)
-            throw error
+        if (existingUser) {
+            return NextResponse.json(
+                { success: false, error: 'Este email já está cadastrado' },
+                { status: 400 }
+            )
         }
 
-        // Hash da senha
-        console.log('🔐 [REGISTER] Gerando hash da senha...')
-        let hashedPassword
-        try {
-            hashedPassword = await bcrypt.hash(password, 10)
-            console.log('✅ [REGISTER] Hash gerado com sucesso')
-        } catch (error) {
-            console.error('❌ [REGISTER] Erro ao gerar hash:', error)
-            throw error
-        }
+        const hashedPassword = await bcrypt.hash(password, 10)
 
-        // Preparar data de nascimento
         let birthDateFormatted = null
         if (birthDate) {
-            console.log('📅 [REGISTER] Processando data de nascimento:', birthDate)
             try {
-                const dateObj = new Date(birthDate + 'T00:00:00.000Z')
-                birthDateFormatted = dateObj
-                console.log('✅ [REGISTER] Data formatada:', birthDateFormatted.toISOString())
+                birthDateFormatted = new Date(birthDate + 'T00:00:00.000Z')
             } catch (error) {
-                console.error('⚠️ [REGISTER] Erro ao processar data, continuando sem ela:', error)
+                console.error('⚠️ [REGISTER] Erro ao processar data:', error)
             }
         }
 
-        // Criar usuário
-        console.log('💾 [REGISTER] Criando usuário no banco...')
-        let user
+        const user = await prisma.user.create({
+            data: {
+                name: name.trim(),
+                email: email.toLowerCase().trim(),
+                password: hashedPassword,
+                phone: phone ? phone.trim() : null,
+                birthDate: birthDateFormatted,
+                role: 'CLIENT'
+            }
+        })
+
+        console.log('✅ [REGISTER] Usuário criado:', user.email)
+
+        // ============================================
+        // NOTIFICAÇÕES DE BOAS-VINDAS
+        // ============================================
         try {
-            user = await prisma.user.create({
-                data: {
-                    name: name.trim(),
-                    email: email.toLowerCase().trim(),
-                    password: hashedPassword,
-                    phone: phone ? phone.trim() : null,
-                    birthDate: birthDateFormatted,
-                    role: 'CLIENT'
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    role: true
+            // 1. Cupom ativo mais recente
+            if (user.phone) {
+                const cupomAtivo = await prisma.coupon.findFirst({
+                    where: {
+                        active: true,
+                        validUntil: { gte: new Date() },
+                        NOT: { code: { startsWith: 'ANIVERSARIO-' } }
+                    },
+                    orderBy: { createdAt: 'desc' }
+                })
+
+                if (cupomAtivo) {
+                    await notifyNewCoupon(cupomAtivo, user)
+                    console.log('✅ Cupom enviado para nova cliente')
                 }
-            })
-            console.log('✅ [REGISTER] Usuário criado com sucesso:', user.email)
-        } catch (error: any) {
-            console.error('❌ [REGISTER] Erro ao criar usuário no Prisma:', error)
-            console.error('Código do erro:', error.code)
-            console.error('Mensagem:', error.message)
-            throw error
+
+                // 2. Combo em destaque
+                const comboDestaque = await prisma.serviceCombo.findFirst({
+                    where: { active: true, featured: true },
+                    include: {
+                        services: { include: { service: true } }
+                    }
+                })
+
+                if (comboDestaque) {
+                    const services = comboDestaque.services.map(cs => cs.service)
+                    const originalPrice = services.reduce((sum, s) => sum + s.price, 0)
+                    const comboPrice = originalPrice * (1 - comboDestaque.discountPercent / 100)
+
+                    await notifyNewCombo({
+                        ...comboDestaque,
+                        services,
+                        originalPrice,
+                        comboPrice
+                    }, user)
+                    console.log('✅ Combo enviado para nova cliente')
+                }
+            }
+
+            // 3. Aniversariante do mês
+            if (user.birthDate) {
+                const hoje = new Date()
+                const nascimento = new Date(user.birthDate)
+
+                if (nascimento.getMonth() === hoje.getMonth()) {
+                    const firstName = user.name.split(' ')[0].toUpperCase()
+                    const couponCode = `ANIVERSARIO-${firstName}-${hoje.getFullYear()}`
+
+                    // Verificar se já existe
+                    const existing = await prisma.coupon.findUnique({
+                        where: { code: couponCode }
+                    })
+
+                    if (!existing) {
+                        const couponAniversario = await prisma.coupon.create({
+                            data: {
+                                code: couponCode,
+                                description: `Cupom de aniversário para ${user.name}`,
+                                discountType: 'PERCENTAGE',
+                                discountValue: 20,
+                                validFrom: new Date(),
+                                validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                                active: true,
+                                maxUses: 1,
+                                usedCount: 0,
+                                applicableServices: []
+                            }
+                        })
+
+                        await notifyBirthdayCoupon(user, {
+                            ...couponAniversario,
+                            expiresAt: couponAniversario.validUntil
+                        })
+                        console.log('✅ Cupom de aniversário enviado para nova cliente')
+                    }
+                }
+            }
+        } catch (notificationError) {
+            console.error('⚠️ Erro nas notificações de boas-vindas:', notificationError)
+            // NÃO bloqueia o cadastro
         }
 
         return NextResponse.json({
             success: true,
-            data: user,
+            data: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            },
             message: 'Cadastro realizado com sucesso!'
         })
 
     } catch (error: any) {
         console.error('❌ [REGISTER] ERRO FATAL:', error)
-        console.error('Nome do erro:', error.name)
-        console.error('Mensagem:', error.message)
-        console.error('Stack:', error.stack)
-
         return NextResponse.json(
             {
                 success: false,
                 error: 'Erro ao criar conta. Tente novamente.',
-                details: error.message // Mostrar detalhes para debug
+                details: error.message
             },
             { status: 500 }
         )

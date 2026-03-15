@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { notifyNewCoupon } from '@/lib/notifications'
 
 export async function PATCH(request: NextRequest) {
     try {
@@ -46,6 +47,15 @@ export async function PATCH(request: NextRequest) {
                 active: ativo
             }
         })
+
+        if (ativo === true) {
+            try {
+                await notifyNewCoupon(updatedCoupon)
+                console.log('✅ Notificações enviadas ao reativar!')
+            } catch (err) {
+                console.error('⚠️ Erro ao notificar:', err)
+            }
+        }
 
         return NextResponse.json({
             success: true,

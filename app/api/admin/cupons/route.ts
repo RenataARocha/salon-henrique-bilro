@@ -231,6 +231,13 @@ export async function PUT(request: NextRequest) {
             }
         })
 
+        try {
+            await notifyNewCoupon(coupon)
+            console.log('✅ Notificações enviadas após edição!')
+        } catch (err) {
+            console.error('⚠️ Erro ao notificar:', err)
+        }
+
         return NextResponse.json({
             success: true,
             data: coupon,
