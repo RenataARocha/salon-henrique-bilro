@@ -95,25 +95,26 @@ model ComboService {
 }
 
 model Appointment {
-  id              String    @id @default(cuid())
-  date            DateTime
-  time            String
-  status          String    @default("PENDING")
-  notes           String?
-  internalNotes   String?
-  justification   String?
-  justifiedAt     DateTime?
-  paymentMethod   String?
-  couponId        String?
-  discountAmount  Float     @default(0)
-  finalPrice      Float?
-  cancelReason    String?
-  rescheduledFrom String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  userId          String
-  serviceId       String?
-  comboId         String?
+  id                  String    @id @default(cuid())
+  date                DateTime
+  time                String
+  status              String    @default("PENDING")
+  notes               String?
+  internalNotes       String?
+  justification       String?
+  justifiedAt         DateTime?
+  paymentMethod       String?
+  couponId            String?
+  discountAmount      Float     @default(0)
+  finalPrice          Float?
+  cancelReason        String?
+  rescheduledFrom     String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  userId              String
+  serviceId           String?
+  comboId             String?
+  reviewRequestSentAt DateTime? // Data que enviou o pedido de avaliação
 
   user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   service             Service?                   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
