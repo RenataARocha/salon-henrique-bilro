@@ -4,7 +4,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-// GET - Buscar notificações do usuário
 export async function GET() {
     try {
         const session = await getServerSession(authOptions)
@@ -16,10 +15,19 @@ export async function GET() {
             )
         }
 
+        let userId = session.user.id
+
+        if (session.user.role === 'ADMIN') {
+            const adminUser = await prisma.user.findFirst({
+                where: { email: session.user.email! }
+            })
+            if (adminUser) userId = adminUser.id
+        }
+
         const notifications = await prisma.notification.findMany({
-            where: { userId: session.user.id },
+            where: { userId },
             orderBy: { createdAt: 'desc' },
-            take: 50 // Últimas 50 notificações
+            take: 50
         })
 
         return NextResponse.json({

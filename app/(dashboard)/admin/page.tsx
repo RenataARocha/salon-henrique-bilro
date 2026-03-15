@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react'
 import { Calendar, Users, Scissors, Home, Tag, Ban, Cake, Star, DollarSign, UserCircle, BarChart3, Briefcase, ClipboardList, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import AlertaAgendamentos48h from '@/components/AlertaAgendamentos48h'
 import NotificationBell from '@/components/NotificationBell'
 import DashboardMetricas from '@/components/DashboardMetricas'
 
@@ -305,7 +304,7 @@ export default function AdminDashboard() {
                     ))}
                 </div>
             </div>
-            <AlertaAgendamentos48h />
+
         </div>
     )
 }

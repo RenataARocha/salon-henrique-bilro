@@ -85,6 +85,36 @@ export default function HistoricoPage() {
         }
     }
 
+    const canCancel = (appointment: Appointment) => {
+        if (!['PENDING', 'CONFIRMED'].includes(appointment.status)) return false
+        try {
+            const dateOnly = appointment.date.split('T')[0]
+            const appointmentDateTime = parseISO(`${dateOnly}T${appointment.time}`)
+            const limitTime = subHours(appointmentDateTime, 24)
+            return isAfter(limitTime, new Date())
+        } catch {
+            return false
+        }
+    }
+
+    const handleCancel = async (appointmentId: string) => {
+        if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return
+        try {
+            const res = await fetch(`/api/appointments?id=${appointmentId}`, {
+                method: 'DELETE'
+            })
+            const data = await res.json()
+            if (data.success) {
+                alert('✅ Agendamento cancelado!')
+                fetchAppointments()
+            } else {
+                alert('❌ ' + (data.error || 'Erro ao cancelar'))
+            }
+        } catch {
+            alert('❌ Erro ao cancelar agendamento')
+        }
+    }
+
     const canReschedule = (appointment: Appointment) => {
         if (!['PENDING', 'CONFIRMED'].includes(appointment.status)) return false;
 
@@ -342,6 +372,16 @@ export default function HistoricoPage() {
                                                 >
                                                     <CalendarIcon size={16} />
                                                     Reagendar
+                                                </button>
+                                            )}
+
+                                            {canCancel(appointment) && (
+                                                <button
+                                                    onClick={() => handleCancel(appointment.id)}
+                                                    className="flex items-center gap-2 text-sm text-red-500 hover:text-red-700 font-semibold transition-colors cursor-pointer"
+                                                >
+                                                    <XCircle size={16} />
+                                                    Cancelar
                                                 </button>
                                             )}
 

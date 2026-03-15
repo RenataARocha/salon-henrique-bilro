@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function PATCH() {
+export async function DELETE() {
     try {
         const session = await getServerSession(authOptions)
         if (!session?.user?.id) {
@@ -18,9 +18,8 @@ export async function PATCH() {
             if (admin) userId = admin.id
         }
 
-        await prisma.notification.updateMany({
-            where: { userId, read: false },
-            data: { read: true }
+        await prisma.notification.deleteMany({
+            where: { userId, read: true }
         })
 
         return NextResponse.json({ success: true })

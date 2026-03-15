@@ -1,71 +1,22 @@
 // app/api/appointments/confirm/route.ts
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 const SITE_URL = process.env.NEXTAUTH_URL || 'https://salon-henrique-bilro.vercel.app'
 
 const goldStyles = `
-  body {
-    font-family: 'Georgia', serif;
-    background: #0a0a0a;
-    margin: 0;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-  }
-  .card {
-    background: #111;
-    border: 1px solid #c9a84c;
-    border-radius: 20px;
-    padding: 40px;
-    max-width: 500px;
-    width: 100%;
-    text-align: center;
-    box-shadow: 0 0 40px rgba(201,168,76,0.2);
-  }
+  body { font-family: 'Georgia', serif; background: #0a0a0a; margin: 0; padding: 20px; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .card { background: #111; border: 1px solid #c9a84c; border-radius: 20px; padding: 40px; max-width: 500px; width: 100%; text-align: center; box-shadow: 0 0 40px rgba(201,168,76,0.2); animation: slideIn 0.5s ease-out; }
   h1 { color: #c9a84c; margin: 0 0 20px 0; }
   p { color: #ccc; font-size: 16px; }
-  .info-box {
-    background: #1a1a1a;
-    border: 1px solid #c9a84c33;
-    padding: 25px;
-    border-radius: 12px;
-    margin: 25px 0;
-  }
+  .info-box { background: #1a1a1a; border: 1px solid #c9a84c33; padding: 25px; border-radius: 12px; margin: 25px 0; }
   .info-box p { color: #ddd; margin: 8px 0; font-size: 16px; }
   .info-box strong { color: #c9a84c; }
-  .aviso {
-    background: #1a1500;
-    border: 1px solid #c9a84c55;
-    padding: 15px;
-    border-radius: 8px;
-    margin: 20px 0;
-    color: #c9a84c !important;
-    font-size: 14px !important;
-  }
-  .btn {
-    display: inline-block;
-    margin-top: 30px;
-    background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%);
-    color: #000;
-    padding: 14px 30px;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: bold;
-    box-shadow: 0 4px 12px rgba(201,168,76,0.4);
-  }
-  .emoji { font-size: 72px; margin-bottom: 20px; }
-  @keyframes slideIn {
-    from { opacity: 0; transform: translateY(-30px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-  }
-  .card { animation: slideIn 0.5s ease-out; }
-  .emoji { animation: bounce 2s infinite; }
+  .aviso { background: #1a1500; border: 1px solid #c9a84c55; padding: 15px; border-radius: 8px; margin: 20px 0; color: #c9a84c !important; font-size: 14px !important; }
+  .btn { display: inline-block; margin-top: 30px; background: linear-gradient(135deg, #c9a84c 0%, #f0d080 100%); color: #000; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; box-shadow: 0 4px 12px rgba(201,168,76,0.4); }
+  .emoji { font-size: 72px; margin-bottom: 20px; animation: bounce 2s infinite; }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 `
 
 function html(content: string) {
@@ -84,6 +35,26 @@ function html(content: string) {
 </html>`, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
 }
 
+type AppointmentWithRelations = Prisma.AppointmentGetPayload<{
+    include: {
+        user: true
+        service: true
+        combo: true
+        appointmentServices: {
+            include: { service: true }
+        }
+    }
+}>
+
+function getServiceName(appointment: AppointmentWithRelations): string {
+    if (appointment.appointmentServices?.length > 0) {
+        return appointment.appointmentServices
+            .map(as => as.service.name)
+            .join(' + ')
+    }
+    return appointment.service?.name || appointment.combo?.name || 'Serviço'
+}
+
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url)
@@ -100,7 +71,14 @@ export async function GET(request: Request) {
 
         const appointment = await prisma.appointment.findUnique({
             where: { id: appointmentId },
-            include: { user: true, service: true, combo: true }
+            include: {
+                user: true,
+                service: true,
+                combo: true,
+                appointmentServices: {
+                    include: { service: true }
+                }
+            }
         })
 
         if (!appointment) {
@@ -112,7 +90,7 @@ export async function GET(request: Request) {
             `)
         }
 
-        const serviceName = appointment.service?.name || appointment.combo?.name || 'N/A'
+        const serviceName = getServiceName(appointment)
         const dateFormatted = new Date(appointment.date).toLocaleDateString('pt-BR')
         const priceHtml = appointment.finalPrice
             ? `<p><strong>💰 Valor:</strong> R$ ${appointment.finalPrice.toFixed(2)}</p>`
@@ -139,6 +117,27 @@ export async function GET(request: Request) {
             where: { id: appointmentId },
             data: { status: 'CONFIRMED' }
         })
+
+        try {
+            const admin = await prisma.user.findFirst({
+                where: { email: process.env.ADMIN_EMAIL }
+            })
+
+            if (admin) {
+                await prisma.notification.create({
+                    data: {
+                        userId: admin.id,
+                        title: '✅ Agendamento Confirmado!',
+                        message: `${appointment.user.name} confirmou o agendamento de ${serviceName} para ${dateFormatted} às ${appointment.time}`,
+                        type: 'SUCCESS',
+                        read: false
+                    }
+                })
+                console.log('✅ Notificação criada para admin')
+            }
+        } catch (notifError) {
+            console.error('⚠️ Erro ao criar notificação:', notifError)
+        }
 
         console.log('✅ Agendamento confirmado:', appointmentId)
 
