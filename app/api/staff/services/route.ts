@@ -1,10 +1,65 @@
-// app/api/staff/services/route.ts
-// API de Comanda - Registrar serviços executados
-
 import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+
+// ✅ Mapeia qualquer formato de pagamento para o enum correto do Prisma
+// Enum aceita: DINHEIRO | CARTAO_DEBITO | CARTAO_CREDITO | PIX | TRANSFERENCIA
+function normalizarPaymentMethod(raw: string | null | undefined): string {
+    if (!raw) return 'DINHEIRO'
+
+    const val = raw.toUpperCase().trim()
+
+    const mapa: Record<string, string> = {
+        // Variações de cartão de crédito
+        'CARTAO_DE_CREDITO': 'CARTAO_CREDITO',
+        'CARTÃO_DE_CRÉDITO': 'CARTAO_CREDITO',
+        'CARTAO_CREDITO': 'CARTAO_CREDITO',
+        'CARTÃO_CRÉDITO': 'CARTAO_CREDITO',
+        'CREDITO': 'CARTAO_CREDITO',
+        'CRÉDITO': 'CARTAO_CREDITO',
+        'CREDIT_CARD': 'CARTAO_CREDITO',
+
+        // Variações de cartão de débito
+        'CARTAO_DE_DEBITO': 'CARTAO_DEBITO',
+        'CARTÃO_DE_DÉBITO': 'CARTAO_DEBITO',
+        'CARTAO_DEBITO': 'CARTAO_DEBITO',
+        'CARTÃO_DÉBITO': 'CARTAO_DEBITO',
+        'DEBITO': 'CARTAO_DEBITO',
+        'DÉBITO': 'CARTAO_DEBITO',
+        'DEBIT_CARD': 'CARTAO_DEBITO',
+
+        // Dinheiro
+        'DINHEIRO': 'DINHEIRO',
+        'CASH': 'DINHEIRO',
+        'ESPECIE': 'DINHEIRO',
+        'ESPÉCIE': 'DINHEIRO',
+
+        // PIX
+        'PIX': 'PIX',
+
+        // Transferência
+        'TRANSFERENCIA': 'TRANSFERENCIA',
+        'TRANSFERÊNCIA': 'TRANSFERENCIA',
+        'TRANSFER': 'TRANSFERENCIA',
+        'TED': 'TRANSFERENCIA',
+        'DOC': 'TRANSFERENCIA',
+    }
+
+    // Tenta encontrar mapeamento exato
+    if (mapa[val]) return mapa[val]
+
+    // Tenta parcial: se contiver "CREDITO" → CARTAO_CREDITO
+    if (val.includes('CREDITO') || val.includes('CRÉDITO')) return 'CARTAO_CREDITO'
+    if (val.includes('DEBITO') || val.includes('DÉBITO')) return 'CARTAO_DEBITO'
+    if (val.includes('PIX')) return 'PIX'
+    if (val.includes('TRANSFER')) return 'TRANSFERENCIA'
+    if (val.includes('DINHEIRO') || val.includes('CASH')) return 'DINHEIRO'
+
+    // Fallback seguro
+    console.warn(`[paymentMethod] Valor desconhecido "${raw}" → usando DINHEIRO`)
+    return 'DINHEIRO'
+}
 
 // GET - Listar serviços executados
 export async function GET(request: Request) {
@@ -27,19 +82,13 @@ export async function GET(request: Request) {
 
         const where: any = {}
 
-        if (staffId) {
-            where.staffId = staffId
-        }
+        if (staffId) where.staffId = staffId
 
         if (date) {
             const dateObj = new Date(date)
             const nextDay = new Date(dateObj)
             nextDay.setDate(nextDay.getDate() + 1)
-
-            where.executedAt = {
-                gte: dateObj,
-                lt: nextDay
-            }
+            where.executedAt = { gte: dateObj, lt: nextDay }
         } else if (startDate && endDate) {
             where.executedAt = {
                 gte: new Date(startDate),
@@ -47,55 +96,32 @@ export async function GET(request: Request) {
             }
         }
 
-        if (unpaidOnly) {
-            where.commissionPaid = false
-        }
+        if (unpaidOnly) where.commissionPaid = false
 
         const services = await prisma.staffService.findMany({
             where,
             include: {
                 staff: {
-                    select: {
-                        id: true,
-                        name: true,
-                        photo: true,
-                        commissionPercent: true
-                    }
+                    select: { id: true, name: true, photo: true, commissionPercent: true }
                 },
                 service: {
-                    select: {
-                        id: true,
-                        name: true,
-                        price: true,
-                        duration: true
-                    }
+                    select: { id: true, name: true, price: true, duration: true }
                 },
                 combo: {
-                    select: {
-                        id: true,
-                        name: true,
-                        discountPercent: true
-                    }
+                    select: { id: true, name: true, discountPercent: true }
                 }
             },
-            orderBy: {
-                executedAt: 'desc'
-            }
+            orderBy: { executedAt: 'desc' }
         })
 
-        // Calcular totais
-        const totals = services.reduce((acc, service) => {
-            acc.totalRevenue += service.serviceValue
-            acc.totalCommission += service.commissionValue
+        const totals = services.reduce((acc, s) => {
+            acc.totalRevenue += s.serviceValue
+            acc.totalCommission += s.commissionValue
             acc.count += 1
             return acc
         }, { totalRevenue: 0, totalCommission: 0, count: 0 })
 
-        return NextResponse.json({
-            success: true,
-            data: services,
-            totals
-        })
+        return NextResponse.json({ success: true, data: services, totals })
 
     } catch (error) {
         console.error('Erro ao listar serviços:', error)
@@ -121,9 +147,9 @@ export async function POST(request: Request) {
         const body = await request.json()
         const {
             staffId,
-            serviceId,
-            comboId,
-            appointmentId, // ✅ ADICIONAR appointmentId
+            serviceId: serviceIdRaw,
+            comboId: comboIdRaw,
+            appointmentId,
             clientName,
             clientPhone,
             serviceValue,
@@ -132,7 +158,18 @@ export async function POST(request: Request) {
             notes
         } = body
 
-        // Validações
+        // ✅ Sanitiza serviceId e comboId:
+        // Se o valor for "multiple", vazio, ou não parecer um ID real (cuid),
+        // descarta e usa null — evita Foreign Key violation no banco.
+        const INVALID_IDS = ['multiple', 'none', 'null', 'undefined', '']
+        const serviceId = (!serviceIdRaw || INVALID_IDS.includes(String(serviceIdRaw).toLowerCase()))
+            ? null
+            : serviceIdRaw
+        const comboId = (!comboIdRaw || INVALID_IDS.includes(String(comboIdRaw).toLowerCase()))
+            ? null
+            : comboIdRaw
+
+        // — Validações obrigatórias —
         if (!staffId) {
             return NextResponse.json(
                 { success: false, error: 'Selecione um funcionário' },
@@ -140,12 +177,9 @@ export async function POST(request: Request) {
             )
         }
 
-        if (!serviceId && !comboId) {
-            return NextResponse.json(
-                { success: false, error: 'Selecione um serviço ou combo' },
-                { status: 400 }
-            )
-        }
+        // ✅ serviceId e comboId são OPCIONAIS
+        // Agendamentos com múltiplos serviços livres não têm vínculo
+        // com um registro único de Service ou Combo.
 
         if (!clientName) {
             return NextResponse.json(
@@ -161,15 +195,11 @@ export async function POST(request: Request) {
             )
         }
 
-        // ✅ VERIFICAR SE JÁ FOI REGISTRADO (evitar duplicação)
+        // Evitar duplicação por appointmentId
         if (appointmentId) {
             const existingRecord = await prisma.staffService.findFirst({
-                where: {
-                    staffId,
-                    appointmentId
-                }
+                where: { staffId, appointmentId }
             })
-
             if (existingRecord) {
                 return NextResponse.json(
                     { success: false, error: 'Este agendamento já foi registrado para este funcionário' },
@@ -178,11 +208,30 @@ export async function POST(request: Request) {
             }
         }
 
-        // Buscar funcionário para pegar % de comissão
-        const staff = await prisma.staff.findUnique({
-            where: { id: staffId }
-        })
+        // Verificar status do agendamento
+        if (appointmentId) {
+            const appointment = await prisma.appointment.findUnique({
+                where: { id: appointmentId },
+                select: { id: true, status: true }
+            })
 
+            if (!appointment) {
+                return NextResponse.json(
+                    { success: false, error: 'Agendamento não encontrado' },
+                    { status: 400 }
+                )
+            }
+
+            if (appointment.status !== 'COMPLETED') {
+                return NextResponse.json(
+                    { success: false, error: 'Só é possível registrar serviços de agendamentos concluídos' },
+                    { status: 400 }
+                )
+            }
+        }
+
+        // Buscar funcionário para calcular comissão
+        const staff = await prisma.staff.findUnique({ where: { id: staffId } })
         if (!staff) {
             return NextResponse.json(
                 { success: false, error: 'Funcionário não encontrado' },
@@ -190,21 +239,23 @@ export async function POST(request: Request) {
             )
         }
 
-        // Calcular comissão
         const commissionValue = (serviceValue * staff.commissionPercent) / 100
 
-        // Registrar serviço
+        // ✅ Normaliza o método de pagamento para o enum do Prisma
+        const paymentMethodNormalizado = normalizarPaymentMethod(paymentMethod)
+
+        // Criar registro
         const staffService = await prisma.staffService.create({
             data: {
                 staffId,
-                appointmentId: appointmentId || null, // ✅ ADICIONAR appointmentId
-                serviceId: serviceId || null,
-                comboId: comboId || null,
+                appointmentId: appointmentId || null,
+                serviceId: serviceId || null,   // opcional
+                comboId: comboId || null,   // opcional
                 clientName,
                 clientPhone: clientPhone || null,
                 serviceValue,
                 commissionValue,
-                paymentMethod: paymentMethod || 'DINHEIRO',
+                paymentMethod: paymentMethodNormalizado as any,
                 executedAt: executedAt ? new Date(executedAt) : new Date(),
                 notes: notes || null
             },
@@ -217,10 +268,7 @@ export async function POST(request: Request) {
 
         // Atualizar relatório mensal
         const date = new Date(executedAt || new Date())
-        const year = date.getFullYear()
-        const month = date.getMonth() + 1
-
-        await updateMonthlyReport(staffId, year, month)
+        await updateMonthlyReport(staffId, date.getFullYear(), date.getMonth() + 1)
 
         return NextResponse.json({
             success: true,
@@ -259,19 +307,29 @@ export async function PATCH(request: Request) {
             )
         }
 
-        // Atualizar múltiplos registros
-        const updated = await prisma.staffService.updateMany({
-            where: {
-                id: { in: ids }
-            },
-            data: {
-                commissionPaid: true
-            }
+        const services = await prisma.staffService.findMany({
+            where: { id: { in: ids } }
         })
+
+        await prisma.staffService.updateMany({
+            where: { id: { in: ids } },
+            data: { commissionPaid: true, paidAt: new Date() }
+        })
+
+        // Atualiza apenas os períodos afetados, sem repetição
+        const periodos = new Set<string>()
+        for (const s of services) {
+            const d = new Date(s.executedAt)
+            periodos.add(`${s.staffId}|${d.getFullYear()}|${d.getMonth() + 1}`)
+        }
+        for (const key of periodos) {
+            const [staffId, year, month] = key.split('|')
+            await updateMonthlyReport(staffId, Number(year), Number(month))
+        }
 
         return NextResponse.json({
             success: true,
-            data: updated
+            message: 'Comissões marcadas como pagas'
         })
 
     } catch (error) {
@@ -305,11 +363,7 @@ export async function DELETE(request: Request) {
             )
         }
 
-        // Buscar serviço antes de deletar (para atualizar relatório)
-        const service = await prisma.staffService.findUnique({
-            where: { id }
-        })
-
+        const service = await prisma.staffService.findUnique({ where: { id } })
         if (!service) {
             return NextResponse.json(
                 { success: false, error: 'Serviço não encontrado' },
@@ -317,17 +371,10 @@ export async function DELETE(request: Request) {
             )
         }
 
-        // Deletar
-        await prisma.staffService.delete({
-            where: { id }
-        })
+        await prisma.staffService.delete({ where: { id } })
 
-        // Atualizar relatório mensal
         const date = new Date(service.executedAt)
-        const year = date.getFullYear()
-        const month = date.getMonth() + 1
-
-        await updateMonthlyReport(service.staffId, year, month)
+        await updateMonthlyReport(service.staffId, date.getFullYear(), date.getMonth() + 1)
 
         return NextResponse.json({
             success: true,
@@ -343,55 +390,43 @@ export async function DELETE(request: Request) {
     }
 }
 
-// ============================================
-// FUNÇÃO AUXILIAR: Atualizar relatório mensal
-// ============================================
+// Atualizar relatório mensal
 async function updateMonthlyReport(staffId: string, year: number, month: number) {
     try {
-        // Buscar todos os serviços do mês
         const startDate = new Date(year, month - 1, 1)
         const endDate = new Date(year, month, 0, 23, 59, 59)
 
         const services = await prisma.staffService.findMany({
             where: {
                 staffId,
-                executedAt: {
-                    gte: startDate,
-                    lte: endDate
-                }
+                executedAt: { gte: startDate, lte: endDate }
             }
         })
 
-        // Calcular totais
-        const totals = services.reduce((acc, service) => {
-            acc.totalServices += 1
-            acc.totalRevenue += service.serviceValue
-            acc.totalCommission += service.commissionValue
-            return acc
-        }, { totalServices: 0, totalRevenue: 0, totalCommission: 0 })
+        const totalServices = services.length
+        const totalRevenue = services.reduce((sum, s) => sum + s.serviceValue, 0)
+        const totalCommission = services.reduce((sum, s) => sum + s.commissionValue, 0)
 
-        // Criar ou atualizar relatório
+        const paidCount = services.filter(s => s.commissionPaid).length
+        const allPaid = totalServices > 0 && paidCount === totalServices
+
         await prisma.staffMonthlyReport.upsert({
-            where: {
-                staffId_year_month: {
-                    staffId,
-                    year,
-                    month
-                }
-            },
+            where: { staffId_year_month: { staffId, year, month } },
             create: {
-                staffId,
-                year,
-                month,
-                ...totals
+                staffId, year, month,
+                totalServices, totalRevenue, totalCommission,
+                paid: allPaid,
+                paidAt: allPaid ? new Date() : null
             },
             update: {
-                ...totals,
+                totalServices, totalRevenue, totalCommission,
+                paid: allPaid,
+                paidAt: allPaid ? new Date() : null,
                 updatedAt: new Date()
             }
         })
 
-        console.log(`✅ Relatório mensal atualizado: ${staffId} - ${month}/${year}`)
+        console.log(`✅ Relatório: ${staffId} ${month}/${year} | ${paidCount}/${totalServices} pagos`)
     } catch (error) {
         console.error('Erro ao atualizar relatório mensal:', error)
     }

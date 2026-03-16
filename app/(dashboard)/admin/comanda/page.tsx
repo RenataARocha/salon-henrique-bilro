@@ -1,4 +1,3 @@
-// app/(dashboard)/admin/comanda/page.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -37,6 +36,8 @@ interface Appointment {
         id: string
         name: string
     } | null
+    // ✅ Campo para agendamentos com múltiplos serviços livres
+    serviceName?: string
     finalPrice: number
     paymentMethod: string | null
 }
@@ -61,6 +62,8 @@ interface StaffService {
     combo: {
         name: string
     } | null
+    // ✅ Para exibir agendamentos sem service/combo
+    serviceFreeText?: string | null
 }
 
 export default function ComandaPage() {
@@ -70,32 +73,24 @@ export default function ComandaPage() {
     const [showModal, setShowModal] = useState(false)
     const [editingService, setEditingService] = useState<StaffService | null>(null)
 
-    // Estados do modal
     const [modalStaffId, setModalStaffId] = useState('')
     const [modalDate, setModalDate] = useState(new Date().toISOString().split('T')[0])
     const [appointments, setAppointments] = useState<Appointment[]>([])
     const [selectedAppointments, setSelectedAppointments] = useState<string[]>([])
     const [loadingAppointments, setLoadingAppointments] = useState(false)
 
-    // Filtros da página
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
     const [selectedStaffId, setSelectedStaffId] = useState<string>('')
-    const [showAllDates, setShowAllDates] = useState(false) // ✅ NOVO
+    const [showAllDates, setShowAllDates] = useState(false)
 
-    useEffect(() => {
-        loadData()
-    }, [])
-
-    useEffect(() => {
-        loadFilteredServices()
-    }, [selectedDate, selectedStaffId, showAllDates]) // ✅ ADICIONAR showAllDates
+    useEffect(() => { loadData() }, [])
+    useEffect(() => { loadFilteredServices() }, [selectedDate, selectedStaffId, showAllDates])
 
     async function loadData() {
         try {
             const staffRes = await fetch('/api/staff?active=true')
             const staffData = await staffRes.json()
             if (staffData.success) setStaff(staffData.data)
-
             await loadFilteredServices()
         } catch (error) {
             console.error('Erro ao carregar dados:', error)
@@ -107,21 +102,13 @@ export default function ComandaPage() {
     async function loadFilteredServices() {
         try {
             let url = '/api/staff/services?'
-
-            // ✅ SE "TODOS" ESTIVER MARCADO, NÃO FILTRAR POR DATA
-            if (!showAllDates) {
-                url += `date=${selectedDate}&`
-            }
-
-            if (selectedStaffId) {
-                url += `staffId=${selectedStaffId}`
-            }
+            if (!showAllDates) url += `date=${selectedDate}&`
+            if (selectedStaffId) url += `staffId=${selectedStaffId}`
 
             const res = await fetch(url)
             const data = await res.json()
 
             if (data.success) {
-                // ✅ ORDENAR DO MAIS RECENTE PARA O MAIS ANTIGO
                 const sorted = data.data.sort((a: any, b: any) =>
                     new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime()
                 )
@@ -154,14 +141,11 @@ export default function ComandaPage() {
 
         try {
             setLoadingAppointments(true)
-
-            // Buscar agendamentos CONCLUÍDOS daquele dia
             const url = `/api/appointments?date=${modalDate}&status=COMPLETED`
             const res = await fetch(url)
             const data = await res.json()
 
             if (data.success) {
-                // ✅ BUSCAR IDS JÁ REGISTRADOS PARA ESTE FUNCIONÁRIO
                 const registeredRes = await fetch(`/api/staff/services?staffId=${modalStaffId}&date=${modalDate}`)
                 const registeredData = await registeredRes.json()
 
@@ -171,7 +155,6 @@ export default function ComandaPage() {
                         .map((s: any) => s.appointmentId) || []
                 )
 
-                // ✅ FILTRAR APENAS OS NÃO REGISTRADOS
                 const unregistered = (data.data || []).filter(
                     (apt: Appointment) => !registeredAppointmentIds.has(apt.id)
                 )
@@ -179,7 +162,7 @@ export default function ComandaPage() {
                 setAppointments(unregistered)
 
                 if (unregistered.length === 0 && data.data.length > 0) {
-                    alert(`ℹ️ Todos os ${data.data.length} agendamentos concluídos desta data já foram registrados para este funcionário!`)
+                    alert(`ℹ️ Todos os ${data.data.length} agendamentos concluídos desta data já foram registrados!`)
                 }
             }
         } catch (error) {
@@ -197,13 +180,18 @@ export default function ComandaPage() {
         )
     }
 
+    // ✅ Retorna o nome do serviço independente do tipo de agendamento
+    function getNomeServico(apt: Appointment): string {
+        if (apt.service?.name) return apt.service.name
+        if (apt.combo?.name) return apt.combo.name
+        if (apt.serviceName) return apt.serviceName
+        return 'Serviço avulso'
+    }
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
 
-        if (editingService) {
-            // Modo edição - manter lógica antiga
-            return
-        }
+        if (editingService) return
 
         if (selectedAppointments.length === 0) {
             alert('Selecione pelo menos um agendamento')
@@ -213,42 +201,46 @@ export default function ComandaPage() {
         const selectedStaff = staff.find(s => s.id === modalStaffId)
         if (!selectedStaff) return
 
-        try {
-            // Registrar cada agendamento selecionado como serviço executado
-            for (const appointmentId of selectedAppointments) {
-                const appointment = appointments.find(a => a.id === appointmentId)
-                if (!appointment) continue
+        let sucessos = 0
+        let erros = 0
 
-                const serviceValue = appointment.finalPrice || appointment.service?.price || 0
-                const commissionValue = serviceValue * (selectedStaff.commissionPercent / 100)
+        for (const appointmentId of selectedAppointments) {
+            const appointment = appointments.find(a => a.id === appointmentId)
+            if (!appointment) continue
 
-                // ✅ CORRIGIR FORMATO DA DATA
-                const dateStr = new Date(appointment.date).toISOString().split('T')[0]
-                const executedAtStr = `${dateStr}T${appointment.time}:00`
+            const serviceValue = appointment.finalPrice || appointment.service?.price || 0
 
-                // ✅ NORMALIZAR PAYMENT METHOD (remover "_DE_")
-                let paymentMethod = appointment.paymentMethod || 'DINHEIRO'
-                paymentMethod = paymentMethod.replace('_DE_', '_')
+            const dateStr = new Date(appointment.date).toISOString().split('T')[0]
+            const executedAtStr = `${dateStr}T${appointment.time}:00`
 
-                // ✅ Criar objeto base
-                const data: any = {
-                    staffId: modalStaffId,
-                    appointmentId: appointment.id,
-                    clientName: appointment.user.name,
-                    clientPhone: appointment.user.phone?.replace(/\D/g, '') || '',
-                    serviceValue,
-                    paymentMethod,
-                    executedAt: executedAtStr,
-                    notes: `Agendamento #${appointment.id.slice(0, 8)}`
-                }
+            let paymentMethod = appointment.paymentMethod || 'DINHEIRO'
+            paymentMethod = paymentMethod.replace('_DE_', '_')
 
-                // ✅ Adicionar serviceId OU comboId (não ambos)
-                if (appointment.combo) {
-                    data.comboId = appointment.combo.id
-                } else if (appointment.service) {
-                    data.serviceId = appointment.service.id
-                }
+            // ✅ Monta o payload base — sem serviceId nem comboId ainda
+            const data: any = {
+                staffId: modalStaffId,
+                appointmentId: appointment.id,
+                clientName: appointment.user.name,
+                clientPhone: appointment.user.phone?.replace(/\D/g, '') || '',
+                serviceValue,
+                paymentMethod,
+                executedAt: executedAtStr,
+                notes: getNomeServico(appointment), // ✅ Salva o nome do serviço nas notas
+            }
 
+            // ✅ CORREÇÃO PRINCIPAL:
+            // Só adiciona serviceId ou comboId se existir de verdade.
+            // Se o agendamento tem múltiplos serviços livres (sem vínculo
+            // direto com service ou combo), envia sem os dois campos —
+            // a API foi ajustada para aceitar isso.
+            if (appointment.combo?.id) {
+                data.comboId = appointment.combo.id
+            } else if (appointment.service?.id) {
+                data.serviceId = appointment.service.id
+            }
+            // Se nenhum dos dois existir, não envia nenhum → sem FK violation
+
+            try {
                 const res = await fetch('/api/staff/services', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -256,36 +248,36 @@ export default function ComandaPage() {
                 })
 
                 const result = await res.json()
-                if (!result.success) {
-                    console.error('Erro ao registrar:', result.error)
-                    alert(`Erro ao registrar: ${result.error}`)
+                if (result.success) {
+                    sucessos++
+                } else {
+                    erros++
+                    console.error(`Erro no agendamento ${appointmentId}:`, result.error)
                 }
+            } catch (err) {
+                erros++
+                console.error('Erro na requisição:', err)
             }
-
-            alert(`${selectedAppointments.length} serviço(s) registrado(s) com sucesso!`)
-            setShowModal(false)
-
-            // ✅ Atualizar filtro de visualização para a data registrada
-            setSelectedDate(modalDate)
-            setSelectedStaffId(modalStaffId)
-            setShowAllDates(false) // ✅ DESMARCAR "TODOS"
-
-            // Recarregar serviços
-            loadFilteredServices()
-        } catch (error) {
-            console.error('Erro:', error)
-            alert('Erro ao registrar serviços')
         }
+
+        if (erros === 0) {
+            alert(`✅ ${sucessos} serviço(s) registrado(s) com sucesso!`)
+        } else {
+            alert(`⚠️ ${sucessos} registrado(s) com sucesso, ${erros} com erro. Verifique o console.`)
+        }
+
+        setShowModal(false)
+        setSelectedDate(modalDate)
+        setSelectedStaffId(modalStaffId)
+        setShowAllDates(false)
+        loadFilteredServices()
     }
 
     async function handleDelete(id: string) {
         if (!confirm('⚠️ Tem certeza que deseja remover este registro?')) return
 
         try {
-            const res = await fetch(`/api/staff/services?id=${id}`, {
-                method: 'DELETE'
-            })
-
+            const res = await fetch(`/api/staff/services?id=${id}`, { method: 'DELETE' })
             const data = await res.json()
 
             if (data.success) {
@@ -300,7 +292,14 @@ export default function ComandaPage() {
         }
     }
 
-    // Agrupar por funcionário
+    // ✅ Retorna o nome do serviço para exibição na lista
+    function getNomeServicoRegistrado(service: StaffService): string {
+        if (service.service?.name) return service.service.name
+        if (service.combo?.name) return service.combo.name
+        if (service.notes) return service.notes   // nome salvo nas notas
+        return 'Serviço avulso'
+    }
+
     const groupedByStaff = todayServices.reduce((acc: any, service) => {
         const staffName = service.staff.name
         if (!acc[staffName]) {
@@ -328,65 +327,51 @@ export default function ComandaPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4 ">
+        <div className="min-h-screen bg-beige py-8 px-4">
             <div className="max-w-7xl mx-auto">
 
                 {/* Header */}
                 <motion.div
-                    className="flex justify-between items-center mb-8"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
                 >
                     <div>
-                        <h1 className="text-4xl font-bold text-charcoal">📝 Comanda Diária</h1>
+                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-charcoal">📝 Comanda Diária</h1>
                         <p className="text-gray-600 mt-2">
-                            {showAllDates && selectedStaffId ? (
-                                `📋 Todos os serviços de ${staff.find(s => s.id === selectedStaffId)?.name}`
-                            ) : (
-                                `📅 ${new Date(selectedDate).toLocaleDateString('pt-BR', {
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
+                            {showAllDates && selectedStaffId
+                                ? `📋 Todos os serviços de ${staff.find(s => s.id === selectedStaffId)?.name}`
+                                : `📅 ${new Date(selectedDate).toLocaleDateString('pt-BR', {
+                                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                                 })}`
-                            )}
+                            }
                         </p>
                     </div>
                     <button
                         onClick={openAddModal}
-                        className="bg-gradient-gold text-white px-6 py-3 rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105"
+                        className="bg-gradient-gold text-white px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105"
                     >
                         + Registrar Serviço
                     </button>
-
                 </motion.div>
-
 
                 {/* Navegação */}
                 <motion.div
-                    className="mb-6 justify-end flex gap-3"
+                    className="mb-6 flex flex-wrap sm:flex-nowrap justify-start sm:justify-end gap-3"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                 >
-                    <Link
-                        href="/admin"
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
-                    >
-
+                    <Link href="/admin" className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200">
                         <ArrowLeft size={20} />
                         Painel
                     </Link>
-                    <Link
-                        href="/"
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
-                    >
+                    <Link href="/" className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold">
                         <Home size={20} />
                         Voltar ao início
                     </Link>
                 </motion.div>
-
 
                 {/* Filtros */}
                 <motion.div
@@ -396,28 +381,19 @@ export default function ComandaPage() {
                     transition={{ duration: 0.8, delay: 0.2 }}
                 >
                     <h2 className="text-lg font-bold text-charcoal mb-4">Filtros de Visualização</h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4">
                         <div>
-                            <label className="block text-sm font-semibold text-charcoal mb-2">
-                                Data
-                            </label>
+                            <label className="block text-sm font-semibold text-charcoal mb-2">Data</label>
                             <input
                                 type="date"
                                 value={selectedDate}
-                                onChange={e => {
-                                    setSelectedDate(e.target.value)
-                                    setShowAllDates(false) // ✅ DESMARCAR "TODOS"
-                                }}
-                                disabled={showAllDates} // ✅ DESABILITAR SE "TODOS" MARCADO
-                                className="w-full px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                onChange={e => { setSelectedDate(e.target.value); setShowAllDates(false) }}
+                                disabled={showAllDates}
+                                className="w-full px-4 py-2.5 sm:py-2 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
                             />
                         </div>
-
                         <div>
-                            <label className="block text-sm font-semibold text-charcoal mb-2">
-                                Funcionário (opcional)
-                            </label>
+                            <label className="block text-sm font-semibold text-charcoal mb-2">Funcionário (opcional)</label>
                             <select
                                 value={selectedStaffId}
                                 onChange={e => setSelectedStaffId(e.target.value)}
@@ -425,15 +401,11 @@ export default function ComandaPage() {
                             >
                                 <option value="">Todos</option>
                                 {staff.map(s => (
-                                    <option key={s.id} value={s.id}>
-                                        {s.name}
-                                    </option>
+                                    <option key={s.id} value={s.id}>{s.name}</option>
                                 ))}
                             </select>
                         </div>
                     </div>
-
-                    {/* ✅ CHECKBOX "TODOS OS SERVIÇOS" */}
                     {selectedStaffId && (
                         <div className="flex items-center gap-2 mt-4 p-3 bg-gold/10 rounded-lg">
                             <input
@@ -450,9 +422,9 @@ export default function ComandaPage() {
                     )}
                 </motion.div>
 
-                {/* Resumo do Dia */}
+                {/* Resumo */}
                 <motion.div
-                    className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 "
+                    className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
@@ -475,8 +447,8 @@ export default function ComandaPage() {
                     </div>
                 </motion.div>
 
-                {/* Serviços Agrupados por Funcionário */}
-                <div className="space-y-6 max-h-[90vh] overflow-y-auto p-4">
+                {/* Lista agrupada por funcionário */}
+                <div className="space-y-6 max-h-[90vh] overflow-y-auto p-2 sm:p-4">
                     {staffGroups.length > 0 ? (
                         staffGroups.map((group: any, index) => (
                             <motion.div
@@ -486,18 +458,13 @@ export default function ComandaPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.6, delay: 0.6 + (index * 0.1) }}
                             >
-                                {/* Header do Funcionário */}
-                                <div className="bg-gradient-gold text-white p-4 ">
-                                    <div className="flex items-center justify-between ">
-                                        <div className="flex items-center gap-3">
+                                <div className="bg-gradient-gold text-white p-4">
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                        <div className="flex items-center gap-3 flex-1">
                                             {group.staff.photo ? (
-                                                <img
-                                                    src={group.staff.photo}
-                                                    alt={group.staff.name}
-                                                    className="w-12 h-12 rounded-full object-cover border-2 border-white"
-                                                />
+                                                <img src={group.staff.photo} alt={group.staff.name} className="w-12 h-12 rounded-full object-cover border-2 border-white" />
                                             ) : (
-                                                <div className="w-12 h-12 rounded-full  bg-gold-dark bg-opacity-20 flex items-center justify-center text-xl font-bold">
+                                                <div className="w-12 h-12 rounded-full bg-gold-dark bg-opacity-20 flex items-center justify-center text-xl font-bold">
                                                     {group.staff.name.charAt(0)}
                                                 </div>
                                             )}
@@ -508,63 +475,48 @@ export default function ComandaPage() {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
+                                        <div className="text-left sm:text-right">
                                             <p className="text-sm text-gold-light">Faturamento</p>
-                                            <p className="text-2xl font-bold">R$ {group.totalValue.toFixed(2)}</p>
+                                            <p className="text-2xl sm:text-3xl font-bold">R$ {group.totalValue.toFixed(2)}</p>
                                             <p className="text-xs text-gold-light">Comissão: R$ {group.totalCommission.toFixed(2)}</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Lista de Serviços */}
-                                <div className="divide-y divide-gray-200 ">
+                                <div className="divide-y divide-gray-200">
                                     {group.services.map((service: StaffService) => (
                                         <div key={service.id} className="p-4 hover:bg-beige/50 transition">
-                                            <div className="flex items-start justify-between">
+                                            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
                                                 <div className="flex-1">
-                                                    <div className="flex items-center gap-2 mb-2">
+                                                    <div className="flex flex-wrap items-center gap-2 mb-2">
                                                         <span className="text-lg">
-                                                            {service.service ? '💅' : '🎁'}
+                                                            {service.service ? '💅' : service.combo ? '🎁' : '✂️'}
                                                         </span>
+                                                        {/* ✅ Usa getNomeServicoRegistrado para exibir corretamente */}
                                                         <h4 className="font-semibold text-charcoal">
-                                                            {service.service?.name || service.combo?.name}
+                                                            {getNomeServicoRegistrado(service)}
                                                         </h4>
                                                         <span className="text-xs text-gray-500">
                                                             📅 {new Date(service.executedAt).toLocaleDateString('pt-BR')}
                                                         </span>
                                                         <span className="text-xs text-gray-500">
-                                                            ⏰ {new Date(service.executedAt).toLocaleTimeString('pt-BR', {
-                                                                hour: '2-digit',
-                                                                minute: '2-digit'
-                                                            })}
+                                                            ⏰ {new Date(service.executedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 flex-wrap text-sm text-gray-600">
                                                         <span>👤 {service.clientName}</span>
                                                         {service.clientPhone && <span>📞 {service.clientPhone}</span>}
-                                                        <span className="px-2 py-1 bg-gold/20 text-gold rounded-full text-xs">
+                                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
                                                             {service.paymentMethod.replace('_', ' ')}
                                                         </span>
                                                     </div>
-                                                    {service.notes && (
-                                                        <p className="text-sm text-gray-500 mt-2 italic">
-                                                            💬 {service.notes}
-                                                        </p>
-                                                    )}
                                                 </div>
-                                                <div className="text-right ml-4">
-                                                    <p className="text-xl font-bold text-charcoal">
-                                                        R$ {service.serviceValue.toFixed(2)}
-                                                    </p>
-                                                    <p className="text-sm text-gold font-semibold">
-                                                        Comissão: R$ {service.commissionValue.toFixed(2)}
-                                                    </p>
+                                                <div className="text-left sm:text-right mt-3 sm:mt-0 sm:ml-4">
+                                                    <p className="text-2xl font-bold text-charcoal">R$ {service.serviceValue.toFixed(2)}</p>
+                                                    <p className="text-xs text-gold font-semibold">Comissão: R$ {service.commissionValue.toFixed(2)}</p>
                                                     <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            handleDelete(service.id)
-                                                        }}
-                                                        className="mt-2 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 hover:shadow-md"
+                                                        onClick={(e) => { e.stopPropagation(); handleDelete(service.id) }}
+                                                        className="mt-2 px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 hover:shadow-md"
                                                     >
                                                         🗑️ Remover
                                                     </button>
@@ -576,20 +528,17 @@ export default function ComandaPage() {
                             </motion.div>
                         ))
                     ) : (
-                        <div className="bg-white rounded-xl shadow-md p-12 text-center ">
+                        <div className="bg-white rounded-xl shadow-md p-12 text-center">
                             <div className="text-6xl mb-4">📝</div>
                             <p className="text-gray-500 text-lg">Nenhum serviço registrado{showAllDates ? '' : ' nesta data'}</p>
-                            <button
-                                onClick={openAddModal}
-                                className="mt-4 text-gold hover:underline font-semibold"
-                            >
+                            <button onClick={openAddModal} className="mt-4 text-gold hover:underline font-semibold">
                                 Registrar primeiro serviço
                             </button>
                         </div>
                     )}
                 </div>
 
-                {/* Modal Registrar Serviço */}
+                {/* Modal */}
                 {showModal && !editingService && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                         <motion.div
@@ -600,24 +549,18 @@ export default function ComandaPage() {
                         >
                             <div className="sticky top-0 bg-gradient-gold text-white p-6 rounded-t-xl flex justify-between items-center">
                                 <h2 className="text-2xl font-bold">📝 Registrar Serviços Executados</h2>
-                                <button
-                                    onClick={() => setShowModal(false)}
-                                    className="text-white hover:text-gray-200 transition"
-                                >
+                                <button onClick={() => setShowModal(false)} className="text-white hover:text-gray-200 transition">
                                     <X size={28} />
                                 </button>
                             </div>
 
                             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                                {/* Passo 1: Selecionar Funcionário e Data */}
+                                {/* Passo 1 */}
                                 <div className="bg-gold/10 border-2 border-gold rounded-lg p-4">
                                     <h3 className="font-bold text-charcoal mb-4">1️⃣ Selecione o Funcionário e a Data</h3>
-
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div>
-                                            <label className="block text-sm font-semibold text-charcoal mb-2">
-                                                Funcionário *
-                                            </label>
+                                            <label className="block text-sm font-semibold text-charcoal mb-2">Funcionário *</label>
                                             <select
                                                 required
                                                 value={modalStaffId}
@@ -626,17 +569,12 @@ export default function ComandaPage() {
                                             >
                                                 <option value="">Selecione...</option>
                                                 {staff.map(s => (
-                                                    <option key={s.id} value={s.id}>
-                                                        {s.name} (Comissão: {s.commissionPercent}%)
-                                                    </option>
+                                                    <option key={s.id} value={s.id}>{s.name} (Comissão: {s.commissionPercent}%)</option>
                                                 ))}
                                             </select>
                                         </div>
-
                                         <div>
-                                            <label className="block text-sm font-semibold text-charcoal mb-2">
-                                                Data *
-                                            </label>
+                                            <label className="block text-sm font-semibold text-charcoal mb-2">Data *</label>
                                             <input
                                                 type="date"
                                                 required
@@ -646,7 +584,6 @@ export default function ComandaPage() {
                                             />
                                         </div>
                                     </div>
-
                                     <button
                                         type="button"
                                         onClick={loadAppointments}
@@ -657,20 +594,19 @@ export default function ComandaPage() {
                                     </button>
                                 </div>
 
-                                {/* Passo 2: Selecionar Agendamentos */}
+                                {/* Passo 2 */}
                                 {appointments.length > 0 && (
                                     <div className="bg-beige/50 border-2 border-gray-300 rounded-lg p-4">
                                         <h3 className="font-bold text-charcoal mb-4">
-                                            2️⃣ Selecione os Agendamentos Concluídos ({appointments.length} encontrados)
+                                            2️⃣ Selecione os Agendamentos ({appointments.length} encontrados)
                                         </h3>
-
-                                        <div className="space-y-3 max-h-96 overflow-y-auto ">
+                                        <div className="space-y-3 max-h-96 overflow-y-auto">
                                             {appointments.map(apt => (
                                                 <label
                                                     key={apt.id}
                                                     className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${selectedAppointments.includes(apt.id)
-                                                        ? 'bg-gold/20 border-gold'
-                                                        : 'bg-white border-gray-200 hover:border-gold/50'
+                                                            ? 'bg-gold/20 border-gold'
+                                                            : 'bg-white border-gray-200 hover:border-gold/50'
                                                         }`}
                                                 >
                                                     <input
@@ -679,25 +615,23 @@ export default function ComandaPage() {
                                                         onChange={() => toggleAppointment(apt.id)}
                                                         className="mt-1 w-5 h-5 text-gold rounded focus:ring-gold"
                                                     />
-
                                                     <div className="flex-1">
                                                         <div className="flex items-center gap-2 mb-2">
-                                                            <span className="text-lg">{apt.service ? '💅' : '🎁'}</span>
+                                                            <span className="text-lg">
+                                                                {apt.combo ? '🎁' : apt.service ? '💅' : '✂️'}
+                                                            </span>
                                                             <h4 className="font-semibold text-charcoal">
-                                                                {apt.service?.name || apt.combo?.name || 'Serviço'}
+                                                                {getNomeServico(apt)}
                                                             </h4>
                                                             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                                                                 {apt.time}
                                                             </span>
                                                         </div>
-
                                                         <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
                                                             <p>👤 Cliente: <span className="font-semibold">{apt.user.name}</span></p>
                                                             <p>💰 Valor: <span className="font-semibold text-gold">R$ {(apt.finalPrice || apt.service?.price || 0).toFixed(2)}</span></p>
                                                             {apt.user.phone && <p>📞 {apt.user.phone}</p>}
-                                                            {apt.paymentMethod && (
-                                                                <p>💳 {apt.paymentMethod.replace('_', ' ')}</p>
-                                                            )}
+                                                            {apt.paymentMethod && <p>💳 {apt.paymentMethod.replace('_', ' ')}</p>}
                                                         </div>
                                                     </div>
                                                 </label>
@@ -708,26 +642,16 @@ export default function ComandaPage() {
 
                                 {appointments.length === 0 && modalStaffId && modalDate && !loadingAppointments && (
                                     <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 text-center">
-                                        <p className="text-orange-700 font-semibold">
-                                            ⚠️ Nenhum agendamento concluído encontrado para esta data
-                                        </p>
-                                        <p className="text-sm text-orange-600 mt-2">
-                                            Os agendamentos precisam estar com status &quot;CONCLUÍDO&quot; para aparecerem aqui.
-                                        </p>
-                                        <p className="text-sm text-orange-600 mt-1">
-                                            Vá em <strong>Agendamentos</strong> e marque os serviços realizados como <strong>🎉 Concluído</strong>.
-                                        </p>
+                                        <p className="text-orange-700 font-semibold">⚠️ Nenhum agendamento concluído encontrado para esta data</p>
+                                        <p className="text-sm text-orange-600 mt-2">Os agendamentos precisam estar com status &quot;CONCLUÍDO&quot; para aparecerem aqui.</p>
                                     </div>
                                 )}
 
-                                {/* Resumo */}
                                 {selectedAppointments.length > 0 && (
                                     <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4">
-                                        <h3 className="font-bold text-green-800 mb-2">
-                                            ✅ {selectedAppointments.length} serviço(s) selecionado(s)
-                                        </h3>
+                                        <h3 className="font-bold text-green-800 mb-2">✅ {selectedAppointments.length} serviço(s) selecionado(s)</h3>
                                         <p className="text-sm text-green-700">
-                                            Total a registrar: R$ {appointments
+                                            Total: R$ {appointments
                                                 .filter(a => selectedAppointments.includes(a.id))
                                                 .reduce((sum, a) => sum + (a.finalPrice || a.service?.price || 0), 0)
                                                 .toFixed(2)}
@@ -737,8 +661,8 @@ export default function ComandaPage() {
                                                 .filter(a => selectedAppointments.includes(a.id))
                                                 .reduce((sum, a) => {
                                                     const value = a.finalPrice || a.service?.price || 0
-                                                    const commission = value * ((staff.find(s => s.id === modalStaffId)?.commissionPercent || 0) / 100)
-                                                    return sum + commission
+                                                    const pct = staff.find(s => s.id === modalStaffId)?.commissionPercent || 0
+                                                    return sum + value * (pct / 100)
                                                 }, 0)
                                                 .toFixed(2)}
                                         </p>

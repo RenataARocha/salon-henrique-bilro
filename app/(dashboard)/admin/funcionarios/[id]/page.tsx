@@ -36,7 +36,7 @@ interface StaffDetails {
     monthlyReports: any[]
 }
 
-export default function FuncionarioHistoricoPage({ params }: { params: Promise<{ id: string }> }) {
+export default function FuncionarioHistoricoPage({ params }: { params: { id: string } }) {
     const router = useRouter()
     const resolvedParams = use(params)
     const [data, setData] = useState<StaffDetails | null>(null)
