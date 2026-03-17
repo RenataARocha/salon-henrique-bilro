@@ -266,7 +266,7 @@ export default function FuncionariosPage() {
 
                 {/* Header */}
                 <motion.div
-                    className="flex justify-between items-center mb-8"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
@@ -277,7 +277,7 @@ export default function FuncionariosPage() {
                     </div>
                     <button
                         onClick={openAddModal}
-                        className="bg-gradient-gold text-white px-6 py-3 rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105"
+                        className="bg-gradient-gold text-white px-4 py-2 sm:px-6 sm:py-3 self-start sm:self-auto rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105"
                     >
                         + Novo Funcionário
                     </button>
@@ -285,7 +285,7 @@ export default function FuncionariosPage() {
 
                 {/* Navegação */}
                 <motion.div
-                    className="mb-6 justify-end flex gap-3"
+                    className="mb-6 flex flex-col sm:flex-row sm:justify-end gap-3"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
@@ -307,7 +307,7 @@ export default function FuncionariosPage() {
                 </motion.div>
 
                 {/* Lista de Funcionários */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-h-[90vh] overflow-y-auto p-4">
+                <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 max-h-[90vh] overflow-y-auto p-4">
                     {staff.map((s, index) => (
                         <motion.div
                             key={s.id}
@@ -317,8 +317,8 @@ export default function FuncionariosPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: index * 0.1 }}
                         >
-                            <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
+                            <div className="mb-4">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
                                     {s.photo ? (
                                         <Image
                                             src={s.photo}
@@ -335,8 +335,8 @@ export default function FuncionariosPage() {
                                     <div>
                                         <h3 className="font-bold text-lg text-charcoal">{s.name}</h3>
                                         <span className={`text-sm px-2 py-1 rounded-full ${s.active
-                                                ? 'bg-gold/20 text-gold'
-                                                : 'bg-gray-100 text-gray-500'
+                                            ? 'bg-gold/20 text-gold'
+                                            : 'bg-gray-100 text-gray-500'
                                             }`}>
                                             {s.active ? '🟢 Ativo' : '⚪ Inativo'}
                                         </span>
@@ -353,7 +353,7 @@ export default function FuncionariosPage() {
 
                             <div className="mb-4">
                                 <p className="text-xs text-gray-500 mb-2">Especialidades:</p>
-                                <div className="flex flex-wrap gap-1">
+                                <div className="flex flex-wrap gap-2 mt-2">
                                     {s.specialties.map(spec => (
                                         <span key={spec} className="text-xs bg-gold/20 text-gold px-2 py-1 rounded-full">
                                             {spec}
@@ -363,7 +363,7 @@ export default function FuncionariosPage() {
                             </div>
 
                             {/* ✅ BOTÕES: Editar | Histórico | Ativar/Inativar | Excluir */}
-                            <div className="flex gap-2">
+                            <div className="grid grid-cols-2 sm:flex gap-2">
                                 <button
                                     onClick={() => openEditModal(s)}
                                     className="flex-1 bg-gold text-white px-3 py-2 rounded-lg text-sm hover:bg-gold-dark transition"
@@ -381,8 +381,8 @@ export default function FuncionariosPage() {
                                     onClick={() => handleToggleActive(s.id, s.active)}
                                     title={s.active ? 'Inativar funcionário' : 'Ativar funcionário'}
                                     className={`px-3 py-2 rounded-lg text-sm transition ${s.active
-                                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-                                            : 'bg-green-100 text-green-600 hover:bg-green-200'
+                                        ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                                        : 'bg-green-100 text-green-600 hover:bg-green-200'
                                         }`}
                                 >
                                     {s.active ? '🔴' : '🟢'}
@@ -436,7 +436,7 @@ export default function FuncionariosPage() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-semibold text-charcoal mb-2">Telefone</label>
                                         <input
@@ -521,7 +521,7 @@ export default function FuncionariosPage() {
                                     </div>
 
                                     {/* ✅ Campo para adicionar especialidade nova */}
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-2">
                                         <input
                                             type="text"
                                             value={novaEspecialidade}
@@ -539,7 +539,7 @@ export default function FuncionariosPage() {
                                         <button
                                             type="button"
                                             onClick={adicionarEspecialidade}
-                                            className="flex items-center gap-1 px-4 py-2 bg-gold text-white rounded-lg text-sm font-semibold hover:bg-gold-dark transition"
+                                            className="w-full sm:w-auto flex items-center justify-center gap-1 px-4 py-2 bg-gold text-white rounded-lg text-sm font-semibold hover:bg-gold-dark transition"
                                         >
                                             <Plus size={16} />
                                             Adicionar
@@ -550,7 +550,7 @@ export default function FuncionariosPage() {
                                     </p>
                                 </div>
 
-                                <div className="flex gap-3 pt-4">
+                                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                                     <button
                                         type="button"
                                         onClick={() => setShowModal(false)}
