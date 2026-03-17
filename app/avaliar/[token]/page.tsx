@@ -1,70 +1,62 @@
-// app/avaliar/[token]/page.tsx
+'use client'
 
-'use client';
-
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Star, Upload, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { useState, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { Star, Loader, CheckCircle, XCircle } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface AppointmentData {
-    user: {
-        name: string;
-        email: string;
-    };
-    service: {
-        name: string;
-        description: string;
-    };
-    date: string;
-    canReview: boolean;
+    user: { name: string; email: string }
+    service: { name: string; description: string }
+    date: string
+    canReview: boolean
 }
 
 export default function AvaliarPage() {
-    const params = useParams();
-    const router = useRouter();
-    const token = params.token as string;
+    const params = useParams()
+    const router = useRouter()
+    const token = params.token as string
 
-    const [loading, setLoading] = useState(true);
-    const [submitting, setSubmitting] = useState(false);
-    const [appointmentData, setAppointmentData] = useState<AppointmentData | null>(null);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState(false);
+    const [loading, setLoading] = useState(true)
+    const [submitting, setSubmitting] = useState(false)
+    const [appointmentData, setAppointmentData] = useState<AppointmentData | null>(null)
+    const [error, setError] = useState('')
+    const [success, setSuccess] = useState(false)
 
-    const [rating, setRating] = useState(0);
-    const [hoverRating, setHoverRating] = useState(0);
-    const [comment, setComment] = useState('');
-    const [images, setImages] = useState<string[]>([]);
+    const [rating, setRating] = useState(0)
+    const [hoverRating, setHoverRating] = useState(0)
+    const [comment, setComment] = useState('')
 
     useEffect(() => {
-        verificarToken();
-    }, [token]);
+        verificarToken()
+    }, [token])
 
     const verificarToken = async () => {
         try {
-            const response = await fetch(`/api/reviews/submit?token=${token}`);
-            const result = await response.json();
+            const response = await fetch(`/api/reviews/submit?token=${token}`)
+            const result = await response.json()
 
             if (result.success) {
-                setAppointmentData(result.data);
+                setAppointmentData(result.data)
             } else {
-                setError(result.error || 'Token inválido');
+                setError(result.error || 'Token inválido ou agendamento não encontrado')
             }
-        } catch (err) {
-            setError('Erro ao verificar token');
+        } catch {
+            setError('Erro ao verificar token')
         } finally {
-            setLoading(false);
+            setLoading(false)
         }
-    };
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+        e.preventDefault()
 
         if (rating === 0) {
-            alert('Por favor, selecione uma avaliação de 1 a 5 estrelas');
-            return;
+            alert('Por favor, selecione uma avaliação de 1 a 5 estrelas')
+            return
         }
 
-        setSubmitting(true);
+        setSubmitting(true)
 
         try {
             const response = await fetch('/api/reviews/submit', {
@@ -74,172 +66,230 @@ export default function AvaliarPage() {
                     token,
                     rating,
                     comment: comment.trim() || null,
-                    images
+                    images: []
                 })
-            });
+            })
 
-            const result = await response.json();
+            const result = await response.json()
 
             if (result.success) {
-                setSuccess(true);
+                setSuccess(true)
             } else {
-                alert(result.error || 'Erro ao enviar avaliação');
+                alert(result.error || 'Erro ao enviar avaliação')
             }
-        } catch (err) {
-            alert('Erro ao enviar avaliação');
+        } catch {
+            alert('Erro ao enviar avaliação')
         } finally {
-            setSubmitting(false);
+            setSubmitting(false)
         }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center">
-                <div className="text-center">
-                    <Loader className="w-12 h-12 animate-spin text-pink-500 mx-auto mb-4" />
-                    <p className="text-gray-600">Carregando...</p>
-                </div>
-            </div>
-        );
     }
 
+    const ratingLabels: Record<number, string> = {
+        1: 'Ruim 😞',
+        2: 'Regular 😐',
+        3: 'Bom 👍',
+        4: 'Muito bom 😊',
+        5: 'Excelente! ⭐'
+    }
+
+    // ── Loading ─────────────────────────────────────────────
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-charcoal flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-400 font-light tracking-widest text-sm uppercase">Carregando...</p>
+                </div>
+            </div>
+        )
+    }
+
+    // ── Erro ────────────────────────────────────────────────
     if (error) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-                    <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Oops!</h1>
-                    <p className="text-gray-600 mb-6">{error}</p>
+            <div className="min-h-screen bg-charcoal flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-[#1a1a1a] border border-red-900/40 rounded-2xl p-10 max-w-md w-full text-center shadow-2xl"
+                >
+                    <XCircle className="w-16 h-16 text-red-500 mx-auto mb-6" />
+                    <h1 className="text-2xl font-bold text-white mb-3">Oops!</h1>
+                    <p className="text-gray-400 mb-8">{error}</p>
                     <button
                         onClick={() => router.push('/')}
-                        className="px-6 py-3 bg-gradient-gold text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition"
+                        className="px-8 py-3 bg-gradient-gold text-white rounded-xl font-semibold hover:opacity-90 transition"
                     >
                         Voltar ao Início
                     </button>
-                </div>
+                </motion.div>
             </div>
-        );
+        )
     }
 
+    // ── Sucesso ─────────────────────────────────────────────
     if (success) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <h1 className="text-2xl font-bold text-gray-800 mb-2">Avaliação Enviada!</h1>
-                    <p className="text-gray-600 mb-6">
-                        Obrigado pelo seu feedback! Sua avaliação será analisada e publicada em breve.
+            <div className="min-h-screen bg-charcoal flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="bg-[#1a1a1a] border border-gold/20 rounded-2xl p-10 max-w-md w-full text-center shadow-2xl"
+                >
+                    {/* Estrelas animadas */}
+                    <div className="flex justify-center gap-1 mb-6">
+                        {[1, 2, 3, 4, 5].map(i => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                            >
+                                <Star className="w-8 h-8 fill-gold text-gold" />
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-6" />
+                    <h1 className="text-2xl font-bold text-white mb-3">Obrigada pelo feedback!</h1>
+                    <p className="text-gray-400 mb-8">
+                        Sua avaliação foi enviada com sucesso e será analisada em breve. ✨
                     </p>
                     <button
                         onClick={() => router.push('/')}
-                        className="px-6 py-3 bg-gradient-gold text-white rounded-lg hover:from-pink-600 hover:to-purple-700 transition"
+                        className="px-8 py-3 bg-gradient-gold text-white rounded-xl font-semibold hover:opacity-90 transition"
                     >
                         Voltar ao Início
                     </button>
-                </div>
+                </motion.div>
             </div>
-        );
+        )
     }
 
+    // ── Formulário principal ─────────────────────────────────
     return (
-        <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 py-12 px-4">
-            <div className="max-w-2xl mx-auto">
-                <div className="bg-white rounded-2xl shadow-xl p-8">
-                    {/* Header */}
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                            💛 Como foi sua experiência?
-                        </h1>
-                        <p className="text-gray-600">
-                            Avalie o serviço: <span className="font-semibold">{appointmentData?.service.name}</span>
+        <div className="min-h-screen bg-charcoal py-12 px-4">
+            {/* Faixa dourada decorativa no topo */}
+            <div className="h-1 bg-gradient-gold fixed top-0 left-0 right-0 z-50" />
+
+            <div className="max-w-xl mx-auto">
+                <motion.div
+                    initial={{ opacity: 0, y: 24 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                >
+                    {/* Logo / nome do salão */}
+                    <div className="text-center mb-10">
+                        <p className="text-gold tracking-[0.3em] text-xs uppercase font-semibold mb-2">
+                            Henrique Bilro Cabeleireiros
                         </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                            {new Date(appointmentData?.date || '').toLocaleDateString('pt-BR')}
+                        <h1 className="text-3xl font-bold text-white leading-tight">
+                            Como foi sua experiência?
+                        </h1>
+                        <p className="text-gray-400 mt-2 text-sm">
+                            Serviço:{' '}
+                            <span className="text-gold font-semibold">
+                                {appointmentData?.service.name}
+                            </span>
+                        </p>
+                        <p className="text-gray-500 text-xs mt-1">
+                            {new Date(appointmentData?.date || '').toLocaleDateString('pt-BR', {
+                                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                            })}
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        {/* Avaliação por Estrelas */}
-                        <div className="text-center">
-                            <label className="block text-lg font-medium text-gray-700 mb-4">
-                                Quantas estrelas você dá?
-                            </label>
-                            <div className="flex justify-center gap-2">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <button
-                                        key={star}
-                                        type="button"
-                                        onClick={() => setRating(star)}
-                                        onMouseEnter={() => setHoverRating(star)}
-                                        onMouseLeave={() => setHoverRating(0)}
-                                        className="transition-transform hover:scale-110"
-                                    >
-                                        <Star
-                                            size={48}
-                                            className={`${star <= (hoverRating || rating)
-                                                ? 'fill-yellow-400 text-yellow-400'
-                                                : 'text-gray-300'
-                                                }`}
-                                        />
-                                    </button>
-                                ))}
+                    <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-8 shadow-2xl">
+                        <form onSubmit={handleSubmit} className="space-y-8">
+
+                            {/* Estrelas */}
+                            <div className="text-center">
+                                <label className="block text-sm font-semibold text-gray-300 mb-5 tracking-wide uppercase">
+                                    Sua Avaliação
+                                </label>
+                                <div className="flex justify-center gap-3">
+                                    {[1, 2, 3, 4, 5].map(star => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onClick={() => setRating(star)}
+                                            onMouseEnter={() => setHoverRating(star)}
+                                            onMouseLeave={() => setHoverRating(0)}
+                                            className="transition-all duration-150 hover:scale-110 active:scale-95"
+                                        >
+                                            <Star
+                                                size={44}
+                                                className={`transition-colors duration-150 ${star <= (hoverRating || rating)
+                                                        ? 'fill-gold text-gold drop-shadow-[0_0_8px_rgba(180,145,60,0.6)]'
+                                                        : 'text-gray-600'
+                                                    }`}
+                                            />
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <AnimatePresence mode="wait">
+                                    {(hoverRating || rating) > 0 && (
+                                        <motion.p
+                                            key={hoverRating || rating}
+                                            initial={{ opacity: 0, y: 4 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -4 }}
+                                            className="mt-4 text-gold font-semibold text-sm"
+                                        >
+                                            {ratingLabels[hoverRating || rating]}
+                                        </motion.p>
+                                    )}
+                                </AnimatePresence>
                             </div>
-                            {rating > 0 && (
-                                <p className="mt-3 text-gray-600">
-                                    {rating === 5 && '⭐ Excelente!'}
-                                    {rating === 4 && '😊 Muito bom!'}
-                                    {rating === 3 && '👍 Bom'}
-                                    {rating === 2 && '😐 Regular'}
-                                    {rating === 1 && '😞 Ruim'}
+
+                            {/* Divisor */}
+                            <div className="border-t border-white/5" />
+
+                            {/* Comentário */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-300 mb-3 tracking-wide uppercase">
+                                    Comentário{' '}
+                                    <span className="text-gray-500 normal-case font-normal">(opcional)</span>
+                                </label>
+                                <textarea
+                                    value={comment}
+                                    onChange={e => setComment(e.target.value)}
+                                    rows={4}
+                                    className="w-full px-4 py-3 bg-[#111] border border-white/10 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 resize-none transition"
+                                    placeholder="O que você achou do atendimento, do resultado, do ambiente..."
+                                />
+                            </div>
+
+                            {/* Botão */}
+                            <button
+                                type="submit"
+                                disabled={submitting || rating === 0}
+                                className="w-full py-4 bg-gradient-gold text-white text-base font-bold rounded-xl hover:opacity-90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 tracking-wide"
+                            >
+                                {submitting ? (
+                                    <>
+                                        <Loader className="w-5 h-5 animate-spin" />
+                                        Enviando...
+                                    </>
+                                ) : (
+                                    'Enviar Avaliação'
+                                )}
+                            </button>
+
+                            {rating === 0 && (
+                                <p className="text-center text-gray-600 text-xs">
+                                    Selecione pelo menos uma estrela para continuar
                                 </p>
                             )}
-                        </div>
+                        </form>
+                    </div>
 
-                        {/* Comentário */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                📝 Conte mais sobre sua experiência (opcional)
-                            </label>
-                            <textarea
-                                value={comment}
-                                onChange={(e) => setComment(e.target.value)}
-                                rows={5}
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
-                                placeholder="O que você achou do atendimento, do resultado, do ambiente..."
-                            />
-                        </div>
-
-                        {/* Upload de Fotos - Simplificado por enquanto */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                📸 Adicionar fotos (opcional)
-                            </label>
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                                <p className="text-gray-500 text-sm">
-                                    Em breve você poderá adicionar fotos!
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Botão Enviar */}
-                        <button
-                            type="submit"
-                            disabled={submitting || rating === 0}
-                            className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-lg font-bold rounded-lg hover:from-pink-600 hover:to-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        >
-                            {submitting ? (
-                                <>
-                                    <Loader className="w-5 h-5 animate-spin" />
-                                    Enviando...
-                                </>
-                            ) : (
-                                'ENVIAR AVALIAÇÃO'
-                            )}
-                        </button>
-                    </form>
-                </div>
+                    <p className="text-center text-gray-600 text-xs mt-6">
+                        Henrique Bilro Cabeleireiros · Av. Rio Doce, 3101 – Potengi, Natal/RN
+                    </p>
+                </motion.div>
             </div>
         </div>
-    );
+    )
 }

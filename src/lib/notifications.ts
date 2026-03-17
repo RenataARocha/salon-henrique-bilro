@@ -1,6 +1,3 @@
-// src/lib/notifications.ts
-// Sistema completo de notificações: WhatsApp + Email + Sistema
-
 import {
     sendAppointmentConfirmationEmail,
     sendAppointmentReminderEmail,
@@ -8,47 +5,25 @@ import {
 } from './email/notificationEmails'
 import { prisma } from './prisma'
 
-// ============================================
-// CONFIGURAÇÃO DA EVOLUTION API
-// ============================================
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || 'https://evolution-api-production-3c9c.up.railway.app'
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || ''
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'salon-bilro'
 const SITE_URL = process.env.NEXTAUTH_URL || 'https://salon-henrique-bilro.vercel.app'
 
-// ============================================
-// NORMALIZAR TELEFONE (aceita com/sem 9)
-// ============================================
 function normalizePhone(phone: string): string {
     const clean = phone.replace(/\D/g, '')
-
-    if (clean.length === 13 && clean.startsWith('5584')) {
-        return clean.slice(0, 4) + clean.slice(5)
-    }
-    if (clean.length === 12) {
-        return clean
-    }
-    if (clean.length === 11 && clean.startsWith('84')) {
-        return '55' + clean.slice(0, 2) + clean.slice(3)
-    }
-    if (clean.length === 10) {
-        return '55' + clean
-    }
-    if (clean.length === 8) {
-        return '5584' + clean
-    }
-
+    if (clean.length === 13 && clean.startsWith('5584')) return clean.slice(0, 4) + clean.slice(5)
+    if (clean.length === 12) return clean
+    if (clean.length === 11 && clean.startsWith('84')) return '55' + clean.slice(0, 2) + clean.slice(3)
+    if (clean.length === 10) return '55' + clean
+    if (clean.length === 8) return '5584' + clean
     return clean
 }
 
-// ============================================
-// FUNÇÃO PARA ENVIAR WHATSAPP (EVOLUTION API)
-// ============================================
 async function sendWhatsApp(phone: string, message: string) {
     try {
         const numero = normalizePhone(phone)
-
-        console.log('📱 Enviando WhatsApp via Evolution API:', { original: phone, normalizado: numero })
+        console.log('📱 Enviando WhatsApp:', { original: phone, normalizado: numero })
 
         const response = await fetch(
             `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
@@ -58,41 +33,32 @@ async function sendWhatsApp(phone: string, message: string) {
                     'Content-Type': 'application/json',
                     'apikey': EVOLUTION_API_KEY
                 },
-                body: JSON.stringify({
-                    number: numero,
-                    text: message
-                })
+                body: JSON.stringify({ number: numero, text: message })
             }
         )
 
         if (!response.ok) {
-            console.error('❌ Erro ao enviar WhatsApp:', response.statusText)
+            console.error('❌ Erro WhatsApp:', response.statusText)
             return { success: false }
         }
 
-        const data = await response.json()
-        console.log('✅ WhatsApp enviado com sucesso para:', numero)
-        return { success: true, data }
-
+        console.log('✅ WhatsApp enviado para:', numero)
+        return { success: true }
     } catch (error) {
         console.error('❌ Erro ao enviar WhatsApp:', error)
         return { success: false, error }
     }
 }
 
-// ============================================
-// FUNÇÃO PARA CRIAR NOTIFICAÇÃO NO SISTEMA
-// ============================================
-async function createNotification(userId: string, title: string, message: string, type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' = 'INFO') {
+async function createNotification(
+    userId: string,
+    title: string,
+    message: string,
+    type: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' = 'INFO'
+) {
     try {
         await prisma.notification.create({
-            data: {
-                userId,
-                title,
-                message,
-                type,
-                read: false
-            }
+            data: { userId, title, message, type, read: false }
         })
         return { success: true }
     } catch (error) {
@@ -112,26 +78,26 @@ export async function notifyAppointmentCreated(appointment: any) {
 
     const whatsappMessage = `
 🎉 *Agendamento Confirmado!*
-
+ 
 Olá ${user.name}! ✨
-
+ 
 Seu agendamento foi realizado com sucesso:
-
+ 
 📅 *Data:* ${dateFormatted}
 ⏰ *Horário:* ${time}
 💅 *Serviço:* ${service.name}
-💰 *Valor:* R$ ${service.price.toFixed(2)}
-
+💰 *Valor:* R$ ${service.price?.toFixed(2) || '0.00'}
+ 
 📍 *Local:* Henrique Bilro Cabeleireiros
 Av. Rio Doce, 3101 – Potengi, Natal/RN
-
+ 
 ⚠️ *Importante:*
 - Chegar 10 minutos antes
 - Cancelamentos com 24h de antecedência
-
+ 
 👉 *CONFIRME SUA PRESENÇA:*
 ${confirmUrl}
-
+ 
 Nos vemos lá! 😊
     `.trim()
 
@@ -142,7 +108,7 @@ Nos vemos lá! 😊
         name: user.name,
         service: service.name,
         date: dateFormatted,
-        time: time,
+        time,
         price: service.price,
         appointmentId: id
     })
@@ -157,31 +123,46 @@ Nos vemos lá! 😊
 
 // ============================================
 // 2. LEMBRETE 48H ANTES
+// ✅ AGORA COM LINKS DE CANCELAMENTO E REAGENDAMENTO
 // ============================================
 export async function notifyAppointmentReminder(appointment: any) {
     const { user, service, date, time, id } = appointment
     const dateFormatted = new Date(date).toLocaleDateString('pt-BR')
+
+    // Link direto para a página de agendamentos do cliente
+    // onde ela pode cancelar ou reagendar
+    const meuAgendamentoUrl = `${SITE_URL}/meus-agendamentos`
+
+    // Link de confirmação de presença (mesmo padrão do agendamento criado)
     const confirmToken = Buffer.from(`${id}:${Date.now()}`).toString('base64')
     const confirmUrl = `${SITE_URL}/api/appointments/confirm?id=${id}&token=${confirmToken}`
 
     const whatsappMessage = `
 ⏰ *Lembrete de Agendamento*
-
+ 
 Oi ${user.name}! 👋
-
-Lembrando que você tem agendamento amanhã:
-
-📅 ${dateFormatted} às ${time}
-💅 ${service.name}
-
-📍 Av. Rio Doce, 3101 – Potengi
-
+ 
+Lembrando que você tem agendamento *amanhã*:
+ 
+📅 *${dateFormatted}* às *${time}*
+💅 *${service.name}*
+ 
+📍 Av. Rio Doce, 3101 – Potengi, Natal/RN
+ 
 👉 *CONFIRME SUA PRESENÇA:*
 ${confirmUrl}
-
-Caso precise cancelar, faça com 24h de antecedência! 📞
-
-Te esperamos! ✨
+ 
+─────────────────────
+Precisa alterar? Sem problema:
+ 
+📆 *Reagendar ou cancelar:*
+${meuAgendamentoUrl}
+ 
+⚠️ Cancelamentos devem ser feitos com pelo menos *2 horas de antecedência*.
+─────────────────────
+ 
+Te esperamos amanhã! ✨
+Henrique Bilro Cabeleireiros 💅
     `.trim()
 
     if (user.phone) await sendWhatsApp(user.phone, whatsappMessage)
@@ -191,14 +172,14 @@ Te esperamos! ✨
         name: user.name,
         service: service.name,
         date: dateFormatted,
-        time: time,
+        time,
         appointmentId: id
     })
 
     await createNotification(
         user.id,
         '⏰ Lembrete de Agendamento',
-        `Seu agendamento é amanhã às ${time}`,
+        `Seu agendamento é amanhã às ${time} — ${service.name}`,
         'WARNING'
     )
 }
@@ -210,19 +191,19 @@ export async function notifyBirthdayCoupon(user: any, coupon: any) {
     if (user.phone) {
         const whatsappMessage = `
 🎂🎉 *FELIZ ANIVERSÁRIO, ${user.name.toUpperCase()}!* 🎉🎂
-
+ 
 A equipe Henrique Bilro deseja um dia incrível! 💖
-
+ 
 🎁 *PRESENTE ESPECIAL:*
-
+ 
 Cupom: *${coupon.code}*
 Desconto: *${coupon.discountValue}%*
 Válido até: ${new Date(coupon.expiresAt).toLocaleDateString('pt-BR')}
-
+ 
 ✨ Use no seu próximo agendamento e aproveite!
-
+ 
 Agende pelo site: ${SITE_URL}
-
+ 
 Com carinho,
 Equipe Henrique Bilro 💕
         `.trim()
@@ -250,7 +231,6 @@ Equipe Henrique Bilro 💕
 // 4. NOVO CUPOM DE DESCONTO
 // ============================================
 export async function notifyNewCoupon(coupon: any, clienteEspecifico?: any) {
-
     const clients = clienteEspecifico
         ? [clienteEspecifico]
         : await prisma.user.findMany({ where: { role: 'CLIENT' } })
@@ -261,20 +241,20 @@ export async function notifyNewCoupon(coupon: any, clienteEspecifico?: any) {
         if (client.phone) {
             const whatsappMessage = `
 🎁 *NOVO CUPOM DE DESCONTO!*
-
+ 
 Oi ${client.name}! 😊
-
+ 
 Temos uma promoção especial para você:
-
+ 
 *${coupon.description}*
-
+ 
 🎫 Cupom: *${coupon.code}*
 💰 Desconto: *${coupon.discountValue}${coupon.discountType === 'PERCENTAGE' ? '%' : ' reais'}*
 📅 Válido até: ${new Date(coupon.validUntil).toLocaleDateString('pt-BR')}
-
+ 
 ✨ Aproveite e agende já!
 ${SITE_URL}
-
+ 
 Henrique Bilro Cabeleireiros 💅
             `.trim()
 
@@ -298,7 +278,6 @@ Henrique Bilro Cabeleireiros 💅
 // 5. NOVO COMBO PROMOCIONAL
 // ============================================
 export async function notifyNewCombo(combo: any, clienteEspecifico?: any) {
-
     const clients = clienteEspecifico
         ? [clienteEspecifico]
         : await prisma.user.findMany({ where: { role: 'CLIENT' } })
@@ -309,24 +288,24 @@ export async function notifyNewCombo(combo: any, clienteEspecifico?: any) {
         if (client.phone) {
             const whatsappMessage = `
 🎁✨ *NOVO COMBO PROMOCIONAL!*
-
-Oi ${client.name}! 
-
+ 
+Oi ${client.name}!
+ 
 Acabou de sair do forno:
-
+ 
 *${combo.name}*
 ${combo.description}
-
+ 
 💰 De R$ ${combo.originalPrice.toFixed(2)} por R$ ${combo.comboPrice.toFixed(2)}
 🔥 Economia de ${combo.discountPercent}%!
-
+ 
 Serviços inclusos:
 ${combo.services.map((s: any) => `✓ ${s.name}`).join('\n')}
-
+ 
 Corre que é por tempo limitado! ⏰
-
+ 
 Agende: ${SITE_URL}
-
+ 
 Henrique Bilro Cabeleireiros 💅✨
             `.trim()
 
@@ -344,4 +323,95 @@ Henrique Bilro Cabeleireiros 💅✨
             await new Promise(resolve => setTimeout(resolve, 2000))
         }
     }
+}
+
+// ============================================
+// 6. REAGENDAMENTO
+// ============================================
+export async function notifyAppointmentRescheduled(
+    appointment: any,
+    oldDate: string,
+    oldTime: string
+) {
+    const { user, service, date, time, id } = appointment
+    const dateFormatted = new Date(date).toLocaleDateString('pt-BR')
+    const confirmToken = Buffer.from(`${id}:${Date.now()}`).toString('base64')
+    const confirmUrl = `${SITE_URL}/api/appointments/confirm?id=${id}&token=${confirmToken}`
+
+    const whatsappMessage = `
+🔄 *Agendamento Reagendado!*
+ 
+Oi ${user.name}!
+ 
+Seu agendamento foi reagendado com sucesso:
+ 
+❌ *De:* ${oldDate} às ${oldTime}
+✅ *Para:* ${dateFormatted} às ${time}
+💅 *Serviço:* ${service.name}
+ 
+📍 *Local:* Henrique Bilro Cabeleireiros
+Av. Rio Doce, 3101 – Potengi, Natal/RN
+ 
+⚠️ *Importante:*
+- Chegar 10 minutos antes
+- Cancelamentos com 24h de antecedência
+ 
+👉 *CONFIRME SUA PRESENÇA:*
+${confirmUrl}
+ 
+Nos vemos lá! 😊
+    `.trim()
+
+    if (user.phone) await sendWhatsApp(user.phone, whatsappMessage)
+
+    await sendAppointmentConfirmationEmail({
+        to: user.email,
+        name: user.name,
+        service: service.name,
+        date: dateFormatted,
+        time,
+        price: service.price,
+        appointmentId: id
+    })
+
+    await createNotification(
+        user.id,
+        '🔄 Agendamento Reagendado!',
+        `Seu agendamento foi reagendado para ${dateFormatted} às ${time}`,
+        'INFO'
+    )
+}
+
+// ============================================
+// 7. CANCELAMENTO
+// ============================================
+export async function notifyAppointmentCancelled(appointment: any, reason?: string) {
+    const { user, service, date, time } = appointment
+    const dateFormatted = new Date(date).toLocaleDateString('pt-BR')
+
+    const whatsappMessage = `
+❌ *Agendamento Cancelado*
+ 
+Oi ${user.name},
+ 
+Seu agendamento foi cancelado:
+ 
+📅 ${dateFormatted} às ${time}
+💅 ${service?.name || 'Serviço'}
+${reason ? `\n📝 Motivo: ${reason}` : ''}
+ 
+Para reagendar, acesse:
+${SITE_URL}
+ 
+Equipe Henrique Bilro 💕
+    `.trim()
+
+    if (user.phone) await sendWhatsApp(user.phone, whatsappMessage)
+
+    await createNotification(
+        user.id,
+        '❌ Agendamento Cancelado',
+        `Seu agendamento de ${dateFormatted} às ${time} foi cancelado`,
+        'ERROR'
+    )
 }
