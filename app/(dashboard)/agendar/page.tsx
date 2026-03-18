@@ -270,6 +270,7 @@ export default function AgendarPage() {
     const [services, setServices] = useState<Service[]>([]);
     const [combos, setCombos] = useState<ServiceCombo[]>([])
     const [loading, setLoading] = useState(false);
+    const [loadingSlots, setLoadingSlots] = useState(false);
 
     const [selectedServices, setSelectedServices] = useState<Map<string, number>>(new Map())
     const [selectedCombo, setSelectedCombo] = useState<ServiceCombo | null>(null)
@@ -378,48 +379,28 @@ export default function AgendarPage() {
 
     const fetchAvailableSlots = async (date: string) => {
         try {
-            setLoading(true);
-            setDateMessage(null);
+            setLoadingSlots(true)
+            setDateMessage(null)
 
-            const res = await fetch(`/api/available-slots?date=${date}`);
-            const data = await res.json();
+            const res = await fetch(`/api/available-slots?date=${date}`)
+            const data = await res.json()
 
             if (data.success) {
-                setAvailableSlots(data.data);
-
-                // ✅ CORREÇÃO: Só mostra aviso se NÃO houver horários
-                // Se tiver horários disponíveis, não mostra mensagem de bloqueio
+                setAvailableSlots(data.data)
                 if (data.data.length > 0) {
-                    // Dia com horários disponíveis
-                    setDateMessage({
-                        type: 'info',
-                        text: `${data.data.length} ${data.data.length === 1 ? 'horário disponível' : 'horários disponíveis'} para esta data`
-                    });
+                    setDateMessage({ type: 'info', text: `${data.data.length} horário${data.data.length > 1 ? 's disponíveis' : ' disponível'} para esta data` })
                 } else if (data.isHoliday) {
-                    setDateMessage({
-                        type: 'warning',
-                        text: data.message
-                    });
+                    setDateMessage({ type: 'warning', text: data.message })
                 } else if (data.isBlocked) {
-                    setDateMessage({
-                        type: 'error',
-                        text: data.message
-                    });
+                    setDateMessage({ type: 'error', text: data.message })
                 } else {
-                    setDateMessage({
-                        type: 'info',
-                        text: data.message || "Não há horários disponíveis para esta data"
-                    });
+                    setDateMessage({ type: 'info', text: data.message || 'Não há horários disponíveis para esta data' })
                 }
             }
         } catch (error) {
-            console.error("Erro ao buscar horários:", error);
-            setDateMessage({
-                type: 'error',
-                text: "Erro ao buscar horários disponíveis"
-            });
+            setDateMessage({ type: 'error', text: 'Erro ao buscar horários disponíveis' })
         } finally {
-            setLoading(false);
+            setLoadingSlots(false)
         }
     };
 
@@ -929,7 +910,7 @@ export default function AgendarPage() {
                                                 Horário Disponível *
                                             </label>
 
-                                            {loading ? (
+                                            {loadingSlots ? (
                                                 <div className="flex items-center justify-center py-8">
                                                     <Loader2 className="h-8 w-8 animate-spin text-gold" />
                                                 </div>
@@ -1265,7 +1246,7 @@ export default function AgendarPage() {
                                 </button>
 
                                 <p className="text-xs text-gray-500 text-center">
-                                    Você receberá uma confirmação por WhatsApp 24h antes do horário agendado.
+                                    Você receberá uma confirmação por WhatsApp em instantes.
                                 </p>
                             </div>
                         )}

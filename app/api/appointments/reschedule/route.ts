@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { parseDateSafe } from '@/lib/dateUtils'
+import { notifyAppointmentRescheduled } from '@/lib/notifications'
 
 export async function POST(request: Request) {
     try {
@@ -155,6 +156,25 @@ export async function POST(request: Request) {
                 }
             }
         })
+
+        const oldDateFormatted = appointment.date.toLocaleDateString('pt-BR')
+
+
+        try {
+            await notifyAppointmentRescheduled({
+                id: updatedAppointment.id,
+                user: updatedAppointment.user,
+                service: updatedAppointment.service || {
+                    name: updatedAppointment.combo?.name || 'Serviço',
+                    price: updatedAppointment.finalPrice
+                },
+                date: updatedAppointment.date,
+                time: updatedAppointment.time
+            }, oldDateFormatted, oldTime)
+            console.log('✅ WhatsApp de reagendamento enviado!')
+        } catch (notifError) {
+            console.error('⚠️ Erro ao enviar WhatsApp:', notifError)
+        }
 
         console.log('✅ [REAGENDAMENTO] Sucesso:', {
             id: updatedAppointment.id,

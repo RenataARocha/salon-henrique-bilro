@@ -6,6 +6,7 @@ import './globals.css'
 import { Providers } from '@/components/Providers'
 import WhatsAppButton from '@/components/WhatsAppButton'
 import ScrollToTopButton from '@/components/ScrollToTopButton'
+import { Toaster } from 'react-hot-toast';
 
 const playfair = Playfair_Display({
   subsets: ['latin'],
@@ -149,6 +150,7 @@ export default function RootLayout({
 
         <ScrollToTopButton />
         <WhatsAppButton />
+        <Toaster position="top-right" />
       </body>
     </html>
   )

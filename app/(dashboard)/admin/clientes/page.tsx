@@ -151,12 +151,12 @@ export default function ClientesPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="min-h-screen bg-beige py-6 sm:py-8 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-center py-20">
+                    <div className="flex items-center justify-center py-16 sm:py-20">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-                            <p className="text-gray-600">Carregando clientes...</p>
+                            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-gold mx-auto mb-4"></div>
+                            <p className="text-gray-600 text-sm sm:text-base">Carregando clientes...</p>
                         </div>
                     </div>
                 </div>
@@ -165,44 +165,43 @@ export default function ClientesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
-
+        <div className="min-h-screen bg-beige py-6 sm:py-8 px-4">
+            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
                 {/* Header */}
                 <motion.div
-                    className="flex items-center justify-between"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
                     <div>
-                        <h1 className="text-3xl font-bold text-charcoal mb-2">👥 Clientes</h1>
-                        <p className="text-gray-600">Gerencie todos os clientes do salão</p>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-charcoal mb-1 sm:mb-2">👥 Clientes</h1>
+                        <p className="text-gray-600 text-sm sm:text-base">Gerencie todos os clientes do salão</p>
                     </div>
+
                     {/* Navegação */}
-                    <div className="flex justify-end gap-3">
+                    <div className="flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
                         <Link
                             href="/admin"
-                            className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                            className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200 text-sm sm:text-base"
                         >
-                            <ArrowLeft size={20} />
+                            <ArrowLeft size={18} />
                             Painel
                         </Link>
 
                         <Link
                             href="/"
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold "
+                            className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold text-sm sm:text-base"
                         >
-                            <Home size={20} />
+                            <Home size={18} />
                             Voltar ao início
                         </Link>
                     </div>
                 </motion.div>
 
-
                 {/* Estatísticas */}
-                <div className="grid md:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                     {[
                         { label: 'Total de Clientes', value: stats.total, color: 'text-charcoal', extra: null },
                         { label: 'Novos', value: stats.new, color: 'text-blue-600', extra: 'Últimos 6 meses' },
@@ -213,16 +212,18 @@ export default function ClientesPage() {
                     ].map((stat, index) => (
                         <motion.div
                             key={stat.label}
-                            className="bg-white rounded-xl p-6 shadow"
+                            className="bg-white rounded-xl p-4 sm:p-6 shadow"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.4, delay: 0.2 + (index * 0.1) }}
                         >
-                            <p className="text-gray-600 text-sm mb-1">{stat.label}</p>
-                            <p className={`${stat.large ? 'text-2xl' : 'text-3xl'} font-bold ${stat.color}`}>
+                            <p className="text-gray-600 text-xs sm:text-sm mb-1">{stat.label}</p>
+                            <p className={`${stat.large ? 'text-xl sm:text-2xl' : 'text-2xl sm:text-3xl'} font-bold ${stat.color} break-words`}>
                                 {stat.value}
                             </p>
-                            {stat.extra && <p className="text-xs text-gray-500 mt-1">{stat.extra}</p>}
+                            {stat.extra && (
+                                <p className="text-xs text-gray-500 mt-1">{stat.extra}</p>
+                            )}
                         </motion.div>
                     ))}
                 </div>
@@ -234,71 +235,80 @@ export default function ClientesPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.8 }}
                 >
-                    <div className="flex gap-3">
+                    <div className="flex flex-col lg:flex-row gap-3">
                         <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                            <Search
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                size={18}
+                            />
                             <input
                                 type="text"
                                 placeholder="🔍 Buscar por nome, email ou telefone..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-10 py-3 border rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent transition-all"
+                                className="w-full pl-9 pr-9 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-gold focus:border-transparent transition-all"
                             />
                             {searchTerm && (
                                 <button
                                     onClick={() => setSearchTerm('')}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                 >
-                                    <X size={20} />
+                                    <X size={18} />
                                 </button>
                             )}
                         </div>
 
-                        <button
-                            onClick={() => setShowFilters(!showFilters)}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-lg border transition-all ${showFilters ? 'bg-gold text-white border-gold' : 'hover:bg-gray-50'
-                                }`}
-                        >
-                            <Filter size={20} />
-                            Filtros
-                        </button>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <button
+                                onClick={() => setShowFilters(!showFilters)}
+                                className={`flex items-center justify-center gap-2 px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg border transition-all ${showFilters
+                                    ? 'bg-gold text-white border-gold'
+                                    : 'hover:bg-gray-50'
+                                    }`}
+                            >
+                                <Filter size={18} />
+                                Filtros
+                            </button>
 
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value as SortOption)}
-                            className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold transition-all"
-                        >
-                            <option value="name-asc">Nome A-Z</option>
-                            <option value="name-desc">Nome Z-A</option>
-                            <option value="visits-desc">Mais Visitas</option>
-                            <option value="visits-asc">Menos Visitas</option>
-                            <option value="spent-desc">Maior Gasto</option>
-                            <option value="spent-asc">Menor Gasto</option>
-                            <option value="recent-desc">Mais Recente</option>
-                            <option value="recent-asc">Menos Recente</option>
-                        </select>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                                className="w-full sm:w-auto px-4 py-2.5 sm:py-3 text-sm sm:text-base border rounded-lg focus:ring-2 focus:ring-gold transition-all"
+                            >
+                                <option value="name-asc">Nome A-Z</option>
+                                <option value="name-desc">Nome Z-A</option>
+                                <option value="visits-desc">Mais Visitas</option>
+                                <option value="visits-asc">Menos Visitas</option>
+                                <option value="spent-desc">Maior Gasto</option>
+                                <option value="spent-asc">Menor Gasto</option>
+                                <option value="recent-desc">Mais Recente</option>
+                                <option value="recent-asc">Menos Recente</option>
+                            </select>
+                        </div>
                     </div>
 
                     {/* Filtros Avançados */}
                     {showFilters && (
                         <div className="border-t pt-4 space-y-4 animate-slide-down">
-                            <div className="flex items-center justify-between">
-                                <h3 className="font-semibold text-charcoal">Filtros Avançados</h3>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <h3 className="font-semibold text-charcoal text-sm sm:text-base">
+                                    Filtros Avançados
+                                </h3>
                                 <button
                                     onClick={clearFilters}
                                     className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1 transition-colors"
                                 >
-                                    <X size={16} />
+                                    <X size={14} />
                                     Limpar Todos
                                 </button>
                             </div>
 
-                            <div className="grid md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Tipo de Cliente
                                     </label>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         {[
                                             { value: 'all', label: 'Todos' },
                                             { value: 'new', label: '🆕 Novos' },
@@ -308,7 +318,7 @@ export default function ClientesPage() {
                                             <button
                                                 key={option.value}
                                                 onClick={() => setFilterByVisits(option.value as typeof filterByVisits)}
-                                                className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 ${filterByVisits === option.value
+                                                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-lg font-medium transition-all transform hover:scale-105 ${filterByVisits === option.value
                                                     ? 'bg-gold text-white shadow-lg'
                                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
@@ -323,7 +333,7 @@ export default function ClientesPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Status de Atividade
                                     </label>
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-wrap gap-2">
                                         {[
                                             { value: 'all', label: 'Todos' },
                                             { value: 'active', label: '✅ Ativos' },
@@ -332,7 +342,7 @@ export default function ClientesPage() {
                                             <button
                                                 key={option.value}
                                                 onClick={() => setFilterByStatus(option.value as typeof filterByStatus)}
-                                                className={`px-4 py-2 rounded-lg font-medium transition-all transform hover:scale-105 ${filterByStatus === option.value
+                                                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-lg font-medium transition-all transform hover:scale-105 ${filterByStatus === option.value
                                                     ? 'bg-gold text-white shadow-lg'
                                                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
@@ -349,9 +359,12 @@ export default function ClientesPage() {
 
                 {/* Lista de Clientes */}
                 {filteredClients.length > 0 ? (
-                    <div className="grid gap-4 max-h-[80vh] overflow-y-auto p-4">
-                        <p className="text-gray-600 animate-fade-in">
-                            {filteredClients.length} {filteredClients.length === 1 ? 'cliente encontrado' : 'clientes encontrados'}
+                    <div className="grid gap-4 max-h-[80vh] overflow-y-auto p-3 sm:p-4">
+                        <p className="text-gray-600 text-sm sm:text-base animate-fade-in">
+                            {filteredClients.length}{' '}
+                            {filteredClients.length === 1
+                                ? 'cliente encontrado'
+                                : 'clientes encontrados'}
                         </p>
 
                         {filteredClients.map((client, index) => {
@@ -359,46 +372,68 @@ export default function ClientesPage() {
                             return (
                                 <motion.div
                                     key={client.id}
-                                    className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all cursor-pointer"
+                                    className="bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all cursor-pointer"
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.4, delay: index * 0.05 }}
                                     onClick={() => setSelectedClientId(client.id)}
                                 >
-                                    <div className="flex items-start gap-4">
+                                    <div className="flex flex-col sm:flex-row items-start gap-4">
                                         {/* Avatar */}
-                                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-gold to-yellow-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0 animate-scale-in">
+                                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-gold to-yellow-600 flex items-center justify-center text-white text-xl sm:text-2xl font-bold flex-shrink-0 animate-scale-in">
                                             {client.name.charAt(0).toUpperCase()}
                                         </div>
 
                                         {/* Informações */}
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="text-xl font-bold text-charcoal">{client.name}</h3>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${badge.color} animate-fade-in`}>
+                                        <div className="flex-1 w-full">
+                                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                                                <h3 className="text-lg sm:text-xl font-bold text-charcoal break-words">
+                                                    {client.name}
+                                                </h3>
+                                                <span
+                                                    className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold ${badge.color} animate-fade-in w-fit`}
+                                                >
                                                     {badge.label}
                                                 </span>
                                             </div>
 
-                                            <div className="grid md:grid-cols-4 gap-4 text-sm">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-sm">
                                                 <div>
-                                                    <p className="text-gray-500 mb-1">Contato</p>
-                                                    <p className="font-semibold text-charcoal">{client.phone}</p>
-                                                    <p className="text-gray-600 text-xs">{client.email}</p>
+                                                    <p className="text-gray-500 mb-1">
+                                                        Contato
+                                                    </p>
+                                                    <p className="font-semibold text-charcoal break-words">
+                                                        {client.phone}
+                                                    </p>
+                                                    <p className="text-gray-600 text-xs break-words">
+                                                        {client.email}
+                                                    </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-gray-500 mb-1">Total de Visitas</p>
-                                                    <p className="font-semibold text-charcoal">{client.stats.totalAppointments} agendamentos</p>
+                                                    <p className="text-gray-500 mb-1">
+                                                        Total de Visitas
+                                                    </p>
+                                                    <p className="font-semibold text-charcoal">
+                                                        {client.stats.totalAppointments} agendamentos
+                                                    </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-gray-500 mb-1">Total Gasto</p>
-                                                    <p className="font-semibold text-gold">R$ {client.stats.totalSpent.toFixed(2)}</p>
+                                                    <p className="text-gray-500 mb-1">
+                                                        Total Gasto
+                                                    </p>
+                                                    <p className="font-semibold text-gold break-words">
+                                                        R$ {client.stats.totalSpent.toFixed(2)}
+                                                    </p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-gray-500 mb-1">Última Visita</p>
+                                                    <p className="text-gray-500 mb-1">
+                                                        Última Visita
+                                                    </p>
                                                     <p className="font-semibold text-charcoal">
                                                         {client.stats.lastAppointment
-                                                            ? new Date(client.stats.lastAppointment).toLocaleDateString('pt-BR')
+                                                            ? new Date(
+                                                                client.stats.lastAppointment
+                                                            ).toLocaleDateString('pt-BR')
                                                             : 'Nunca'}
                                                     </p>
                                                 </div>
@@ -406,11 +441,10 @@ export default function ClientesPage() {
                                         </div>
 
                                         {/* Ações Rápidas */}
-                                        <div className="flex flex-col gap-2">
-                                            <button className="px-4 py-2 bg-gold text-white rounded-lg hover:bg-yellow-600 transition-all text-sm font-semibold transform hover:scale-105">
+                                        <div className="flex flex-col sm:items-end gap-2 w-full sm:w-auto">
+                                            <button className="w-full sm:w-auto px-4 py-2 bg-gold text-white rounded-lg hover:bg-yellow-600 transition-all text-sm font-semibold transform hover:scale-105">
                                                 Ver Detalhes
                                             </button>
-
                                         </div>
                                     </div>
                                 </motion.div>
@@ -418,18 +452,23 @@ export default function ClientesPage() {
                         })}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center animate-fade-in">
-                        <p className="text-6xl mb-4">👥</p>
-                        <h3 className="text-2xl font-bold text-charcoal mb-2">Nenhum cliente encontrado</h3>
-                        <p className="text-gray-600">
+                    <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 lg:p-12 text-center animate-fade-in">
+                        <p className="text-5xl sm:text-6xl mb-3 sm:mb-4">👥</p>
+
+                        <h3 className="text-xl sm:text-2xl font-bold text-charcoal mb-2">
+                            Nenhum cliente encontrado
+                        </h3>
+
+                        <p className="text-gray-600 text-sm sm:text-base px-2 sm:px-0">
                             {searchTerm
                                 ? `Nenhum resultado para "${searchTerm}"`
                                 : 'Não há clientes cadastrados ainda'
                             }
                         </p>
+
                         <button
                             onClick={clearFilters}
-                            className="mt-4 text-gold hover:text-yellow-600 font-semibold transition-colors"
+                            className="mt-4 text-gold hover:text-yellow-600 font-semibold text-sm sm:text-base transition-colors"
                         >
                             Limpar filtros
                         </button>

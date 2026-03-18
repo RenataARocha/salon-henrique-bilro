@@ -14,7 +14,7 @@ export default function Navbar() {
 
     useEffect(() => {
         const handleScroll = () => {
-            setScrolled(window.scrollY > 20)
+            setScrolled(window.scrollY > 80)
         }
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
@@ -32,7 +32,12 @@ export default function Navbar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-charcoal/95 backdrop-blur-md shadow-lg' : 'bg-charcoal/90 backdrop-blur-sm'}`}
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300
+bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent)]
+${scrolled
+                    ? 'bg-[#0a0a0a]/90 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.4)] border-b border-white/5'
+                    : 'bg-transparent backdrop-blur-md'
+                }`}
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
@@ -52,16 +57,16 @@ export default function Navbar() {
                         animate={{ x: 0, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                        <a href="/#home" className="text-white hover-gold transition-colors text-sm font-medium">
+                        <a href="/#home" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium">
                             Home
                         </a>
-                        <a href="/#sobre" className="text-white hover-gold transition-colors text-sm font-medium">
+                        <a href="/#sobre" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium">
                             Sobre
                         </a>
-                        <a href="/#servicos" className="text-white hover-gold transition-colors text-sm font-medium">
+                        <a href="/#servicos" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium">
                             Serviços
                         </a>
-                        <a href="/#localizacao" className="text-white hover-gold transition-colors text-sm font-medium">
+                        <a href="/#localizacao" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium">
                             Localização
                         </a>
 

@@ -45,8 +45,6 @@ export default function HomeClient({ services }: HomeClientProps) {
         <>
             <Navbar />
 
-            <div className="h-20" />
-
             <main className="min-h-screen bg-beige">
 
                 <Hero />
@@ -54,12 +52,12 @@ export default function HomeClient({ services }: HomeClientProps) {
                 <About />
 
                 {/* SEÇÃO — Serviços */}
-                <section id="servicos" ref={servicesRef} className="py-20 bg-beige">
+                <section id="servicos" ref={servicesRef} className="py-14 sm:py-16 lg:py-20 bg-beige">
 
-                    <div className="max-w-7xl mx-auto px-4">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
                         <motion.h2
-                            className="text-4xl md:text-5xl font-bold text-center mb-4 text-charcoal"
+                            className="text-2xl sm:text-3xl md:text-5xl font-bold text-center mb-3 sm:mb-4 text-charcoal"
                             initial={{ opacity: 0, y: 30 }}
                             animate={isServicesInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                             transition={{ duration: 0.6 }}
@@ -68,7 +66,7 @@ export default function HomeClient({ services }: HomeClientProps) {
                         </motion.h2>
 
                         <motion.p
-                            className="text-center text-gray-600 mb-12 text-lg"
+                            className="text-center text-gray-600 mb-8 sm:mb-10 lg:mb-12 text-sm sm:text-base lg:text-lg"
                             initial={{ opacity: 0, y: 30 }}
                             animate={isServicesInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                             transition={{ duration: 0.6, delay: 0.2 }}
@@ -79,23 +77,23 @@ export default function HomeClient({ services }: HomeClientProps) {
                         {services.length > 0 ? (
                             <>
 
-                                {/* CARROSSEL DE SERVIÇOS com setas customizadas */}
-                                <div className="relative px-8">
+                                {/* CARROSSEL */}
+                                <div className="relative">
 
-                                    {/* Seta Anterior */}
+                                    {/* Seta Anterior (esconde no mobile) */}
                                     <button
                                         ref={prevRef}
-                                        className="absolute left-0 top-1/2 -translate-y-1/2 z-10
-                                                   w-11 h-11 rounded-full bg-white shadow-lg border border-gold/30
-                                                   flex items-center justify-center text-gold
-                                                   hover:bg-gold hover:text-white transition-all duration-200"
+                                        className="hidden sm:flex absolute -left-2 lg:left-0 top-1/2 -translate-y-1/2 z-10
+                                           w-10 h-10 lg:w-11 lg:h-11 rounded-full bg-white shadow-lg border border-gold/30
+                                           items-center justify-center text-gold
+                                           hover:bg-gold hover:text-white transition-all duration-200"
                                     >
-                                        <ChevronLeft size={22} />
+                                        <ChevronLeft size={20} />
                                     </button>
 
                                     <Swiper
                                         modules={[Autoplay, Navigation]}
-                                        spaceBetween={24}
+                                        spaceBetween={16}
                                         loop={true}
                                         autoplay={{
                                             delay: 4500,
@@ -112,8 +110,8 @@ export default function HomeClient({ services }: HomeClientProps) {
                                             swiper.params.navigation.nextEl = nextRef.current
                                         }}
                                         breakpoints={{
-                                            0: { slidesPerView: 1 },
-                                            640: { slidesPerView: 1 },
+                                            0: { slidesPerView: 1.1 },
+                                            640: { slidesPerView: 1.2 },
                                             768: { slidesPerView: 2 },
                                             1024: { slidesPerView: 3 },
                                         }}
@@ -127,6 +125,7 @@ export default function HomeClient({ services }: HomeClientProps) {
                                                     initial={{ opacity: 0, y: 50 }}
                                                     animate={isServicesInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
                                                     transition={{ duration: 0.5, delay: index * 0.1 }}
+                                                    className="h-full"
                                                 >
 
                                                     <ServiceCard
@@ -145,25 +144,27 @@ export default function HomeClient({ services }: HomeClientProps) {
 
                                     </Swiper>
 
-                                    {/* Seta Próxima */}
+                                    {/* Seta Próxima (esconde no mobile) */}
                                     <button
                                         ref={nextRef}
-                                        className="absolute right-0 top-1/2 -translate-y-1/2 z-10
-                                                   w-11 h-11 rounded-full bg-white shadow-lg border border-gold/30
-                                                   flex items-center justify-center text-gold
-                                                   hover:bg-gold hover:text-white transition-all duration-200"
+                                        className="hidden sm:flex absolute -right-2 lg:right-0 top-1/2 -translate-y-1/2 z-10
+                                           w-10 h-10 lg:w-11 lg:h-11 rounded-full bg-white shadow-lg border border-gold/30
+                                           items-center justify-center text-gold
+                                           hover:bg-gold hover:text-white transition-all duration-200"
                                     >
-                                        <ChevronRight size={22} />
+                                        <ChevronRight size={20} />
                                     </button>
 
                                 </div>
 
-                                {/* COMBOS EM DESTAQUE */}
-                                <FeaturedCombos />
+                                {/* COMBOS */}
+                                <div className="mt-10 sm:mt-12">
+                                    <FeaturedCombos />
+                                </div>
 
-                                {/* BOTÃO VER TODOS */}
+                                {/* BOTÃO */}
                                 <motion.div
-                                    className="text-center mt-12"
+                                    className="text-center mt-10 sm:mt-12"
                                     initial={{ opacity: 0, scale: 0.8 }}
                                     animate={isServicesInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
                                     transition={{ duration: 0.6, delay: 0.8 }}
@@ -171,7 +172,7 @@ export default function HomeClient({ services }: HomeClientProps) {
 
                                     <SmartBookingButton
                                         variant="link"
-                                        className="inline-block bg-gradient-gold text-white px-8 py-3 rounded-md hover:shadow-lg transition-all font-semibold cursor-pointer"
+                                        className="w-full sm:w-auto inline-block bg-gradient-gold text-white px-6 sm:px-8 py-3 rounded-md hover:shadow-lg transition-all text-sm sm:text-base font-semibold cursor-pointer"
                                     >
                                         Ver Todos os Serviços
                                     </SmartBookingButton>
@@ -182,15 +183,15 @@ export default function HomeClient({ services }: HomeClientProps) {
                         ) : (
 
                             <motion.div
-                                className="text-center py-12"
+                                className="text-center py-10 sm:py-12"
                                 initial={{ opacity: 0, y: 30 }}
                                 animate={isServicesInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
                                 transition={{ duration: 0.6 }}
                             >
 
-                                <p className="text-6xl mb-4">💇‍♀️</p>
+                                <p className="text-4xl sm:text-6xl mb-3 sm:mb-4">💇‍♀️</p>
 
-                                <p className="text-gray-600 text-lg">
+                                <p className="text-gray-600 text-sm sm:text-base lg:text-lg">
                                     Estamos preparando nossos serviços. Volte em breve!
                                 </p>
 
@@ -202,11 +203,8 @@ export default function HomeClient({ services }: HomeClientProps) {
 
                 </section>
 
-                {/* AVALIAÇÕES */}
                 <ReviewsCarousel />
-
                 <Location />
-
                 <CTA />
 
             </main>

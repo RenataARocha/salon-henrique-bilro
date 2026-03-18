@@ -146,27 +146,43 @@ const FinancialDashboard = () => {
             }}
         >
             {/* Métricas Principais */}
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {/* Hoje */}
                 <motion.div
                     variants={cardAnimation}
-                    className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white"
+                    className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-4 sm:p-6 text-white"
                 >
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold opacity-90">💰 RECEITA HOJE</h3>
+                    <div className="flex items-start justify-between gap-2 mb-3 sm:mb-4">
+
+                        <h3 className="text-xs sm:text-sm font-semibold opacity-90">
+                            💰 RECEITA HOJE
+                        </h3>
+
                         {data.comparisons.today.change !== 0 && (
-                            <div className={`flex items-center gap-1 ${data.comparisons.today.change > 0 ? 'text-green-200' : 'text-red-200'}`}>
-                                {data.comparisons.today.change > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                                <span className="text-sm font-semibold">
+                            <div
+                                className={`flex items-center gap-1 ${data.comparisons.today.change > 0
+                                    ? 'text-green-200'
+                                    : 'text-red-200'
+                                    }`}
+                            >
+                                {data.comparisons.today.change > 0 ? (
+                                    <TrendingUp size={14} />
+                                ) : (
+                                    <TrendingDown size={14} />
+                                )}
+
+                                <span className="text-xs sm:text-sm font-semibold">
                                     {Math.abs(data.comparisons.today.change).toFixed(1)}%
                                 </span>
                             </div>
                         )}
                     </div>
-                    <p className="text-3xl font-bold mb-1">
+
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1">
                         R$ {data.comparisons.today.revenue.toFixed(2)}
                     </p>
-                    <p className="text-sm opacity-75">
+
+                    <p className="text-xs sm:text-sm opacity-75">
                         {data.comparisons.today.change > 0 ? '↑' : '↓'} vs ontem
                     </p>
                 </motion.div>
@@ -174,22 +190,39 @@ const FinancialDashboard = () => {
                 {/* Semana */}
                 <motion.div
                     variants={cardAnimation}
-                    className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold opacity-90">📊 ESTA SEMANA</h3>
+                    className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-4 sm:p-6 text-white hover:scale-[1.02] transition-transform"
+                >
+                    <div className="flex items-start justify-between gap-2 mb-3 sm:mb-4">
+
+                        <h3 className="text-xs sm:text-sm font-semibold opacity-90">
+                            📊 ESTA SEMANA
+                        </h3>
+
                         {data.comparisons.week.change !== 0 && (
-                            <div className={`flex items-center gap-1 ${data.comparisons.week.change > 0 ? 'text-green-200' : 'text-red-200'}`}>
-                                {data.comparisons.week.change > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                                <span className="text-sm font-semibold">
+                            <div
+                                className={`flex items-center gap-1 ${data.comparisons.week.change > 0
+                                    ? 'text-green-200'
+                                    : 'text-red-200'
+                                    }`}
+                            >
+                                {data.comparisons.week.change > 0 ? (
+                                    <TrendingUp size={14} />
+                                ) : (
+                                    <TrendingDown size={14} />
+                                )}
+
+                                <span className="text-xs sm:text-sm font-semibold">
                                     {Math.abs(data.comparisons.week.change).toFixed(1)}%
                                 </span>
                             </div>
                         )}
                     </div>
-                    <p className="text-3xl font-bold mb-1">
+
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1">
                         R$ {data.comparisons.week.revenue.toFixed(2)}
                     </p>
-                    <p className="text-sm opacity-75">
+
+                    <p className="text-xs sm:text-sm opacity-75">
                         {data.comparisons.week.change > 0 ? '↑' : '↓'} vs semana passada
                     </p>
                 </motion.div>
@@ -197,22 +230,39 @@ const FinancialDashboard = () => {
                 {/* Mês */}
                 <motion.div
                     variants={cardAnimation}
-                    className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg p-6 text-white">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold opacity-90">📅 ESTE MÊS</h3>
+                    className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-xl shadow-lg p-4 sm:p-6 text-white hover:scale-[1.02] transition-transform"
+                >
+                    <div className="flex items-start justify-between gap-2 mb-3 sm:mb-4">
+
+                        <h3 className="text-xs sm:text-sm font-semibold opacity-90">
+                            📅 ESTE MÊS
+                        </h3>
+
                         {data.comparisons.month.change !== 0 && (
-                            <div className={`flex items-center gap-1 ${data.comparisons.month.change > 0 ? 'text-green-200' : 'text-red-200'}`}>
-                                {data.comparisons.month.change > 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                                <span className="text-sm font-semibold">
+                            <div
+                                className={`flex items-center gap-1 ${data.comparisons.month.change > 0
+                                    ? 'text-green-200'
+                                    : 'text-red-200'
+                                    }`}
+                            >
+                                {data.comparisons.month.change > 0 ? (
+                                    <TrendingUp size={14} />
+                                ) : (
+                                    <TrendingDown size={14} />
+                                )}
+
+                                <span className="text-xs sm:text-sm font-semibold">
                                     {Math.abs(data.comparisons.month.change).toFixed(1)}%
                                 </span>
                             </div>
                         )}
                     </div>
-                    <p className="text-3xl font-bold mb-1">
+
+                    <p className="text-xl sm:text-2xl lg:text-3xl font-bold mb-1">
                         R$ {data.comparisons.month.revenue.toFixed(2)}
                     </p>
-                    <p className="text-sm opacity-75">
+
+                    <p className="text-xs sm:text-sm opacity-75">
                         {data.comparisons.month.change > 0 ? '↑' : '↓'} vs mês passado
                     </p>
                 </motion.div>
@@ -221,52 +271,71 @@ const FinancialDashboard = () => {
             {/* Meta Mensal */}
             <motion.div
                 variants={cardAnimation}
-                className="bg-white rounded-xl shadow-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                    <Target className="text-pink-500" size={24} />
-                    <h3 className="text-xl font-bold text-gray-800">🎯 META MENSAL</h3>
+                className="bg-white rounded-xl shadow-lg p-4 sm:p-6"
+            >
+                {/* Header */}
+                <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                    <Target className="text-pink-500" size={20} />
+                    <h3 className="text-base sm:text-xl font-bold text-gray-800">
+                        🎯 META MENSAL
+                    </h3>
                 </div>
 
                 <div className="space-y-4">
-                    <div className="flex justify-between items-baseline">
-                        <span className="text-3xl font-bold text-gray-800">
+
+                    {/* Valor + % */}
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-1">
+                        <span className="text-2xl sm:text-3xl font-bold text-gray-800">
                             {formatCurrency(monthlyGoal)}
                         </span>
-                        <span className="text-lg text-gray-600">
+
+                        <span className="text-sm sm:text-lg text-gray-600">
                             {goalProgress.toFixed(1)}% atingido
                         </span>
                     </div>
 
-                    <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                    {/* Barra */}
+                    <div className="w-full bg-gray-200 rounded-full h-3 sm:h-4 overflow-hidden">
                         <div
-                            className={`h-full rounded-full transition-all ${goalProgress >= 100 ? 'bg-green-500' : goalProgress >= 80 ? 'bg-yellow-500' : 'bg-pink-500'
+                            className={`h-full rounded-full transition-all ${goalProgress >= 100
+                                ? 'bg-green-500'
+                                : goalProgress >= 80
+                                    ? 'bg-yellow-500'
+                                    : 'bg-pink-500'
                                 }`}
                             style={{ width: `${Math.min(goalProgress, 100)}%` }}
-                        ></div>
+                        />
                     </div>
 
-                    {goalRemaining > 0 && (
-                        <p className="text-gray-600">
-                            Faltam <span className="font-bold text-pink-600">{formatCurrency(goalRemaining)}</span> para atingir a meta
+                    {/* Status */}
+                    {goalRemaining > 0 ? (
+                        <p className="text-sm sm:text-base text-gray-600">
+                            Faltam{" "}
+                            <span className="font-bold text-pink-600">
+                                {formatCurrency(goalRemaining)}
+                            </span>{" "}
+                            para atingir a meta
                         </p>
-                    )}
-                    {goalRemaining <= 0 && (
-                        <p className="text-green-600 font-bold">
+                    ) : (
+                        <p className="text-green-600 font-bold text-sm sm:text-base">
                             🎉 Meta atingida! Parabéns!
                         </p>
                     )}
 
+                    {/* Editar */}
                     {!editingGoal && (
                         <button
                             onClick={() => setEditingGoal(true)}
-                            className="text-sm text-pink-600"
+                            className="text-xs sm:text-sm text-pink-600 font-semibold"
                         >
                             Editar meta
                         </button>
                     )}
 
+                    {/* Input */}
                     {editingGoal && (
-                        <div className="flex gap-2 items-center">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+
                             <input
                                 type="text"
                                 value={formatCurrency(goalInput)}
@@ -274,180 +343,282 @@ const FinancialDashboard = () => {
                                     const raw = e.target.value.replace(/\D/g, "")
                                     setGoalInput(Number(raw))
                                 }}
-                                className="border rounded px-3 py-2 w-40"
+                                className="border rounded px-3 py-2 w-full sm:w-40 text-sm"
                             />
 
-                            <button
-                                onClick={saveGoal}
-                                className="bg-pink-500 text-white px-4 py-2 rounded"
-                            >
-                                Salvar
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={saveGoal}
+                                    className="bg-pink-500 text-white px-3 sm:px-4 py-2 rounded text-sm"
+                                >
+                                    Salvar
+                                </button>
 
-                            <button
-                                onClick={() => setEditingGoal(false)}
-                                className="text-gray-500"
-                            >
-                                Cancelar
-                            </button>
+                                <button
+                                    onClick={() => setEditingGoal(false)}
+                                    className="text-gray-500 text-sm"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+
                         </div>
-
-
                     )}
-                </div>
-                <div className="bg-white rounded-xl shadow p-6">
-                    <h3 className="font-bold mb-2">
-                        📈 Previsão do mês
-                    </h3>
 
-                    <p className={`text-3xl font-bold ${data.projection.projectedRevenue >= monthlyGoal
-                        ? "text-green-600"
-                        : "text-orange-500"
-                        }`}>
-                        {formatCurrency(data.projection.projectedRevenue)}
-                    </p>
+                    {/* Previsão */}
+                    <div className="bg-gray-50 rounded-lg p-4 mt-4">
+                        <h3 className="font-semibold text-sm sm:text-base mb-1">
+                            📈 Previsão do mês
+                        </h3>
 
-                    <p className="text-sm text-gray-500">
-                        Baseado na média diária
-                    </p>
+                        <p
+                            className={`text-xl sm:text-2xl font-bold ${data.projection.projectedRevenue >= monthlyGoal
+                                ? "text-green-600"
+                                : "text-orange-500"
+                                }`}
+                        >
+                            {formatCurrency(data.projection.projectedRevenue)}
+                        </p>
+
+                        <p className="text-xs sm:text-sm text-gray-500">
+                            Baseado na média diária
+                        </p>
+                    </div>
+
                 </div>
             </motion.div>
 
-            {/* Gráfico de Receita (Últimos 30 dias) */}
+            {/* Gráfico de Receita */}
             <motion.div
                 variants={cardAnimation}
-                className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    <Calendar size={24} className="text-purple-500" />
-                    Receita nos Últimos 30 Dias
+                className="bg-white rounded-xl shadow-lg p-4 sm:p-6"
+            >
+                <h3 className="text-base sm:text-xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
+                    <Calendar size={20} className="text-purple-500" />
+                    Receita (30 dias)
                 </h3>
-                <ResponsiveContainer width="100%" height={300}>
+
+                <ResponsiveContainer width="100%" height={250}>
                     <LineChart data={data.charts.revenueByDay}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+
                         <XAxis
                             dataKey="date"
                             tickFormatter={(date) => new Date(date).getDate().toString()}
-                            stroke="#666"
+                            stroke="#999"
+                            fontSize={10}
                         />
+
                         <YAxis
                             tickFormatter={(value) => `R$ ${value}`}
-                            stroke="#666"
+                            stroke="#999"
+                            fontSize={10}
                         />
+
                         <Tooltip
                             formatter={(value: any) => `R$ ${value.toFixed(2)}`}
-                            labelFormatter={(date) => new Date(date).toLocaleDateString('pt-BR')}
+                            labelFormatter={(date) =>
+                                new Date(date).toLocaleDateString('pt-BR')
+                            }
                         />
+
                         <Line
                             type="monotone"
                             dataKey="revenue"
                             stroke="#ec4899"
-                            strokeWidth={3}
-                            dot={{ fill: '#ec4899', r: 4 }}
-                            activeDot={{ r: 6 }}
+                            strokeWidth={2}
+                            dot={false} // 🔥 remove poluição no mobile
+                            activeDot={{ r: 5 }}
                         />
                     </LineChart>
                 </ResponsiveContainer>
             </motion.div>
 
             <motion.div
-                variants={cardAnimation} className="grid md:grid-cols-2 gap-6">
+                variants={cardAnimation}
+                className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6"
+            >
                 {/* Serviços Mais Vendidos */}
                 <motion.div
-                    variants={cardAnimation} className="bg-white rounded-xl shadow-lg p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                        <DollarSign size={24} className="text-green-500" />
+                    variants={cardAnimation}
+                    className="bg-white rounded-xl shadow-lg p-4 sm:p-6"
+                >
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
+                        <DollarSign size={20} className="text-green-500 sm:w-6 sm:h-6" />
                         Serviços Mais Vendidos
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                            <Pie
-                                data={data.charts.topServices.slice(0, 6)}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={(entry: any) => `${entry.name}: R$ ${entry.revenue.toFixed(0)}`}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="revenue"
-                            >
-                                {data.charts.topServices.slice(0, 6).map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
-                        </PieChart>
-                    </ResponsiveContainer>
+
+                    <div className="w-full h-[220px] sm:h-[260px] md:h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={data.charts.topServices.slice(0, 6)}
+                                    cx="50%"
+                                    cy="50%"
+                                    labelLine={false}
+                                    label={({ name, percent }: any) =>
+                                        window.innerWidth < 640
+                                            ? `${name}`
+                                            : `${name}: ${(percent * 100).toFixed(0)}%`
+                                    }
+                                    outerRadius={window.innerWidth < 640 ? 60 : 80}
+                                    fill="#8884d8"
+                                    dataKey="revenue"
+                                >
+                                    {data.charts.topServices.slice(0, 6).map((entry, index) => (
+                                        <Cell
+                                            key={`cell-${index}`}
+                                            fill={COLORS[index % COLORS.length]}
+                                        />
+                                    ))}
+                                </Pie>
+
+                                <Tooltip
+                                    formatter={(value: any) => `R$ ${value.toFixed(2)}`}
+                                />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
                 </motion.div>
 
+
                 {/* Horários de Pico */}
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                    <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                        <Clock size={24} className="text-blue-500" />
+                <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
+                        <Clock size={20} className="text-blue-500 sm:w-6 sm:h-6" />
                         Horários de Pico
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={data.charts.peakHours}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                            <XAxis dataKey="hour" stroke="#666" />
-                            <YAxis stroke="#666" />
-                            <Tooltip />
-                            <Bar dataKey="appointments" fill="#8b5cf6" radius={[8, 8, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+
+                    <div className="w-full h-[220px] sm:h-[260px] md:h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={data.charts.peakHours}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+
+                                <XAxis
+                                    dataKey="hour"
+                                    stroke="#666"
+                                    tick={{ fontSize: 10 }}
+                                    interval={0}
+                                    angle={window.innerWidth < 640 ? -30 : 0}
+                                    textAnchor={window.innerWidth < 640 ? "end" : "middle"}
+                                />
+
+                                <YAxis
+                                    stroke="#666"
+                                    tick={{ fontSize: 10 }}
+                                    width={30}
+                                />
+
+                                <Tooltip />
+
+                                <Bar
+                                    dataKey="appointments"
+                                    fill="#8b5cf6"
+                                    radius={[8, 8, 0, 0]}
+                                    barSize={window.innerWidth < 640 ? 20 : 30}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
+
+                {/* Comparativo Mensal */}
+                <motion.div
+                    variants={cardAnimation}
+                    className="bg-white rounded-xl shadow-lg p-4 sm:p-6"
+                >
+                    <h3 className="text-base sm:text-lg md:text-xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
+                        <Users size={20} className="text-pink-500 sm:w-6 sm:h-6" />
+                        Comparativo Mensal
+                    </h3>
+
+                    <div className="w-full h-[220px] sm:h-[260px] md:h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={data.charts.monthlyRevenue}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+
+                                <XAxis
+                                    dataKey="month"
+                                    stroke="#666"
+                                    tick={{ fontSize: 10 }}
+                                    angle={window.innerWidth < 640 ? -30 : 0}
+                                    textAnchor={window.innerWidth < 640 ? "end" : "middle"}
+                                />
+
+                                <YAxis
+                                    stroke="#666"
+                                    tick={{ fontSize: 10 }}
+                                    width={50}
+                                    tickFormatter={(value) =>
+                                        window.innerWidth < 640 ? `R$${value}` : `R$ ${value}`
+                                    }
+                                />
+
+                                <Tooltip
+                                    formatter={(value: any) => `R$ ${value.toFixed(2)}`}
+                                />
+
+                                <Legend
+                                    wrapperStyle={{
+                                        fontSize: window.innerWidth < 640 ? "10px" : "12px",
+                                    }}
+                                />
+
+                                <Bar
+                                    dataKey="revenue"
+                                    fill="#ec4899"
+                                    radius={[8, 8, 0, 0]}
+                                    name="Receita"
+                                    barSize={window.innerWidth < 640 ? 20 : 30}
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </motion.div>
+
+                {/* Resumo */}
+                <motion.div
+                    variants={cardAnimation}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
+                >
+                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-5 border-l-4 border-blue-500">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                            Total de Agendamentos
+                        </p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-800 break-words">
+                            {data.summary.totalAppointments}
+                        </p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-5 border-l-4 border-green-500">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                            Ticket Médio
+                        </p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-800 break-words">
+                            R$ {data.summary.averageTicket.toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-5 border-l-4 border-purple-500">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                            Receita Total
+                        </p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-800 break-words">
+                            R$ {data.summary.totalRevenue.toFixed(2)}
+                        </p>
+                    </div>
+
+                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-5 border-l-4 border-pink-500">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">
+                            Descontos Dados
+                        </p>
+                        <p className="text-xl sm:text-2xl font-bold text-gray-800 break-words">
+                            R$ {data.summary.totalDiscount.toFixed(2)}
+                        </p>
+                    </div>
+                </motion.div>
             </motion.div>
-
-            {/* Comparativo Mensal */}
-            <motion.div
-                variants={cardAnimation}
-                className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    <Users size={24} className="text-pink-500" />
-                    Comparativo Mensal
-                </h3>
-                <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={data.charts.monthlyRevenue}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="month" stroke="#666" />
-                        <YAxis tickFormatter={(value) => `R$ ${value}`} stroke="#666" />
-                        <Tooltip formatter={(value: any) => `R$ ${value.toFixed(2)}`} />
-                        <Legend />
-                        <Bar dataKey="revenue" fill="#ec4899" radius={[8, 8, 0, 0]} name="Receita" />
-                    </BarChart>
-                </ResponsiveContainer>
-            </motion.div>
-
-            {/* Resumo */}
-            <motion.div
-                variants={cardAnimation}
-                className="grid md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
-                    <p className="text-sm text-gray-600 mb-1">Total de Agendamentos</p>
-                    <p className="text-2xl font-bold text-gray-800">{data.summary.totalAppointments}</p>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-green-500">
-                    <p className="text-sm text-gray-600 mb-1">Ticket Médio</p>
-                    <p className="text-2xl font-bold text-gray-800">
-                        R$ {data.summary.averageTicket.toFixed(2)}
-                    </p>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-purple-500">
-                    <p className="text-sm text-gray-600 mb-1">Receita Total</p>
-                    <p className="text-2xl font-bold text-gray-800">
-                        R$ {data.summary.totalRevenue.toFixed(2)}
-                    </p>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-pink-500">
-                    <p className="text-sm text-gray-600 mb-1">Descontos Dados</p>
-                    <p className="text-2xl font-bold text-gray-800">
-                        R$ {data.summary.totalDiscount.toFixed(2)}
-                    </p>
-                </div>
-            </motion.div>
-        </motion.div >
+        </motion.div>
     );
 };
 

@@ -253,12 +253,12 @@ export default function AdminCombosPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="min-h-screen bg-beige py-6 sm:py-8 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-center py-20">
+                    <div className="flex items-center justify-center py-16 sm:py-20">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-                            <p className="text-gray-600">Carregando...</p>
+                            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-gold mx-auto mb-4"></div>
+                            <p className="text-gray-600 text-sm sm:text-base">Carregando...</p>
                         </div>
                     </div>
                 </div>
@@ -267,45 +267,44 @@ export default function AdminCombosPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-beige py-6 sm:py-8 px-4">
+            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
                 <AdminHeader
                     title="Combos Promocionais"
                     description="Crie pacotes de serviços com desconto"
-                    showBackButton={true}
                 />
 
                 {/* Botão Adicionar */}
                 <motion.div
-                    className="flex justify-end"
+                    className="flex flex-col sm:flex-row sm:justify-end sm:items-center items-center gap-3"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
                     <button
                         onClick={() => handleOpenModal()}
-                        className="flex items-center gap-2 bg-gradient-gold text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 bg-gradient-gold text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
                     >
-                        <Plus size={20} />
+                        <Plus size={18} />
                         Criar Novo Combo
                     </button>
                 </motion.div>
 
                 {/* Lista de Combos */}
                 {combos.length > 0 ? (
-                    <div className="grid md:grid-cols-2 gap-6 max-h-[90vh] overflow-y-auto p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-h-[90vh] overflow-y-auto p-3 sm:p-4">
                         {combos.map((combo, index) => (
                             <motion.div
                                 key={combo.id}
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                                className={`bg-white rounded-xl shadow-lg p-6 border-2 ${combo.active ? 'border-gold' : 'border-gray-300 '
-                                    } ${combo.featured ? 'ring-2 ring-yellow-400' : ''}`}  // ✅ ADICIONAR
+                                className={`bg-white rounded-xl shadow-lg p-4 sm:p-6 border-2 ${combo.active ? 'border-gold' : 'border-gray-300'
+                                    } ${combo.featured ? 'ring-2 ring-yellow-400' : ''}`}
                             >
                                 {combo.featured && (
-                                    <div className="mb-3 flex items-center gap-2 text-yellow-600 text-sm font-bold">
-                                        <Gift size={16} className="fill-yellow-400" />
+                                    <div className="mb-2 sm:mb-3 flex items-center gap-2 text-yellow-600 text-xs sm:text-sm font-bold">
+                                        <Gift size={14} className="fill-yellow-400" />
                                         <span>Destaque na Home</span>
                                     </div>
                                 )}
@@ -316,61 +315,73 @@ export default function AdminCombosPage() {
                                         setComboSelecionado({ id: combo.id, name: combo.name })
                                         setModalEnvioAberto(true)
                                     }}
-                                    className="w-full mb-3 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 bg-green-100 text-green-700 hover:bg-green-200"
+                                    className="w-full mb-2 sm:mb-3 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 bg-green-100 text-green-700 hover:bg-green-200 text-xs sm:text-sm"
                                 >
-                                    <Send size={16} />
+                                    <Send size={14} />
                                     📢 Enviar para Clientes
                                 </button>
 
-                                <div className="flex items-start justify-between mb-4">
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3 sm:mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="bg-gold/10 p-3 rounded-lg">
-                                            <Gift className="text-gold" size={24} />
+                                        <div className="bg-gold/10 p-2 sm:p-3 rounded-lg">
+                                            <Gift className="text-gold" size={20} />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-charcoal">
+                                            <h3 className="text-lg sm:text-xl font-bold text-charcoal">
                                                 {combo.name}
                                             </h3>
                                             {combo.description && (
-                                                <p className="text-sm text-gray-600">{combo.description}</p>
+                                                <p className="text-xs sm:text-sm text-gray-600">
+                                                    {combo.description}
+                                                </p>
                                             )}
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center justify-center sm:justify-end gap-2 flex-wrap">
                                         <button
                                             onClick={() => handleToggleActive(combo)}
-                                            className={`p-2 rounded-lg transition-colors ${combo.active
+                                            className={`p-2 sm:p-2.5 rounded-lg transition-colors ${combo.active
                                                 ? 'bg-green-100 text-green-700 hover:bg-green-200'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                 }`}
                                             title={combo.active ? 'Desativar' : 'Ativar'}
                                         >
-                                            {combo.active ? <Check size={18} /> : <X size={18} />}
+                                            {combo.active ? <Check size={16} /> : <X size={16} />}
                                         </button>
+
                                         <button
                                             onClick={() => handleOpenModal(combo)}
-                                            className="p-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                                            className="p-2 sm:p-2.5 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
                                         >
-                                            <Edit2 size={18} />
+                                            <Edit2 size={16} />
                                         </button>
+
                                         <button
                                             onClick={() => handleDelete(combo.id)}
-                                            className="p-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
+                                            className="p-2 sm:p-2.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition-colors"
                                         >
-                                            <Trash2 size={18} />
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Serviços do Combo */}
-                                <div className="bg-beige/50 rounded-lg p-4 mb-4">
-                                    <p className="text-sm font-semibold text-gray-700 mb-2">Serviços inclusos:</p>
+                                <div className="bg-beige/50 rounded-lg p-3 sm:p-4 mb-3 sm:mb-4">
+                                    <p className="text-xs sm:text-sm font-semibold text-gray-700 mb-2">
+                                        Serviços inclusos:
+                                    </p>
+
                                     <ul className="space-y-1">
                                         {combo.services.map(service => (
-                                            <li key={service.id} className="text-sm text-gray-600 flex items-center gap-2">
+                                            <li
+                                                key={service.id}
+                                                className="text-xs sm:text-sm text-gray-600 flex items-center gap-2"
+                                            >
                                                 <span className="w-1.5 h-1.5 bg-gold rounded-full"></span>
-                                                {service.name} - R$ {service.price.toFixed(2)}
+                                                <span className="break-words">
+                                                    {service.name} - R$ {service.price.toFixed(2)}
+                                                </span>
                                             </li>
                                         ))}
                                     </ul>
@@ -378,34 +389,39 @@ export default function AdminCombosPage() {
 
                                 <button
                                     onClick={() => handleToggleFeatured(combo)}
-                                    className={`w-full mb-3 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${combo.featured
+                                    className={`w-full mb-2 sm:mb-3 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-xs sm:text-sm ${combo.featured
                                         ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
                                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
-                                    <Gift size={16} className={combo.featured ? 'fill-yellow-400' : ''} />
+                                    <Gift size={14} className={combo.featured ? 'fill-yellow-400' : ''} />
                                     {combo.featured ? 'Remover da Home' : 'Destacar na Home'}
                                 </button>
+
                                 {/* Preços */}
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm text-gray-600">Valor original:</span>
-                                        <span className="text-sm text-gray-400 line-through">
+                                        <span className="text-xs sm:text-sm text-gray-600">Valor original:</span>
+                                        <span className="text-xs sm:text-sm text-gray-400 line-through">
                                             R$ {combo.originalPrice.toFixed(2)}
                                         </span>
                                     </div>
+
                                     <div className="flex items-center justify-between">
-                                        <span className="text-sm font-semibold text-green-600 flex items-center gap-1">
-                                            <Percent size={14} />
+                                        <span className="text-xs sm:text-sm font-semibold text-green-600 flex items-center gap-1">
+                                            <Percent size={12} />
                                             Desconto ({combo.discountPercent}%):
                                         </span>
-                                        <span className="text-sm font-semibold text-green-600">
+                                        <span className="text-xs sm:text-sm font-semibold text-green-600">
                                             - R$ {(combo.originalPrice - combo.comboPrice).toFixed(2)}
                                         </span>
                                     </div>
+
                                     <div className="border-t pt-2 flex items-center justify-between">
-                                        <span className="text-lg font-bold text-charcoal">Valor do combo:</span>
-                                        <span className="text-2xl font-bold text-gold">
+                                        <span className="text-base sm:text-lg font-bold text-charcoal">
+                                            Valor do combo:
+                                        </span>
+                                        <span className="text-xl sm:text-2xl font-bold text-gold">
                                             R$ {combo.comboPrice.toFixed(2)}
                                         </span>
                                     </div>
@@ -414,17 +430,20 @@ export default function AdminCombosPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <Gift size={64} className="text-gray-300 mx-auto mb-4" />
-                        <h3 className="text-2xl font-bold text-charcoal mb-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 lg:p-12 text-center">
+                        <Gift size={48} className="sm:w-[64px] sm:h-[64px] text-gray-300 mx-auto mb-4" />
+
+                        <h3 className="text-xl sm:text-2xl font-bold text-charcoal mb-2">
                             Nenhum combo criado
                         </h3>
-                        <p className="text-gray-600 mb-6">
+
+                        <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6 px-2 sm:px-0">
                             Crie combos promocionais para oferecer pacotes de serviços com desconto
                         </p>
+
                         <button
                             onClick={() => handleOpenModal()}
-                            className="bg-gradient-gold text-white px-8 py-3 rounded-lg font-semibold hover:shadow-lg transition-all"
+                            className="w-full sm:w-auto bg-gradient-gold text-white px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-semibold hover:shadow-lg transition-all text-sm sm:text-base"
                         >
                             Criar Primeiro Combo
                         </button>
@@ -433,31 +452,31 @@ export default function AdminCombosPage() {
 
                 {/* Modal de Criar/Editar */}
                 {showModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
                         <motion.div
-                            className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                            className="bg-white rounded-2xl max-w-4xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-y-auto"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="p-6 border-b sticky top-0 bg-white">
-                                <div className="flex items-center justify-between">
-                                    <h2 className="text-2xl font-bold text-charcoal">
+                            <div className="p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
+                                <div className="flex items-start sm:items-center justify-between gap-3">
+                                    <h2 className="text-xl sm:text-2xl font-bold text-charcoal leading-tight">
                                         {editingCombo ? 'Editar Combo' : 'Criar Novo Combo'}
                                     </h2>
                                     <button
                                         onClick={handleCloseModal}
-                                        className="text-gray-400 hover:text-gray-600"
+                                        className="text-gray-400 hover:text-gray-600 flex-shrink-0"
                                     >
-                                        <X size={24} />
+                                        <X size={20} className="sm:w-[24px] sm:h-[24px]" />
                                     </button>
                                 </div>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                                 {/* Nome */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                    <label className="block text-xs sm:text-sm font-semibold text-charcoal mb-2">
                                         Nome do Combo *
                                     </label>
                                     <input
@@ -466,13 +485,13 @@ export default function AdminCombosPage() {
                                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                                         placeholder="Ex: Combo Beleza Completa"
                                         required
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
                                     />
                                 </div>
 
                                 {/* Descrição */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                    <label className="block text-xs sm:text-sm font-semibold text-charcoal mb-2">
                                         Descrição (opcional)
                                     </label>
                                     <textarea
@@ -480,13 +499,13 @@ export default function AdminCombosPage() {
                                         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                                         placeholder="Descreva o que está incluído neste combo..."
                                         rows={3}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all resize-none"
+                                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all resize-none"
                                     />
                                 </div>
 
                                 {/* Desconto */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                    <label className="block text-xs sm:text-sm font-semibold text-charcoal mb-2">
                                         Desconto (%) *
                                     </label>
                                     <input
@@ -494,24 +513,30 @@ export default function AdminCombosPage() {
                                         min="1"
                                         max="90"
                                         value={formData.discountPercent}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, discountPercent: parseInt(e.target.value) || 0 }))}
+                                        onChange={(e) =>
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                discountPercent: parseInt(e.target.value) || 0
+                                            }))
+                                        }
                                         required
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
+                                        className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border-2 border-gray-300 rounded-lg focus:border-gold focus:ring-2 focus:ring-gold/20 transition-all"
                                     />
                                 </div>
 
                                 {/* Seleção de Serviços */}
                                 <div>
-                                    <label className="block text-sm font-semibold text-charcoal mb-2">
+                                    <label className="block text-xs sm:text-sm font-semibold text-charcoal mb-2">
                                         Serviços do Combo * (mínimo 2)
                                     </label>
-                                    <div className="grid md:grid-cols-2 gap-3 max-h-64 overflow-y-auto border-2 border-gray-300 rounded-lg p-4">
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 max-h-56 sm:max-h-64 overflow-y-auto border-2 border-gray-300 rounded-lg p-3 sm:p-4">
                                         {services.map(service => (
                                             <label
                                                 key={service.id}
-                                                className={`flex items-start gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${formData.selectedServiceIds.includes(service.id)
-                                                    ? 'border-gold bg-gold/5'
-                                                    : 'border-gray-200 hover:border-gray-300'
+                                                className={`flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border-2 cursor-pointer transition-all ${formData.selectedServiceIds.includes(service.id)
+                                                        ? 'border-gold bg-gold/5'
+                                                        : 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <input
@@ -520,9 +545,12 @@ export default function AdminCombosPage() {
                                                     onChange={() => toggleServiceSelection(service.id)}
                                                     className="mt-1 rounded text-gold focus:ring-gold"
                                                 />
+
                                                 <div className="flex-1">
-                                                    <p className="font-semibold text-charcoal">{service.name}</p>
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="font-semibold text-charcoal text-sm sm:text-base">
+                                                        {service.name}
+                                                    </p>
+                                                    <p className="text-xs sm:text-sm text-gray-600">
                                                         R$ {service.price.toFixed(2)} • {service.duration} min
                                                     </p>
                                                 </div>
@@ -533,24 +561,29 @@ export default function AdminCombosPage() {
 
                                 {/* Preview dos Valores */}
                                 {preview.selectedServices.length >= 2 && (
-                                    <div className="bg-gradient-to-br from-gold/10 to-yellow-50 rounded-xl p-6">
-                                        <h3 className="font-bold text-charcoal mb-4 flex items-center gap-2">
-                                            <Gift size={20} className="text-gold" />
+                                    <div className="bg-gradient-to-br from-gold/10 to-yellow-50 rounded-xl p-4 sm:p-6">
+                                        <h3 className="font-bold text-charcoal mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+                                            <Gift size={18} className="text-gold" />
                                             Preview do Combo
                                         </h3>
-                                        <div className="space-y-2 text-sm">
+
+                                        <div className="space-y-2 text-xs sm:text-sm">
                                             <div className="flex justify-between">
                                                 <span className="text-gray-600">Valor original:</span>
                                                 <span className="text-gray-400 line-through">
                                                     R$ {preview.originalPrice.toFixed(2)}
                                                 </span>
                                             </div>
+
                                             <div className="flex justify-between text-green-600 font-semibold">
                                                 <span>Desconto ({formData.discountPercent}%):</span>
                                                 <span>- R$ {preview.savings.toFixed(2)}</span>
                                             </div>
-                                            <div className="border-t pt-2 flex justify-between text-lg">
-                                                <span className="font-bold text-charcoal">Valor do combo:</span>
+
+                                            <div className="border-t pt-2 flex justify-between text-base sm:text-lg">
+                                                <span className="font-bold text-charcoal">
+                                                    Valor do combo:
+                                                </span>
                                                 <span className="font-bold text-gold">
                                                     R$ {preview.comboPrice.toFixed(2)}
                                                 </span>
@@ -560,18 +593,19 @@ export default function AdminCombosPage() {
                                 )}
 
                                 {/* Botões */}
-                                <div className="flex gap-3 pt-4 border-t">
+                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t">
                                     <button
                                         type="button"
                                         onClick={handleCloseModal}
-                                        className="flex-1 px-6 py-3 border-2 border-gray-300 text-charcoal rounded-lg font-semibold hover:bg-gray-50 transition-all"
+                                        className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-300 text-charcoal rounded-lg font-semibold hover:bg-gray-50 transition-all text-sm sm:text-base"
                                     >
                                         Cancelar
                                     </button>
+
                                     <button
                                         type="submit"
                                         disabled={formData.selectedServiceIds.length < 2}
-                                        className="flex-1 px-6 py-3 bg-gradient-gold text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full sm:flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-gold text-white rounded-lg font-semibold hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                                     >
                                         {editingCombo ? 'Salvar Alterações' : 'Criar Combo'}
                                     </button>

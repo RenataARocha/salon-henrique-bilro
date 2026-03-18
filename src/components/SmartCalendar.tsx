@@ -101,15 +101,12 @@ export default function SmartCalendar({
         const dateStr = date.toISOString().split('T')[0]
         const status = daysStatus.get(dateStr)
 
-        // Não permite datas bloqueadas ou feriados
-        if (status?.status === 'blocked' || status?.status === 'holiday') {
-            return false
-        }
+        if (status?.status === 'blocked' || status?.status === 'holiday') return false
 
-        // Verifica limites
-        if (dateStr < minDate || dateStr > maxDate) {
-            return false
-        }
+        // 👇 Só seleciona se tiver horários disponíveis
+        if (status?.availableSlots === 0) return false
+
+        if (dateStr < minDate || dateStr > maxDate) return false
 
         return true
     }
@@ -126,7 +123,6 @@ export default function SmartCalendar({
             return 'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white font-bold ring-4 ring-yellow-300'
         }
 
-        // Fora do range permitido
         if (dateStr < minDate || dateStr > maxDate) {
             return 'bg-gray-100 text-gray-300 cursor-not-allowed'
         }
@@ -136,11 +132,16 @@ export default function SmartCalendar({
             case 'holiday':
                 return 'bg-red-100 text-red-600 cursor-not-allowed'
             case 'partial':
-                return 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
+                return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200 cursor-pointer'
             case 'available':
-                return 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
+                // 👇 SÓ fica verde se tiver horários disponíveis
+                if (status.availableSlots && status.availableSlots > 0) {
+                    return 'bg-green-100 text-green-800 hover:bg-green-200 cursor-pointer'
+                }
+                // Se não tem horários, fica vermelho/bloqueado
+                return 'bg-red-100 text-red-600 cursor-not-allowed'
             default:
-                return 'bg-white text-gray-700 hover:bg-gray-100 cursor-pointer border border-gray-200'
+                return 'bg-red-100 text-red-400 cursor-not-allowed'
         }
     }
 
@@ -241,47 +242,41 @@ export default function SmartCalendar({
             </div>
 
             {/* Loading overlay */}
-            {loading && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center rounded-xl z-10">
+
+
+            {loading ? (
+                <div className="flex items-center justify-center py-8">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
                 </div>
+            ) : (
+                <div className="grid grid-cols-7 gap-1">
+                    {weekDays.map(day => (
+                        <div key={day} className="text-center text-xs font-semibold text-gray-600 py-2">
+                            {day}
+                        </div>
+                    ))}
+                    {days.map((date, index) => (
+                        <div key={index} className="relative">
+                            {date ? (
+                                <button
+                                    type="button"
+                                    onClick={() => isDateSelectable(date) && onDateSelect(date.toISOString().split('T')[0])}
+                                    onMouseEnter={() => setHoveredDate(date.toISOString().split('T')[0])}
+                                    onMouseLeave={() => setHoveredDate(null)}
+                                    disabled={!isDateSelectable(date)}
+                                    className={`w-full aspect-square rounded-lg transition-all duration-200 flex flex-col items-center justify-center relative ${getDayColor(date)}`}
+                                >
+                                    <span className="text-sm">{date.getDate()}</span>
+                                    {getStatusIcon(date)}
+                                    {renderTooltip(date)}
+                                </button>
+                            ) : (
+                                <div className="w-full aspect-square" />
+                            )}
+                        </div>
+                    ))}
+                </div>
             )}
-
-            {/* Grade do calendário */}
-            <div className="grid grid-cols-7 gap-1">
-                {/* Cabeçalho dos dias da semana */}
-                {weekDays.map(day => (
-                    <div key={day} className="text-center text-xs font-semibold text-gray-600 py-2">
-                        {day}
-                    </div>
-                ))}
-
-                {/* Dias do mês */}
-                {days.map((date, index) => (
-                    <div key={index} className="relative">
-                        {date ? (
-                            <button
-                                type="button"
-                                onClick={() => isDateSelectable(date) && onDateSelect(date.toISOString().split('T')[0])}
-                                onMouseEnter={() => setHoveredDate(date.toISOString().split('T')[0])}
-                                onMouseLeave={() => setHoveredDate(null)}
-                                disabled={!isDateSelectable(date)}
-                                className={`
-                                    w-full aspect-square rounded-lg transition-all duration-200
-                                    flex flex-col items-center justify-center relative
-                                    ${getDayColor(date)}
-                                `}
-                            >
-                                <span className="text-sm">{date.getDate()}</span>
-                                {getStatusIcon(date)}
-                                {renderTooltip(date)}
-                            </button>
-                        ) : (
-                            <div className="w-full aspect-square" />
-                        )}
-                    </div>
-                ))}
-            </div>
 
             {/* Legenda */}
             <div className="grid grid-cols-2 gap-2 pt-4 border-t border-gray-200">

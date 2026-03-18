@@ -307,12 +307,12 @@ export default function AdminServicosPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="min-h-screen bg-beige py-6 sm:py-8 px-4">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-center py-20">
+                    <div className="flex items-center justify-center py-16 sm:py-20">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-                            <p className="text-gray-600">Carregando...</p>
+                            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-gold mx-auto mb-4"></div>
+                            <p className="text-gray-600 text-sm sm:text-base">Carregando...</p>
                         </div>
                     </div>
                 </div>
@@ -321,49 +321,52 @@ export default function AdminServicosPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-beige py-6 sm:py-8 px-4">
+            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
                 <div className="animate-fade-in">
                     <AdminHeader
                         title="Serviços"
                         description="Gerencie os serviços oferecidos pelo salão"
-                        showBackButton={true}
                     />
                 </div>
 
                 <motion.div
-                    className="flex justify-between items-center"
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center items-center gap-3"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <Button variant="primary" onClick={() => openModal()}>
-                        <Plus size={20} />
+                    <Button
+                        variant="primary"
+                        onClick={() => openModal()}
+                        className="w-full sm:w-auto px-4 py-2 text-sm flex items-center justify-center gap-2"
+                    >
+                        <Plus size={18} />
                         Novo Serviço
                     </Button>
                 </motion.div>
 
                 {services.length > 0 ? (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[90vh] overflow-y-auto p-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-h-[90vh] overflow-y-auto p-3 sm:p-4">
                         {services.map((service, index) => (
                             <motion.div
                                 key={service.id}
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.4, delay: index * 0.1 }}
-                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all transform hover:scale-105 animate-slide-up ${!service.active ? "opacity-60" : ""
+                                className={`bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all transform hover:scale-105 animate-slide-up ${!service.active ? "opacity-60" : ""
                                     } ${service.featured ? "ring-2 ring-yellow-400" : ""}`}
                                 style={{ animationDelay: `${index * 100}ms` }}
                             >
                                 {service.featured && (
-                                    <div className="mb-3 flex items-center gap-2 text-yellow-600 text-sm font-bold animate-fade-in">
-                                        <Star size={16} className="fill-yellow-400 animate-pulse" />
+                                    <div className="mb-2 sm:mb-3 flex items-center gap-2 text-yellow-600 text-xs sm:text-sm font-bold animate-fade-in">
+                                        <Star size={14} className="fill-yellow-400 animate-pulse" />
                                         <span>Destaque na Home</span>
                                     </div>
                                 )}
 
                                 {service.images && service.images.length > 0 && (
-                                    <div className="mb-4 h-48 rounded-lg overflow-hidden bg-gray-100 animate-scale-in">
+                                    <div className="mb-3 sm:mb-4 h-40 sm:h-48 rounded-lg overflow-hidden bg-gray-100 animate-scale-in">
                                         <img
                                             src={service.images[0]}
                                             alt={service.name}
@@ -372,12 +375,12 @@ export default function AdminServicosPage() {
                                     </div>
                                 )}
 
-                                <div className="flex justify-between items-start mb-4">
-                                    <h3 className="text-xl font-bold text-charcoal">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3 sm:mb-4">
+                                    <h3 className="text-lg sm:text-xl font-bold text-charcoal">
                                         {service.name}
                                     </h3>
                                     <span
-                                        className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${service.active
+                                        className={`px-2 sm:px-3 py-1 rounded-full text-[10px] sm:text-xs font-semibold transition-all w-fit ${service.active
                                             ? "bg-green-100 text-green-700"
                                             : "bg-red-100 text-red-700"
                                             }`}
@@ -386,75 +389,86 @@ export default function AdminServicosPage() {
                                     </span>
                                 </div>
 
-                                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+                                <p className="text-gray-600 text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">
                                     {service.description}
                                 </p>
 
-                                <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-gray-200">
                                     <div>
-                                        <p className="text-xs text-gray-500 mb-1">Preço</p>
-                                        <p className="text-2xl font-bold text-gold flex items-center gap-1">
-                                            <DollarSign size={20} />
+                                        <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Preço</p>
+                                        <p className="text-xl sm:text-2xl font-bold text-gold flex items-center gap-1 break-words">
+                                            <DollarSign size={18} />
                                             {service.price.toFixed(2)}
                                         </p>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-xs text-gray-500 mb-1">Duração</p>
-                                        <p className="text-lg font-bold text-charcoal flex items-center gap-1">
-                                            <Clock size={18} />
+                                    <div className="text-left sm:text-right">
+                                        <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Duração</p>
+                                        <p className="text-base sm:text-lg font-bold text-charcoal flex items-center gap-1">
+                                            <Clock size={16} />
                                             {service.duration} min
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="flex gap-2 mb-2">
+                                <div className="flex flex-col sm:flex-row gap-2 mb-2">
                                     <button
                                         onClick={() => openModal(service)}
-                                        className="flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all flex items-center justify-center gap-1 transform hover:scale-105"
+                                        className="w-full sm:flex-1 bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 transition-all flex items-center justify-center gap-1 transform hover:scale-105 text-xs sm:text-sm"
                                     >
-                                        <Edit size={16} />
+                                        <Edit size={14} />
                                         Editar
                                     </button>
-                                    <button
-                                        onClick={() => handleToggleActive(service)}
-                                        className={`px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 transform hover:scale-105 ${service.active
-                                            ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
-                                            : "bg-green-100 text-green-700 hover:bg-green-200"
-                                            }`}
-                                    >
-                                        <Power size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(service.id)}
-                                        className="px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1 transform hover:scale-105"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
+
+                                    <div className="flex gap-2 w-full sm:w-auto">
+                                        <button
+                                            onClick={() => handleToggleActive(service)}
+                                            className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-1 transform hover:scale-105 text-xs sm:text-sm ${service.active
+                                                ? "bg-orange-100 text-orange-700 hover:bg-orange-200"
+                                                : "bg-green-100 text-green-700 hover:bg-green-200"
+                                                }`}
+                                        >
+                                            <Power size={14} />
+                                        </button>
+
+                                        <button
+                                            onClick={() => handleDelete(service.id)}
+                                            className="flex-1 sm:flex-none px-3 sm:px-4 py-2 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all flex items-center justify-center gap-1 transform hover:scale-105 text-xs sm:text-sm"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <button
                                     onClick={() => handleToggleFeatured(service)}
-                                    className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 transform hover:scale-105 ${service.featured
+                                    className={`w-full py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 transform hover:scale-105 text-xs sm:text-sm ${service.featured
                                         ? "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
                                         : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                         }`}
                                 >
-                                    <Star size={16} className={service.featured ? "fill-yellow-400" : ""} />
+                                    <Star size={14} className={service.featured ? "fill-yellow-400" : ""} />
                                     {service.featured ? "Remover da Home" : "Destacar na Home"}
                                 </button>
                             </motion.div>
                         ))}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center animate-fade-in">
-                        <p className="text-6xl mb-4 animate-bounce">💇‍♀️</p>
-                        <h3 className="text-2xl font-bold text-charcoal mb-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 lg:p-12 text-center animate-fade-in">
+                        <p className="text-5xl sm:text-6xl mb-3 sm:mb-4 animate-bounce">💇‍♀️</p>
+
+                        <h3 className="text-xl sm:text-2xl font-bold text-charcoal mb-2">
                             Nenhum serviço cadastrado
                         </h3>
-                        <p className="text-gray-600 mb-6">
+
+                        <p className="text-gray-600 text-sm sm:text-base mb-4 sm:mb-6 px-2 sm:px-0">
                             Adicione serviços para começar a receber agendamentos
                         </p>
-                        <Button variant="primary" onClick={() => openModal()}>
+
+                        <Button
+                            variant="primary"
+                            onClick={() => openModal()}
+                            className="w-full sm:w-auto justify-center text-sm sm:text-base"
+                        >
                             + Adicionar Primeiro Serviço
                         </Button>
                     </div>
@@ -548,7 +562,7 @@ export default function AdminServicosPage() {
                                     </label>
 
                                     {formData.images.length > 0 && (
-                                        <div className="grid grid-cols-3 gap-3 mb-3">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 mb-3">
                                             {formData.images.map((url, index) => (
                                                 <div
                                                     key={index}
@@ -558,14 +572,14 @@ export default function AdminServicosPage() {
                                                     <img
                                                         src={url}
                                                         alt={`Imagem ${index + 1}`}
-                                                        className="w-full h-full object-contain p-2 transition-transform group-hover:scale-110"
+                                                        className="w-full h-full object-contain p-1 sm:p-2 transition-transform group-hover:scale-110"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={() => handleRemoveImage(index)}
                                                         className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-all transform hover:scale-110"
                                                     >
-                                                        <X size={14} />
+                                                        <X size={12} className="sm:w-[14px] sm:h-[14px]" />
                                                     </button>
                                                 </div>
                                             ))}
@@ -574,12 +588,12 @@ export default function AdminServicosPage() {
 
                                     <div className="mb-3">
                                         <label className="block w-full cursor-pointer">
-                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gold transition-all hover:bg-gray-50">
-                                                <ImageIcon size={32} className="mx-auto mb-2 text-gray-400" />
-                                                <p className="text-sm text-gray-600 mb-1">
+                                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6 text-center hover:border-gold transition-all hover:bg-gray-50">
+                                                <ImageIcon size={28} className="sm:w-[32px] sm:h-[32px] mx-auto mb-2 text-gray-400" />
+                                                <p className="text-xs sm:text-sm text-gray-600 mb-1">
                                                     {uploadLoading ? 'Fazendo upload...' : 'Clique para fazer upload'}
                                                 </p>
-                                                <p className="text-xs text-gray-500">
+                                                <p className="text-[10px] sm:text-xs text-gray-500">
                                                     JPG, PNG, GIF ou WebP • Máx 5MB
                                                 </p>
                                             </div>
@@ -595,10 +609,11 @@ export default function AdminServicosPage() {
                                     </div>
 
                                     <div>
-                                        <p className="text-xs text-gray-500 text-center mb-2">
+                                        <p className="text-[10px] sm:text-xs text-gray-500 text-center mb-2">
                                             ou cole uma URL
                                         </p>
-                                        <div className="flex gap-2">
+
+                                        <div className="flex flex-col sm:flex-row gap-2">
                                             <input
                                                 type="url"
                                                 value={formData.newImageUrl}
@@ -609,33 +624,39 @@ export default function AdminServicosPage() {
                                                     })
                                                 }
                                                 placeholder="https://exemplo.com/imagem.jpg"
-                                                className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none text-sm transition-all"
+                                                className="w-full sm:flex-1 px-3 sm:px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-gold focus:outline-none text-xs sm:text-sm transition-all"
                                             />
+
                                             <button
                                                 type="button"
                                                 onClick={handleAddImage}
-                                                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all transform hover:scale-105"
+                                                className="w-full sm:w-auto bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-all transform hover:scale-105 flex items-center justify-center"
                                             >
-                                                <Plus size={16} />
+                                                <Plus size={14} className="sm:w-[16px] sm:h-[16px]" />
                                             </button>
                                         </div>
                                     </div>
 
-                                    <p className="text-xs text-gray-500 mt-2">
+                                    <p className="text-[10px] sm:text-xs text-gray-500 mt-2 text-center sm:text-left">
                                         {formData.images.length}/5 imagens • Você pode adicionar até 5 imagens
                                     </p>
                                 </div>
 
-                                <div className="flex gap-3 pt-4">
+                                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4">
                                     <Button
                                         type="button"
                                         variant="secondary"
                                         onClick={closeModal}
-                                        className="flex-1"
+                                        className="w-full sm:flex-1 text-sm sm:text-base justify-center"
                                     >
                                         Cancelar
                                     </Button>
-                                    <Button type="submit" variant="primary" className="flex-1">
+
+                                    <Button
+                                        type="submit"
+                                        variant="primary"
+                                        className="w-full sm:flex-1 text-sm sm:text-base justify-center"
+                                    >
                                         {editingService ? "Salvar Alterações" : "Criar Serviço"}
                                     </Button>
                                 </div>

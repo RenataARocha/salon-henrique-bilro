@@ -37,54 +37,57 @@ export default function FinanceiroPage() {
 
     return (
         <motion.div
-            className="min-h-screen bg-gray-50 p-6"
+            className="min-h-screen bg-gray-50 p-4 sm:p-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
         >
             <div className="max-w-7xl mx-auto">
+
+                {/* Header */}
+                <motion.div
+                    className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-4 sm:mb-6"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
+                >
+                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
+                        💰 Dashboard Financeiro
+                    </h1>
+
+                    <p className="text-sm sm:text-base text-gray-600">
+                        Visão completa da saúde financeira do salão
+                    </p>
+                </motion.div>
+
                 {/* Navegação */}
                 <motion.div
-                    className="mb-6 justify-end flex gap-3"
+                    className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-3"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                 >
                     <Link
                         href="/admin"
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                        className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200 text-sm sm:text-base"
                     >
-
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={18} />
                         Painel
                     </Link>
+
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                        className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold text-sm sm:text-base"
                     >
-                        <Home size={20} />
-                        Voltar ao início
+                        <Home size={18} />
+                        Início
                     </Link>
-                </motion.div>
-
-                {/* Header */}
-                <motion.div
-                    className="bg-white rounded-lg shadow-sm p-6 mb-6"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.1 }}
-                >
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                        💰 Dashboard Financeiro
-                    </h1>
-                    <p className="text-gray-600">
-                        Visão completa da saúde financeira do salão
-                    </p>
                 </motion.div>
 
                 {/* Dashboard */}
                 <FinancialDashboard />
+
             </div>
-        </motion.div >
+        </motion.div>
     );
 }

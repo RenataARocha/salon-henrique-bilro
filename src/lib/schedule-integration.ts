@@ -269,7 +269,6 @@ export async function getDayStatus(date: Date): Promise<{
     availableCount: number
     totalCount: number
 }> {
-    // Verificar feriado
     const holiday = checkIsHoliday(date)
     if (holiday) {
         return {
@@ -283,40 +282,65 @@ export async function getDayStatus(date: Date): Promise<{
 
     const { times, isBlocked, blockReason } = await getAvailableTimesForDate(date)
 
-    // Buscar total de horários possíveis (sem filtro de bloqueio)
     const dayOfWeek = date.getDay()
     const totalSlots = await prisma.availableSlot.count({
-        where: {
-            dayOfWeek: dayOfWeek,
-            active: true
-        }
+        where: { dayOfWeek, active: true }
     })
 
-    if (isBlocked || times.length === 0) {
+    // Bloqueado ou sem horários configurados
+    if (isBlocked || times.length === 0 || totalSlots === 0) {
         return {
             status: 'blocked',
             color: 'red',
-            message: blockReason || 'Dia fechado',
+            message: blockReason || 'Sem horários disponíveis',
             availableCount: 0,
             totalCount: totalSlots
         }
     }
 
-    if (times.length < totalSlots) {
+    // Verificar agendamentos já feitos para esse dia
+    const dateStart = new Date(date)
+    dateStart.setHours(0, 0, 0, 0)
+    const dateEnd = new Date(date)
+    dateEnd.setHours(23, 59, 59, 999)
+
+    const bookedCount = await prisma.appointment.count({
+        where: {
+            date: { gte: dateStart, lte: dateEnd },
+            status: { in: ['PENDING', 'CONFIRMED'] }
+        }
+    })
+
+    const realAvailable = times.length - bookedCount
+
+    // Sem horários realmente disponíveis
+    if (realAvailable <= 0) {
         return {
-            status: 'partial',
-            color: 'yellow',
-            message: `${times.length} de ${totalSlots} horários disponíveis`,
-            availableCount: times.length,
+            status: 'blocked',
+            color: 'red',
+            message: 'Todos os horários estão ocupados',
+            availableCount: 0,
             totalCount: totalSlots
         }
     }
 
+    // Parcial — menos da metade disponível
+    if (realAvailable < totalSlots / 2) {
+        return {
+            status: 'partial',
+            color: 'yellow',
+            message: `${realAvailable} horário${realAvailable > 1 ? 's' : ''} disponível${realAvailable > 1 ? 'is' : ''}`,
+            availableCount: realAvailable,
+            totalCount: totalSlots
+        }
+    }
+
+    // Disponível
     return {
         status: 'available',
         color: 'green',
-        message: `${times.length} horários disponíveis`,
-        availableCount: times.length,
+        message: `${realAvailable} horários disponíveis`,
+        availableCount: realAvailable,
         totalCount: totalSlots
     }
 }

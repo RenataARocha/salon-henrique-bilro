@@ -323,7 +323,7 @@ export default function ComandaPage() {
             <div className="flex items-center justify-center min-h-screen bg-beige">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
             </div>
-        )
+        );
     }
 
     return (
@@ -337,9 +337,9 @@ export default function ComandaPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8 }}
                 >
-                    <div>
+                    <div className="flex-1">
                         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-charcoal">📝 Comanda Diária</h1>
-                        <p className="text-gray-600 mt-2">
+                        <p className="text-gray-600 mt-2 text-sm sm:text-base">
                             {showAllDates && selectedStaffId
                                 ? `📋 Todos os serviços de ${staff.find(s => s.id === selectedStaffId)?.name}`
                                 : `📅 ${new Date(selectedDate).toLocaleDateString('pt-BR', {
@@ -348,9 +348,10 @@ export default function ComandaPage() {
                             }
                         </p>
                     </div>
+
                     <button
                         onClick={openAddModal}
-                        className="bg-gradient-gold text-white px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105"
+                        className="mt-2 sm:mt-0 bg-gradient-gold text-white px-4 py-2.5 sm:px-6 sm:py-3 rounded-lg font-semibold hover:shadow-xl transition-all hover:scale-105"
                     >
                         + Registrar Serviço
                     </button>
@@ -358,20 +359,27 @@ export default function ComandaPage() {
 
                 {/* Navegação */}
                 <motion.div
-                    className="mb-6 flex flex-wrap sm:flex-nowrap justify-start sm:justify-end gap-3"
+                    className="mb-6 flex flex-col sm:flex-row sm:flex-wrap justify-start sm:justify-end gap-3"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                 >
-                    <Link href="/admin" className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200">
+                    <Link
+                        href="/admin"
+                        className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200 justify-center"
+                    >
                         <ArrowLeft size={20} />
                         Painel
                     </Link>
-                    <Link href="/" className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold">
+                    <Link
+                        href="/"
+                        className="flex items-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold justify-center"
+                    >
                         <Home size={20} />
                         Voltar ao início
                     </Link>
                 </motion.div>
+
 
                 {/* Filtros */}
                 <motion.div
@@ -424,31 +432,31 @@ export default function ComandaPage() {
 
                 {/* Resumo */}
                 <motion.div
-                    className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"
+                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.4 }}
                 >
-                    <div className="bg-gradient-to-br from-gold to-gold-dark text-white p-6 rounded-xl shadow-lg">
-                        <p className="text-gold-light text-sm font-semibold mb-2">Total de Serviços</p>
-                        <p className="text-4xl font-bold">{todayServices.length}</p>
+                    <div className="bg-gradient-to-br from-gold to-gold-dark text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                        <p className="text-gold-light text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Total de Serviços</p>
+                        <p className="text-3xl sm:text-4xl font-bold">{todayServices.length}</p>
                     </div>
-                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
-                        <p className="text-green-100 text-sm font-semibold mb-2">Faturamento</p>
-                        <p className="text-4xl font-bold">
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                        <p className="text-green-100 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Faturamento</p>
+                        <p className="text-3xl sm:text-4xl font-bold">
                             R$ {todayServices.reduce((sum, s) => sum + s.serviceValue, 0).toFixed(2)}
                         </p>
                     </div>
-                    <div className="bg-gradient-to-br from-charcoal to-gray-700 text-white p-6 rounded-xl shadow-lg">
-                        <p className="text-gray-300 text-sm font-semibold mb-2">Comissões</p>
-                        <p className="text-4xl font-bold">
+                    <div className="bg-gradient-to-br from-charcoal to-gray-700 text-white p-4 sm:p-6 rounded-xl shadow-lg">
+                        <p className="text-gray-300 text-xs sm:text-sm font-semibold mb-1 sm:mb-2">Comissões</p>
+                        <p className="text-3xl sm:text-4xl font-bold">
                             R$ {todayServices.reduce((sum, s) => sum + s.commissionValue, 0).toFixed(2)}
                         </p>
                     </div>
                 </motion.div>
 
                 {/* Lista agrupada por funcionário */}
-                <div className="space-y-6 max-h-[90vh] overflow-y-auto p-2 sm:p-4">
+                <div className="space-y-4 sm:space-y-6 max-h-[90vh] overflow-y-auto p-2 sm:p-4">
                     {staffGroups.length > 0 ? (
                         staffGroups.map((group: any, index) => (
                             <motion.div
@@ -456,44 +464,64 @@ export default function ComandaPage() {
                                 className="bg-white rounded-xl shadow-md overflow-hidden"
                                 initial={{ opacity: 0, y: 30 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.6, delay: 0.6 + (index * 0.1) }}
+                                transition={{ duration: 0.6, delay: 0.6 + index * 0.1 }}
                             >
-                                <div className="bg-gradient-gold text-white p-4">
-                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                        <div className="flex items-center gap-3 flex-1">
-                                            {group.staff.photo ? (
-                                                <img src={group.staff.photo} alt={group.staff.name} className="w-12 h-12 rounded-full object-cover border-2 border-white" />
-                                            ) : (
-                                                <div className="w-12 h-12 rounded-full bg-gold-dark bg-opacity-20 flex items-center justify-center text-xl font-bold">
-                                                    {group.staff.name.charAt(0)}
+                                <div className="bg-gradient-gold text-white p-4 sm:p-6">
+                                    <div className="flex flex-col gap-4">
+
+                                        {/* TOPO */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                {group.staff.photo ? (
+                                                    <img
+                                                        src={group.staff.photo}
+                                                        alt={group.staff.name}
+                                                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-white flex-shrink-0"
+                                                    />
+                                                ) : (
+                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gold-dark bg-opacity-20 flex items-center justify-center text-lg font-bold flex-shrink-0">
+                                                        {group.staff.name.charAt(0)}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <h3 className="font-bold text-base sm:text-xl">
+                                                        {group.staff.name}
+                                                    </h3>
+                                                    <p className="text-xs sm:text-sm text-gold-light">
+                                                        {group.services.length} {group.services.length === 1 ? 'serviço' : 'serviços'}
+                                                    </p>
                                                 </div>
-                                            )}
-                                            <div>
-                                                <h3 className="font-bold text-lg">{group.staff.name}</h3>
-                                                <p className="text-sm text-gold-light">
-                                                    {group.services.length} {group.services.length === 1 ? 'serviço' : 'serviços'}
-                                                </p>
                                             </div>
                                         </div>
-                                        <div className="text-left sm:text-right">
-                                            <p className="text-sm text-gold-light">Faturamento</p>
-                                            <p className="text-2xl sm:text-3xl font-bold">R$ {group.totalValue.toFixed(2)}</p>
-                                            <p className="text-xs text-gold-light">Comissão: R$ {group.totalCommission.toFixed(2)}</p>
+
+                                        {/* VALORES */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                            <div>
+                                                <p className="text-xs text-gold-light">Faturamento</p>
+                                                <p className="text-xl sm:text-2xl lg:text-3xl font-bold">
+                                                    R$ {group.totalValue.toFixed(2)}
+                                                </p>
+                                            </div>
+                                            <div className="flex justify-between sm:justify-end gap-4 text-xs">
+                                                <span className="text-green-200">
+                                                    Comissão: R$ {group.totalCommission.toFixed(2)}
+                                                </span>
+                                            </div>
                                         </div>
+
                                     </div>
                                 </div>
 
                                 <div className="divide-y divide-gray-200">
                                     {group.services.map((service: StaffService) => (
-                                        <div key={service.id} className="p-4 hover:bg-beige/50 transition">
+                                        <div key={service.id} className="p-3 sm:p-4 hover:bg-beige/50 transition">
                                             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
                                                 <div className="flex-1">
                                                     <div className="flex flex-wrap items-center gap-2 mb-2">
                                                         <span className="text-lg">
                                                             {service.service ? '💅' : service.combo ? '🎁' : '✂️'}
                                                         </span>
-                                                        {/* ✅ Usa getNomeServicoRegistrado para exibir corretamente */}
-                                                        <h4 className="font-semibold text-charcoal">
+                                                        <h4 className="font-semibold text-charcoal text-sm sm:text-base">
                                                             {getNomeServicoRegistrado(service)}
                                                         </h4>
                                                         <span className="text-xs text-gray-500">
@@ -503,20 +531,20 @@ export default function ComandaPage() {
                                                             ⏰ {new Date(service.executedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                         </span>
                                                     </div>
-                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 flex-wrap text-sm text-gray-600">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 flex-wrap text-xs sm:text-sm text-gray-600">
                                                         <span>👤 {service.clientName}</span>
                                                         {service.clientPhone && <span>📞 {service.clientPhone}</span>}
-                                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                                                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px] sm:text-xs font-semibold">
                                                             {service.paymentMethod.replace('_', ' ')}
                                                         </span>
                                                     </div>
                                                 </div>
-                                                <div className="text-left sm:text-right mt-3 sm:mt-0 sm:ml-4">
-                                                    <p className="text-2xl font-bold text-charcoal">R$ {service.serviceValue.toFixed(2)}</p>
-                                                    <p className="text-xs text-gold font-semibold">Comissão: R$ {service.commissionValue.toFixed(2)}</p>
+                                                <div className="text-left sm:text-right mt-2 sm:mt-0 sm:ml-4">
+                                                    <p className="text-xl sm:text-2xl font-bold text-charcoal">R$ {service.serviceValue.toFixed(2)}</p>
+                                                    <p className="text-xs sm:text-sm text-gold font-semibold">Comissão: R$ {service.commissionValue.toFixed(2)}</p>
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); handleDelete(service.id) }}
-                                                        className="mt-2 px-3 py-1.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 hover:shadow-md"
+                                                        className="mt-2 px-3 py-1 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 hover:shadow-md"
                                                     >
                                                         🗑️ Remover
                                                     </button>
@@ -528,9 +556,9 @@ export default function ComandaPage() {
                             </motion.div>
                         ))
                     ) : (
-                        <div className="bg-white rounded-xl shadow-md p-12 text-center">
-                            <div className="text-6xl mb-4">📝</div>
-                            <p className="text-gray-500 text-lg">Nenhum serviço registrado{showAllDates ? '' : ' nesta data'}</p>
+                        <div className="bg-white rounded-xl shadow-md p-8 sm:p-12 text-center">
+                            <div className="text-5xl sm:text-6xl mb-4">📝</div>
+                            <p className="text-gray-500 text-sm sm:text-lg">Nenhum serviço registrado{showAllDates ? '' : ' nesta data'}</p>
                             <button onClick={openAddModal} className="mt-4 text-gold hover:underline font-semibold">
                                 Registrar primeiro serviço
                             </button>
@@ -540,47 +568,58 @@ export default function ComandaPage() {
 
                 {/* Modal */}
                 {showModal && !editingService && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
                         <motion.div
-                            className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+                            className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.3 }}
                         >
-                            <div className="sticky top-0 bg-gradient-gold text-white p-6 rounded-t-xl flex justify-between items-center">
-                                <h2 className="text-2xl font-bold">📝 Registrar Serviços Executados</h2>
-                                <button onClick={() => setShowModal(false)} className="text-white hover:text-gray-200 transition">
+                            <div className="sticky top-0 bg-gradient-gold text-white p-4 sm:p-6 rounded-t-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                <h2 className="text-xl sm:text-2xl font-bold">📝 Registrar Serviços Executados</h2>
+                                <button
+                                    onClick={() => setShowModal(false)}
+                                    className="text-white hover:text-gray-200 transition self-end sm:self-auto"
+                                >
                                     <X size={28} />
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-6">
                                 {/* Passo 1 */}
-                                <div className="bg-gold/10 border-2 border-gold rounded-lg p-4">
-                                    <h3 className="font-bold text-charcoal mb-4">1️⃣ Selecione o Funcionário e a Data</h3>
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div className="bg-gold/10 border-2 border-gold rounded-lg p-3 sm:p-4">
+                                    <h3 className="font-bold text-charcoal mb-3 sm:mb-4 text-sm sm:text-base">
+                                        1️⃣ Selecione o Funcionário e a Data
+                                    </h3>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
                                         <div>
-                                            <label className="block text-sm font-semibold text-charcoal mb-2">Funcionário *</label>
+                                            <label className="block text-sm font-semibold text-charcoal mb-1 sm:mb-2">
+                                                Funcionário *
+                                            </label>
                                             <select
                                                 required
                                                 value={modalStaffId}
                                                 onChange={e => setModalStaffId(e.target.value)}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                                className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none text-sm sm:text-base"
                                             >
                                                 <option value="">Selecione...</option>
                                                 {staff.map(s => (
-                                                    <option key={s.id} value={s.id}>{s.name} (Comissão: {s.commissionPercent}%)</option>
+                                                    <option key={s.id} value={s.id}>
+                                                        {s.name} (Comissão: {s.commissionPercent}%)
+                                                    </option>
                                                 ))}
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-semibold text-charcoal mb-2">Data *</label>
+                                            <label className="block text-sm font-semibold text-charcoal mb-1 sm:mb-2">
+                                                Data *
+                                            </label>
                                             <input
                                                 type="date"
                                                 required
                                                 value={modalDate}
                                                 onChange={e => setModalDate(e.target.value)}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none"
+                                                className="w-full px-3 sm:px-4 py-2 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-gold focus:outline-none text-sm sm:text-base"
                                             />
                                         </div>
                                     </div>
@@ -588,7 +627,7 @@ export default function ComandaPage() {
                                         type="button"
                                         onClick={loadAppointments}
                                         disabled={!modalStaffId || !modalDate || loadingAppointments}
-                                        className="w-full bg-charcoal text-white px-6 py-3 rounded-lg font-semibold hover:bg-charcoal/80 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full bg-charcoal text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold hover:bg-charcoal/80 transition disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                                     >
                                         {loadingAppointments ? '⏳ Buscando...' : '🔍 Buscar Agendamentos Concluídos'}
                                     </button>
@@ -596,38 +635,38 @@ export default function ComandaPage() {
 
                                 {/* Passo 2 */}
                                 {appointments.length > 0 && (
-                                    <div className="bg-beige/50 border-2 border-gray-300 rounded-lg p-4">
-                                        <h3 className="font-bold text-charcoal mb-4">
+                                    <div className="bg-beige/50 border-2 border-gray-300 rounded-lg p-3 sm:p-4">
+                                        <h3 className="font-bold text-charcoal mb-3 sm:mb-4 text-sm sm:text-base">
                                             2️⃣ Selecione os Agendamentos ({appointments.length} encontrados)
                                         </h3>
-                                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                                        <div className="space-y-2 sm:space-y-3 max-h-80 sm:max-h-96 overflow-y-auto">
                                             {appointments.map(apt => (
                                                 <label
                                                     key={apt.id}
-                                                    className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition ${selectedAppointments.includes(apt.id)
-                                                            ? 'bg-gold/20 border-gold'
-                                                            : 'bg-white border-gray-200 hover:border-gold/50'
+                                                    className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition ${selectedAppointments.includes(apt.id)
+                                                        ? 'bg-gold/20 border-gold'
+                                                        : 'bg-white border-gray-200 hover:border-gold/50'
                                                         }`}
                                                 >
                                                     <input
                                                         type="checkbox"
                                                         checked={selectedAppointments.includes(apt.id)}
                                                         onChange={() => toggleAppointment(apt.id)}
-                                                        className="mt-1 w-5 h-5 text-gold rounded focus:ring-gold"
+                                                        className="mt-1 w-4 h-4 sm:w-5 sm:h-5 text-gold rounded focus:ring-gold"
                                                     />
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-2">
+                                                    <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                                                        <div className="flex items-center gap-2">
                                                             <span className="text-lg">
                                                                 {apt.combo ? '🎁' : apt.service ? '💅' : '✂️'}
                                                             </span>
-                                                            <h4 className="font-semibold text-charcoal">
+                                                            <h4 className="font-semibold text-charcoal text-sm sm:text-base">
                                                                 {getNomeServico(apt)}
                                                             </h4>
-                                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                                            <span className="text-xs sm:text-sm bg-green-100 text-green-700 px-2 py-0.5 sm:py-1 rounded-full">
                                                                 {apt.time}
                                                             </span>
                                                         </div>
-                                                        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 text-xs sm:text-sm text-gray-600 gap-1">
                                                             <p>👤 Cliente: <span className="font-semibold">{apt.user.name}</span></p>
                                                             <p>💰 Valor: <span className="font-semibold text-gold">R$ {(apt.finalPrice || apt.service?.price || 0).toFixed(2)}</span></p>
                                                             {apt.user.phone && <p>📞 {apt.user.phone}</p>}
@@ -641,46 +680,52 @@ export default function ComandaPage() {
                                 )}
 
                                 {appointments.length === 0 && modalStaffId && modalDate && !loadingAppointments && (
-                                    <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-6 text-center">
-                                        <p className="text-orange-700 font-semibold">⚠️ Nenhum agendamento concluído encontrado para esta data</p>
-                                        <p className="text-sm text-orange-600 mt-2">Os agendamentos precisam estar com status &quot;CONCLUÍDO&quot; para aparecerem aqui.</p>
+                                    <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-4 sm:p-6 text-center">
+                                        <p className="text-orange-700 font-semibold text-sm sm:text-base">
+                                            ⚠️ Nenhum agendamento concluído encontrado para esta data
+                                        </p>
+                                        <p className="text-xs sm:text-sm text-orange-600 mt-2">
+                                            Os agendamentos precisam estar com status &quot;CONCLUÍDO&quot; para aparecerem aqui.
+                                        </p>
                                     </div>
                                 )}
 
                                 {selectedAppointments.length > 0 && (
-                                    <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4">
-                                        <h3 className="font-bold text-green-800 mb-2">✅ {selectedAppointments.length} serviço(s) selecionado(s)</h3>
-                                        <p className="text-sm text-green-700">
+                                    <div className="bg-green-50 border-2 border-green-500 rounded-lg p-4 sm:p-6">
+                                        <h3 className="font-bold text-green-800 mb-2 text-sm sm:text-base">
+                                            ✅ {selectedAppointments.length} serviço(s) selecionado(s)
+                                        </h3>
+                                        <p className="text-xs sm:text-sm text-green-700">
                                             Total: R$ {appointments
                                                 .filter(a => selectedAppointments.includes(a.id))
                                                 .reduce((sum, a) => sum + (a.finalPrice || a.service?.price || 0), 0)
                                                 .toFixed(2)}
                                         </p>
-                                        <p className="text-sm text-green-700">
+                                        <p className="text-xs sm:text-sm text-green-700">
                                             Comissão estimada: R$ {appointments
                                                 .filter(a => selectedAppointments.includes(a.id))
                                                 .reduce((sum, a) => {
-                                                    const value = a.finalPrice || a.service?.price || 0
-                                                    const pct = staff.find(s => s.id === modalStaffId)?.commissionPercent || 0
-                                                    return sum + value * (pct / 100)
+                                                    const value = a.finalPrice || a.service?.price || 0;
+                                                    const pct = staff.find(s => s.id === modalStaffId)?.commissionPercent || 0;
+                                                    return sum + value * (pct / 100);
                                                 }, 0)
                                                 .toFixed(2)}
                                         </p>
                                     </div>
                                 )}
 
-                                <div className="flex gap-3 pt-4">
+                                <div className="flex flex-col sm:flex-row gap-3 pt-4">
                                     <button
                                         type="button"
                                         onClick={() => setShowModal(false)}
-                                        className="flex-1 px-6 py-3 border-2 border-gray-300 text-charcoal rounded-lg font-semibold hover:bg-gray-50"
+                                        className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-300 text-charcoal rounded-lg font-semibold hover:bg-gray-50 text-sm sm:text-base"
                                     >
                                         Cancelar
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={selectedAppointments.length === 0}
-                                        className="flex-1 px-6 py-3 bg-gradient-gold text-white rounded-lg font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-gold text-white rounded-lg font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                                     >
                                         Registrar {selectedAppointments.length > 0 ? `(${selectedAppointments.length})` : ''}
                                     </button>

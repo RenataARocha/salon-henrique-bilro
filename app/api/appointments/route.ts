@@ -10,6 +10,12 @@ import { notifyAppointmentCreated } from '@/lib/notifications'
 
 // GET - Listar agendamentos do usuário logado
 export async function GET(request: Request) {
+
+    const { searchParams } = new URL(request.url)
+
+    const date = searchParams.get('date')
+    const status = searchParams.get('status')
+
     try {
         const session = await getServerSession(authOptions)
 
@@ -20,9 +26,6 @@ export async function GET(request: Request) {
             )
         }
 
-        const { searchParams } = new URL(request.url)
-        const status = searchParams.get('status')
-        const date = searchParams.get('date') // ✅ NOVO: filtro por data específica
         const paymentMethodsParam = searchParams.get('paymentMethod')
 
         const paymentMethods = paymentMethodsParam
@@ -472,6 +475,40 @@ export async function DELETE(request: Request) {
             where: { id: appointmentId },
             data: { status: 'CANCELLED' }
         })
+
+        try {
+            const appointmentWithDetails = await prisma.appointment.findUnique({
+                where: { id: appointmentId },
+                include: {
+                    user: true,
+                    service: true,
+                    combo: true
+                }
+            })
+
+            const admin = await prisma.user.findFirst({
+                where: { email: process.env.ADMIN_EMAIL }
+            })
+
+            if (admin && appointmentWithDetails) {
+                const serviceName = appointmentWithDetails.service?.name ||
+                    appointmentWithDetails.combo?.name || 'Serviço'
+                const dateFormatted = new Date(appointmentWithDetails.date)
+                    .toLocaleDateString('pt-BR')
+
+                await prisma.notification.create({
+                    data: {
+                        userId: admin.id,
+                        title: '❌ Agendamento Cancelado!',
+                        message: `${appointmentWithDetails.user.name} cancelou o agendamento de ${serviceName} para ${dateFormatted} às ${appointmentWithDetails.time}`,
+                        type: 'ERROR',
+                        read: false
+                    }
+                })
+            }
+        } catch (notifError) {
+            console.error('⚠️ Erro ao criar notificação:', notifError)
+        }
 
         if (appointment.couponId) {
             await prisma.coupon.update({

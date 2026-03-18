@@ -130,12 +130,14 @@ export default function AniversariantesPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="min-h-screen bg-beige py-6 sm:py-8 px-3 sm:px-4">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-center py-20">
+                    <div className="flex items-center justify-center py-16 sm:py-20">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-                            <p className="text-gray-600">Carregando aniversariantes...</p>
+                            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-gold mx-auto mb-3 sm:mb-4"></div>
+                            <p className="text-sm sm:text-base text-gray-600">
+                                Carregando aniversariantes...
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -144,47 +146,49 @@ export default function AniversariantesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-beige py-6 sm:py-8 px-3 sm:px-4">
+            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
                 <AdminHeader
                     title="Aniversariantes do Mês"
                     description="Envie ofertas especiais para clientes aniversariantes"
-                    showBackButton={true}
                 />
 
                 {/* Seletor de Mês */}
                 <motion.div
-                    className="bg-white rounded-xl shadow-lg p-6"
+                    className="bg-white rounded-xl shadow-lg p-4 sm:p-6"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
+
                         <button
                             onClick={handlePreviousMonth}
-                            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 sm:p-3 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                            <ChevronLeft size={24} />
+                            <ChevronLeft size={20} className="sm:w-[24px] sm:h-[24px]" />
                         </button>
 
-                        <div className="text-center">
-                            <h2 className="text-3xl font-bold text-charcoal flex items-center gap-3 justify-center">
-                                <Cake className="text-gold" size={32} />
-                                {MONTHS[currentMonth - 1]} {currentYear}
+                        <div className="text-center flex-1">
+                            <h2 className="text-lg sm:text-3xl font-bold text-charcoal flex items-center gap-2 sm:gap-3 justify-center flex-wrap">
+                                <Cake className="text-gold" size={22} />
+                                <span>
+                                    {MONTHS[currentMonth - 1]} {currentYear}
+                                </span>
                             </h2>
                         </div>
 
                         <button
                             onClick={handleNextMonth}
-                            className="p-3 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 sm:p-3 hover:bg-gray-100 rounded-lg transition-colors"
                         >
-                            <ChevronRight size={24} />
+                            <ChevronRight size={20} className="sm:w-[24px] sm:h-[24px]" />
                         </button>
                     </div>
                 </motion.div>
 
                 {/* Estatísticas */}
-                <div className="grid md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
                     {[
                         { icon: Calendar, label: 'Total no Mês', value: stats.total, color: 'blue' },
                         { icon: Gift, label: 'Hoje', value: stats.today, color: 'pink' },
@@ -193,16 +197,31 @@ export default function AniversariantesPage() {
                     ].map((stat, index) => (
                         <motion.div
                             key={stat.label}
-                            className="bg-white rounded-xl shadow-lg p-6"
+                            className="bg-white rounded-xl shadow-lg p-4 sm:p-6"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.3, delay: index * 0.1 }}
                         >
-                            <div className="flex items-center gap-3 mb-2">
-                                <stat.icon className={`text-${stat.color}-500`} size={24} />
-                                <p className="text-sm text-gray-600">{stat.label}</p>
+                            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                                <stat.icon
+                                    className={`text-${stat.color}-500`}
+                                    size={18}
+                                />
+                                <p className="text-xs sm:text-sm text-gray-600">
+                                    {stat.label}
+                                </p>
                             </div>
-                            <p className={`text-3xl font-bold text-${stat.color === 'pink' ? 'pink' : stat.color === 'orange' ? 'orange' : stat.color === 'green' ? 'green' : 'charcoal'}-600`}>
+
+                            <p
+                                className={`text-xl sm:text-3xl font-bold text-${stat.color === 'pink'
+                                    ? 'pink'
+                                    : stat.color === 'orange'
+                                        ? 'orange'
+                                        : stat.color === 'green'
+                                            ? 'green'
+                                            : 'charcoal'
+                                    }-600`}
+                            >
                                 {stat.value}
                             </p>
                         </motion.div>
@@ -211,60 +230,79 @@ export default function AniversariantesPage() {
 
                 {/* Lista de Aniversariantes */}
                 {birthdays.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <Cake size={64} className="mx-auto text-gray-300 mb-4" />
-                        <h3 className="text-2xl font-bold text-charcoal mb-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-8 sm:p-12 text-center">
+                        <Cake size={48} className="sm:w-[64px] sm:h-[64px] mx-auto text-gray-300 mb-3 sm:mb-4" />
+
+                        <h3 className="text-lg sm:text-2xl font-bold text-charcoal mb-1 sm:mb-2">
                             Nenhum aniversariante este mês
                         </h3>
-                        <p className="text-gray-600">
+
+                        <p className="text-sm sm:text-base text-gray-600">
                             Não há clientes com aniversário em {MONTHS[currentMonth - 1]}
                         </p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-3 sm:gap-4">
                         {birthdays.map((birthday, index) => (
                             <motion.div
                                 key={birthday.id}
-                                className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${birthday.isToday ? 'ring-4 ring-pink-500 ring-opacity-50' : ''}`}
+                                className={`bg-white rounded-xl shadow-lg p-4 sm:p-6 hover:shadow-xl transition-all ${birthday.isToday ? 'ring-2 sm:ring-4 ring-pink-500 ring-opacity-50' : ''
+                                    }`}
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ duration: 0.4, delay: index * 0.05 }}
                             >
-                                <div className="flex items-start justify-between">
+                                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+
+                                    {/* Infos */}
                                     <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="text-4xl">🎂</div>
+                                        <div className="flex items-start sm:items-center gap-2 sm:gap-3 mb-3">
+
+                                            <div className="text-2xl sm:text-4xl">🎂</div>
+
                                             <div>
-                                                <h3 className="text-xl font-bold text-charcoal flex items-center gap-2">
+                                                <h3 className="text-base sm:text-xl font-bold text-charcoal flex flex-wrap items-center gap-2">
                                                     {birthday.name}
+
                                                     {birthday.isToday && (
-                                                        <span className="text-sm bg-gradient-to-r from-pink-500 to-purple-500 text-white px-3 py-1 rounded-full animate-pulse">
+                                                        <span className="text-[10px] sm:text-sm bg-gradient-to-r from-pink-500 to-purple-500 text-white px-2 sm:px-3 py-1 rounded-full animate-pulse">
                                                             HOJE! 🎉
                                                         </span>
                                                     )}
                                                 </h3>
-                                                <p className="text-gray-600">
+
+                                                <p className="text-xs sm:text-sm text-gray-600">
                                                     {birthday.birthDay}/{birthday.birthMonth} - {birthday.age} anos
                                                 </p>
                                             </div>
                                         </div>
 
-                                        <div className="grid md:grid-cols-3 gap-4 mb-4">
+                                        {/* Infos extras */}
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 mb-3 sm:mb-4">
+
                                             <div>
-                                                <p className="text-sm text-gray-500 mb-1">Cliente desde</p>
-                                                <p className="font-semibold">
+                                                <p className="text-xs sm:text-sm text-gray-500 mb-1">
+                                                    Cliente desde
+                                                </p>
+                                                <p className="font-semibold text-sm sm:text-base">
                                                     {new Date(birthday.clientSince).getFullYear()}
                                                 </p>
                                             </div>
 
                                             <div>
-                                                <p className="text-sm text-gray-500 mb-1">Total de atendimentos</p>
-                                                <p className="font-semibold">{birthday.totalAppointments}</p>
+                                                <p className="text-xs sm:text-sm text-gray-500 mb-1">
+                                                    Total de atendimentos
+                                                </p>
+                                                <p className="font-semibold text-sm sm:text-base">
+                                                    {birthday.totalAppointments}
+                                                </p>
                                             </div>
 
                                             <div>
-                                                <p className="text-sm text-gray-500 mb-1">Último agendamento</p>
-                                                <p className="font-semibold">
+                                                <p className="text-xs sm:text-sm text-gray-500 mb-1">
+                                                    Último agendamento
+                                                </p>
+                                                <p className="font-semibold text-sm sm:text-base">
                                                     {birthday.lastAppointment
                                                         ? new Date(birthday.lastAppointment.date).toLocaleDateString('pt-BR')
                                                         : 'Nunca'}
@@ -272,25 +310,32 @@ export default function AniversariantesPage() {
                                             </div>
                                         </div>
 
-                                        {/* ✅ CORRIGIDO - Verifica se service/combo existe */}
+                                        {/* Último serviço */}
                                         {birthday.lastAppointment && (
-                                            <p className="text-sm text-gray-600">
-                                                Último serviço: <span className="font-semibold">{getServiceName(birthday.lastAppointment)}</span>
+                                            <p className="text-xs sm:text-sm text-gray-600 break-words">
+                                                Último serviço:{' '}
+                                                <span className="font-semibold">
+                                                    {getServiceName(birthday.lastAppointment)}
+                                                </span>
                                             </p>
                                         )}
                                     </div>
 
-                                    <div className="text-right space-y-3">
-                                        <span className={`inline-block px-4 py-2 rounded-full text-sm font-bold ${getBadgeColor(birthday.daysUntil)}`}>
+                                    {/* Ações */}
+                                    <div className="flex flex-col sm:flex-row lg:flex-col items-stretch sm:items-center lg:items-end gap-2 sm:gap-3">
+
+                                        <span
+                                            className={`text-center sm:text-left inline-block px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold ${getBadgeColor(birthday.daysUntil)}`}
+                                        >
                                             {getDaysText(birthday.daysUntil)}
                                         </span>
 
-                                        <div className="flex flex-col gap-2">
+                                        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 w-full sm:w-auto">
                                             <button
                                                 onClick={() => handleSendOffer(birthday)}
-                                                className="flex items-center gap-2 px-4 py-2 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm sm:text-base bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
                                             >
-                                                <Gift size={18} />
+                                                <Gift size={16} className="sm:w-[18px] sm:h-[18px]" />
                                                 Criar Oferta
                                             </button>
                                         </div>

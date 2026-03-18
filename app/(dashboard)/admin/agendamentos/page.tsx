@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Filter, X, Search, CheckSquare, Square, FileText } from 'lucide-react'
+import { Filter, X, Search, CheckSquare, Square, FileText, Link, ArrowLeft, Home } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
 import { Calendar } from 'lucide-react'
@@ -715,13 +715,12 @@ export default function AdminAgendamentosPage() {
 
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4 pb-32">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-beige py-6 sm:py-8 px-3 sm:px-4 pb-32">
+            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
                 {/* Header */}
                 <AdminHeader
                     title="Agendamentos"
                     description="Gerencie todos os agendamentos do salão"
-                    showBackButton={true}
                 />
 
                 {/* Barra de Busca e Controles */}
@@ -731,7 +730,7 @@ export default function AdminAgendamentosPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3">
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input
@@ -768,7 +767,7 @@ export default function AdminAgendamentosPage() {
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as SortOption)}
-                            className="px-4 py-3 border rounded-lg focus:ring-2 focus:ring-gold"
+                            className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors relative w-full sm:w-auto`}
                         >
                             <option value="date-desc">📅 Mais Recentes</option>
                             <option value="date-asc">📅 Mais Antigas</option>
@@ -795,12 +794,12 @@ export default function AdminAgendamentosPage() {
                                 )}
                             </div>
 
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Serviços ({selectedServices.length})
                                     </label>
-                                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-2 bg-gray-50">
+                                    <div className="space-y-2 max-h-48 sm:max-h-40 overflow-y-auto border rounded-lg p-2 bg-gray-50">
                                         {services.length === 0 ? (
                                             <p className="text-sm text-gray-500 p-2">Nenhum serviço cadastrado</p>
                                         ) : (
@@ -871,7 +870,7 @@ export default function AdminAgendamentosPage() {
                 </motion.div>
 
                 {/* Estatísticas */}
-                <div className="grid md:grid-cols-5 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6">
                     {[
                         { label: 'Total', value: stats.total, color: 'text-charcoal' },
                         { label: 'Pendentes', value: stats.pending, color: 'text-orange-600' },
@@ -881,13 +880,13 @@ export default function AdminAgendamentosPage() {
                     ].map((stat, index) => (
                         <motion.div
                             key={stat.label}
-                            className="bg-white rounded-xl p-6 shadow"
+                            className="bg-white rounded-xl p-4 sm:p-6 shadow"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.4, delay: 0.2 + index * 0.1 }}
                         >
                             <p className="text-gray-600 text-sm mb-1">{stat.label}</p>
-                            <p className={`text-3xl font-bold ${stat.color}`}>
+                            <p className={`text-2xl sm:text-3xl font-bold ${stat.color}`}>
                                 {stat.value}
                             </p>
 
@@ -925,7 +924,7 @@ export default function AdminAgendamentosPage() {
                                 transition={{ delay: index * 0.05 }}
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterPeriod === filter.value
+                                className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all ${filterPeriod === filter.value
                                     ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
                                     : 'bg-beige text-charcoal hover:shadow-md'
                                     }`}
@@ -960,7 +959,7 @@ export default function AdminAgendamentosPage() {
                             transition={{ delay: index * 0.05 }}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className={`px-6 py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
+                            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-semibold transition-all ${filterStatus === filter.value
                                 ? 'bg-gradient-to-r from-gold to-yellow-600 text-white shadow-lg'
                                 : 'bg-white text-charcoal hover:shadow-md'
                                 }`}
@@ -975,7 +974,7 @@ export default function AdminAgendamentosPage() {
                 {filteredAppointments.length > 0 ? (
                     <>
                         {/* Botão Selecionar Todos */}
-                        <div className="flex justify-between items-center">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
                             <p className="text-gray-600">
                                 {filteredAppointments.length}{' '}
                                 {filteredAppointments.length === 1

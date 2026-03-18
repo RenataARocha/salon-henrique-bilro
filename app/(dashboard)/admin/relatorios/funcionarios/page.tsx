@@ -8,6 +8,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable' // ✅ IMPORTAÇÃO CORRETA
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 
 interface StaffReport {
     staff: {
@@ -40,6 +41,9 @@ export default function RelatoriosFuncionariosPage() {
     const [selectedStaff, setSelectedStaff] = useState<string>('')
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
+    const [loadingExcel, setLoadingExcel] = useState(false)
+    const [loadingPDF, setLoadingPDF] = useState(false)
+    const [successMessage, setSuccessMessage] = useState('')
 
     useEffect(() => {
         loadReports()
@@ -74,24 +78,23 @@ export default function RelatoriosFuncionariosPage() {
     }
 
     // ✅ EXPORTAR PARA EXCEL
-    function exportToExcel() {
-        if (!reports.length) {
-            alert('Nenhum dado para exportar')
-            return
+    async function exportToExcel() {
+        if (!reports.length || !totals) { // Verificação extra
+            toast.error('Nenhum dado para exportar');
+            return;
         }
 
-        // Sheet 1: Resumo Geral
         const resumo = [
             ['RELATÓRIO DE FUNCIONÁRIOS'],
             ['Período:', getPeriodLabel()],
             [''],
             ['RESUMO GERAL'],
-            ['Total de Serviços', totals?.totalServices || 0],
-            ['Faturamento Total', `R$ ${totals?.totalRevenue.toFixed(2) || '0.00'}`],
-            ['Total Comissões', `R$ ${totals?.totalCommission.toFixed(2) || '0.00'}`],
-            ['Comissões Pagas', `R$ ${totals?.commissionPaid.toFixed(2) || '0.00'}`],
-            ['Comissões Pendentes', `R$ ${totals?.commissionPending.toFixed(2) || '0.00'}`],
-        ]
+            ['Total de Serviços', totals.totalServices],
+            ['Faturamento Total', `R$ ${totals.totalRevenue.toFixed(2)}`],
+            ['Total Comissões', `R$ ${totals.totalCommission.toFixed(2)}`],
+            ['Comissões Pagas', `R$ ${totals.commissionPaid.toFixed(2)}`],
+            ['Comissões Pendentes', `R$ ${totals.commissionPending.toFixed(2)}`],
+        ];
 
         // Sheet 2: Detalhes por Funcionário
         const detalhes = [
@@ -115,15 +118,19 @@ export default function RelatoriosFuncionariosPage() {
         XLSX.utils.book_append_sheet(wb, ws1, 'Resumo Geral')
         XLSX.utils.book_append_sheet(wb, ws2, 'Detalhes por Funcionário')
 
+
         // Download
-        XLSX.writeFile(wb, `Relatorio_Funcionarios_${new Date().toISOString().split('T')[0]}.xlsx`)
+        XLSX.writeFile(wb, `Relatorio_Funcionarios_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+        toast.success('Excel exportado com sucesso!')
+        setTimeout(() => setSuccessMessage(''), 3000)
     }
 
     // ✅ EXPORTAR PARA PDF - CORRIGIDO
-    function exportToPDF() {
-        if (!reports.length) {
-            alert('Nenhum dado para exportar')
-            return
+    async function exportToPDF() {
+        if (!reports.length || !totals) {
+            toast.error('Nenhum dado para exportar');
+            return;
         }
 
         const doc = new jsPDF()
@@ -145,11 +152,11 @@ export default function RelatoriosFuncionariosPage() {
 
         doc.setFontSize(11)
         doc.setTextColor(0, 0, 0)
-        doc.text(`Total de Serviços: ${totals?.totalServices || 0}`, 20, 60)
-        doc.text(`Faturamento Total: R$ ${totals?.totalRevenue.toFixed(2) || '0.00'}`, 20, 68)
-        doc.text(`Total Comissões: R$ ${totals?.totalCommission.toFixed(2) || '0.00'}`, 20, 76)
-        doc.text(`Comissões Pagas: R$ ${totals?.commissionPaid.toFixed(2) || '0.00'}`, 20, 84)
-        doc.text(`Comissões Pendentes: R$ ${totals?.commissionPending.toFixed(2) || '0.00'}`, 20, 92)
+        doc.text(`Total de Serviços: ${totals.totalServices}`, 20, 60);
+        doc.text(`Faturamento Total: R$ ${totals.totalRevenue.toFixed(2)}`, 20, 68);
+        doc.text(`Total Comissões: R$ ${totals.totalCommission.toFixed(2)}`, 20, 76);
+        doc.text(`Comissões Pagas: R$ ${totals.commissionPaid.toFixed(2)}`, 20, 84);
+        doc.text(`Comissões Pendentes: R$ ${totals.commissionPending.toFixed(2)}`, 20, 92);
 
         // ✅ TABELA CORRIGIDA
         autoTable(doc, {
@@ -167,7 +174,10 @@ export default function RelatoriosFuncionariosPage() {
         })
 
         // Download
-        doc.save(`Relatorio_Funcionarios_${new Date().toISOString().split('T')[0]}.pdf`)
+        doc.save(`Relatorio_Funcionarios_${new Date().toISOString().split('T')[0]}.pdf`);
+
+        toast.success('PDF exportado com sucesso!')
+        setTimeout(() => setSuccessMessage(''), 3000)
     }
 
     function getPeriodLabel() {
@@ -183,49 +193,91 @@ export default function RelatoriosFuncionariosPage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-screen bg-beige">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-beige gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold"></div>
+                <p className="text-gray-500 text-sm">Carregando relatórios...</p>
             </div>
         )
     }
 
     return (
-        <div className="min-h-screen bg-beige p-6">
+        <div className="min-h-screen bg-beige p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
-                <div className="flex justify-between items-center mb-8">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-charcoal">📊 Relatórios - Funcionários</h1>
+                        <h1 className="text-xl sm:text-3xl font-bold text-charcoal">📊 Relatórios - Funcionários</h1>
                         <p className="text-gray-600 mt-1">Acompanhe o desempenho da sua equipe</p>
                     </div>
-                    <div className="flex gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                         <button
-                            onClick={exportToExcel}
-                            className="flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition"
+                            onClick={async () => {
+                                setLoadingExcel(true)
+                                try {
+                                    await exportToExcel()
+                                } finally {
+                                    setLoadingExcel(false)
+                                }
+                            }}
+                            disabled={loadingExcel}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-green-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Download size={20} />
-                            Excel
+                            {loadingExcel ? (
+                                <>
+                                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                    Exportando...
+                                </>
+                            ) : (
+                                <>
+                                    <Download size={20} />
+                                    Excel
+                                </>
+                            )}
                         </button>
+
                         <button
-                            onClick={exportToPDF}
-                            className="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition"
+                            onClick={async () => {
+                                setLoadingPDF(true)
+                                try {
+                                    await exportToPDF()
+                                } finally {
+                                    setLoadingPDF(false)
+                                }
+                            }}
+                            disabled={loadingPDF}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-red-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg font-semibold hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <Download size={20} />
-                            PDF
+                            {loadingPDF ? (
+                                <>
+                                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                    Exportando...
+                                </>
+                            ) : (
+                                <>
+                                    <Download size={20} />
+                                    PDF
+                                </>
+                            )}
                         </button>
+
+                        {successMessage && (
+                            <div className="mb-4 p-3 rounded-lg bg-green-100 text-green-700 text-center font-semibold">
+                                {successMessage}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* Navegação */}
                 <motion.div
-                    className="mb-6 justify-end flex gap-3"
+                    className="mb-6 flex flex-col sm:flex-row sm:justify-end gap-3"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                 >
                     <Link
                         href="/admin"
-                        className="flex items-center gap-2 px-6 py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-white text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold border-2 border-gray-200"
                     >
 
                         <ArrowLeft size={20} />
@@ -233,7 +285,7 @@ export default function RelatoriosFuncionariosPage() {
                     </Link>
                     <Link
                         href="/"
-                        className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold"
                     >
                         <Home size={20} />
                         Voltar ao início
@@ -309,13 +361,13 @@ export default function RelatoriosFuncionariosPage() {
 
                 {/* ✅ RESUMO GERAL - 5 CARDS COM COMISSÕES PAGAS */}
                 {totals && (
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
                         <div className="bg-white border-t-4 border-blue-500 text-charcoal p-6 rounded-xl shadow-lg">
                             <div className="flex items-center gap-3 mb-2">
                                 <Calendar className="text-blue-500" size={24} />
                                 <p className="text-sm font-semibold text-gray-600">Total de Serviços</p>
                             </div>
-                            <p className="text-4xl font-bold">{totals.totalServices}</p>
+                            <p className="text-3xl sm:text-4xl lg:text-5xl font-bold">{totals.totalServices}</p>
                         </div>
 
                         <div className="bg-white border-t-4 border-gold text-charcoal p-6 rounded-xl shadow-lg">
@@ -323,7 +375,7 @@ export default function RelatoriosFuncionariosPage() {
                                 <DollarSign className="text-gold" size={24} />
                                 <p className="text-sm font-semibold text-gray-600">Faturamento Total</p>
                             </div>
-                            <p className="text-4xl font-bold text-gold">R$ {totals.totalRevenue.toFixed(2)}</p>
+                            <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gold">R$ {totals.totalRevenue.toFixed(2)}</p>
                         </div>
 
                         <div className="bg-white border-t-4 border-gold text-charcoal p-6 rounded-xl shadow-lg">
@@ -331,7 +383,7 @@ export default function RelatoriosFuncionariosPage() {
                                 <TrendingUp className="text-gold" size={24} />
                                 <p className="text-sm font-semibold text-gray-600">Total Comissões</p>
                             </div>
-                            <p className="text-4xl font-bold text-gold">R$ {totals.totalCommission.toFixed(2)}</p>
+                            <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gold">R$ {totals.totalCommission.toFixed(2)}</p>
                         </div>
 
                         {/* ✅ NOVO CARD - COMISSÕES PAGAS */}
@@ -340,7 +392,7 @@ export default function RelatoriosFuncionariosPage() {
                                 <CheckCircle className="text-green-600" size={24} />
                                 <p className="text-sm font-semibold text-gray-600">Comissões Pagas</p>
                             </div>
-                            <p className="text-4xl font-bold text-green-600">R$ {totals.commissionPaid.toFixed(2)}</p>
+                            <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-green-600">R$ {totals.commissionPaid.toFixed(2)}</p>
                         </div>
 
                         <div className="bg-white border-t-4 border-orange-500 text-charcoal p-6 rounded-xl shadow-lg">
@@ -348,74 +400,72 @@ export default function RelatoriosFuncionariosPage() {
                                 <DollarSign className="text-orange-600" size={24} />
                                 <p className="text-sm font-semibold text-gray-600">Pendente</p>
                             </div>
-                            <p className="text-4xl font-bold text-orange-600">R$ {totals.commissionPending.toFixed(2)}</p>
+                            <p className="text-3xl sm:text-4xl lg:text-5xl font-bold text-orange-600">R$ {totals.commissionPending.toFixed(2)}</p>
                         </div>
                     </div>
                 )}
 
                 {/* Relatórios por Funcionário */}
-                <div className="space-y-6 max-h-[90vh] overflow-y-auto p-4">
+                <div className="space-y-6 max-h-[70vh] sm:max-h-[80vh] lg:max-h-[90vh] overflow-y-auto p-2 sm:p-4">
                     {reports.length > 0 ? (
                         reports.map((report, index) => (
-                            <div key={report.staff.id} className="bg-white rounded-xl shadow-md overflow-hidden border-2 border-gold/20">
+                            <div key={report.staff.id} className="bg-white rounded-xl shadow-md overflow-hidden border border-gold/20">
+
                                 {/* Header do Funcionário */}
-                                <div className="bg-gradient-gold text-white p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <div className="text-3xl font-bold text-white/50 ">
+                                <div className="bg-gradient-gold text-white p-4 sm:p-6">
+                                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="flex items-center gap-3 sm:gap-4">
+                                            <div className="text-xl sm:text-3xl font-bold text-white/50">
                                                 #{index + 1}
                                             </div>
                                             {report.staff.photo ? (
                                                 <img
                                                     src={report.staff.photo}
                                                     alt={report.staff.name}
-                                                    className="w-16 h-16 rounded-full object-cover border-4 border-white"
+                                                    className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 sm:border-4 border-white shadow-sm"
                                                 />
                                             ) : (
-                                                <div className="w-16 h-16 rounded-full  bg-gold-dark bg-opacity-20 flex items-center justify-center text-2xl font-bold ">
+                                                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-white/20 flex items-center justify-center text-xl sm:text-2xl font-bold border-2 border-white/30">
                                                     {report.staff.name.charAt(0)}
                                                 </div>
                                             )}
                                             <div>
-                                                <h3 className="text-2xl font-bold">{report.staff.name}</h3>
-                                                <p className="text-white/80">
+                                                <h3 className="text-lg sm:text-2xl font-bold leading-tight">{report.staff.name}</h3>
+                                                <p className="text-xs sm:text-sm text-white/80">
                                                     Comissão: {report.staff.commissionPercent}%
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-sm text-white/80">Total de Serviços</p>
-                                            <p className="text-5xl font-bold">{report.totalServices}</p>
+
+                                        <div className="flex flex-row justify-between sm:flex-col sm:text-right border-t border-white/10 pt-3 sm:border-0 sm:pt-0">
+                                            <p className="text-xs sm:text-sm text-white/80 uppercase tracking-wider">Serviços</p>
+                                            <p className="text-2xl sm:text-4xl font-black">{report.totalServices}</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Métricas */}
-                                <div className="grid grid-cols-4 divide-x divide-gray-200">
-                                    <div className="p-6 text-center">
-                                        <p className="text-sm text-gray-500 mb-2">Faturamento</p>
-                                        <p className="text-3xl font-bold text-charcoal">
-                                            R$ {report.totalRevenue.toFixed(2)}
-                                        </p>
-                                    </div>
-                                    <div className="p-6 text-center">
-                                        <p className="text-sm text-gray-500 mb-2">Total Comissão</p>
-                                        <p className="text-3xl font-bold text-gold">
-                                            R$ {report.totalCommission.toFixed(2)}
-                                        </p>
-                                    </div>
-                                    <div className="p-6 text-center">
-                                        <p className="text-sm text-gray-500 mb-2">Pago</p>
-                                        <p className="text-3xl font-bold text-green-600">
-                                            R$ {report.commissionPaid.toFixed(2)}
-                                        </p>
-                                    </div>
-                                    <div className="p-6 text-center">
-                                        <p className="text-sm text-gray-500 mb-2">Pendente</p>
-                                        <p className="text-3xl font-bold text-orange-600">
-                                            R$ {report.commissionPending.toFixed(2)}
-                                        </p>
-                                    </div>
+                                {/* Métricas - Grid 2x2 no mobile, 1x4 no desktop */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 p-2 sm:gap-4 sm:p-4 bg-gray-50/50">
+                                    <MetricCard
+                                        label="Faturamento"
+                                        value={report.totalRevenue}
+                                        color="text-charcoal"
+                                    />
+                                    <MetricCard
+                                        label="Total Comissão"
+                                        value={report.totalCommission}
+                                        color="text-gold"
+                                    />
+                                    <MetricCard
+                                        label="Pago"
+                                        value={report.commissionPaid}
+                                        color="text-green-600"
+                                    />
+                                    <MetricCard
+                                        label="Pendente"
+                                        value={report.commissionPending}
+                                        color="text-orange-600"
+                                    />
                                 </div>
                             </div>
                         ))
@@ -429,4 +479,18 @@ export default function RelatoriosFuncionariosPage() {
             </div>
         </div>
     )
+
+    {/* Sub-componente para limpar o código principal */ }
+    function MetricCard({ label, value, color }: { label: string; value: string | number; color: string }) {
+        return (
+            <div className="bg-white p-3 sm:p-5 text-center rounded-lg border border-gray-100 shadow-sm">
+                <p className="text-[10px] sm:text-xs text-gray-400 uppercase font-semibold mb-1">{label}</p>
+                <p className={`text-sm sm:text-xl font-bold ${color}`}>
+                    R$ {value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </p>
+            </div>
+        );
+    }
+
+
 }

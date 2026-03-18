@@ -217,12 +217,14 @@ export default function AgendaAdminPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-beige py-8 px-4">
+            <div className="min-h-screen bg-beige py-6 sm:py-8 px-3 sm:px-4">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex items-center justify-center py-20">
+                    <div className="flex items-center justify-center py-16 sm:py-20">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-                            <p className="text-gray-600">Carregando...</p>
+                            <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-gold mx-auto mb-3 sm:mb-4"></div>
+                            <p className="text-sm sm:text-base text-gray-600">
+                                Carregando...
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -231,40 +233,44 @@ export default function AgendaAdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-beige py-6 sm:py-8 px-3 sm:px-4">
+            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
                 <AdminHeader
                     title="Gerenciar Agenda"
                     description="Sistema híbrido: horários recorrentes + controle por data"
-                    showBackButton={true}
                 />
 
                 {/* Navegador de Mês */}
                 <motion.div
-                    className="bg-gradient-to-r from-gold to-yellow-600 rounded-xl shadow-lg p-6"
+                    className="bg-gradient-to-r from-gold to-yellow-600 rounded-xl shadow-lg p-4 sm:p-6"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
+
                         <button
                             onClick={() => changeMonth('prev')}
-                            className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-all backdrop-blur-sm"
+                            className="p-2 sm:p-3 bg-white/20 hover:bg-white/30 rounded-lg transition-all backdrop-blur-sm"
                         >
-                            <ChevronLeft className="text-white" size={24} />
+                            <ChevronLeft
+                                className="text-white"
+                                size={20}
+                            />
                         </button>
 
-                        <div className="text-center">
-                            <div className="flex items-center gap-3 justify-center mb-1">
-                                <Calendar className="text-white" size={24} />
-                                <h2 className="text-3xl font-bold text-white">
+                        <div className="text-center flex-1">
+                            <div className="flex items-center gap-2 sm:gap-3 justify-center mb-1 flex-wrap">
+                                <Calendar className="text-white" size={20} />
+                                <h2 className="text-lg sm:text-3xl font-bold text-white">
                                     {getMonthYear()}
                                 </h2>
                             </div>
+
                             {!isCurrentMonth() && (
                                 <button
                                     onClick={goToCurrentMonth}
-                                    className="text-sm text-white/90 hover:text-white underline"
+                                    className="text-xs sm:text-sm text-white/90 hover:text-white underline"
                                 >
                                     Voltar para o mês atual
                                 </button>
@@ -273,49 +279,67 @@ export default function AgendaAdminPage() {
 
                         <button
                             onClick={() => changeMonth('next')}
-                            className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-all backdrop-blur-sm"
+                            className="p-2 sm:p-3 bg-white/20 hover:bg-white/30 rounded-lg transition-all backdrop-blur-sm"
                         >
-                            <ChevronRight className="text-white" size={24} />
+                            <ChevronRight
+                                className="text-white"
+                                size={20}
+                            />
                         </button>
                     </div>
                 </motion.div>
 
                 {/* Info Box - Como Funciona */}
                 <motion.div
-                    className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-6"
+                    className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4 sm:p-6"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                    <div className="flex items-start gap-4">
-                        <div className="bg-blue-500 text-white p-3 rounded-full">
-                            <Info size={24} />
+                    <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+
+                        <div className="bg-blue-500 text-white p-2 sm:p-3 rounded-full mx-auto sm:mx-0">
+                            <Info size={20} />
                         </div>
-                        <div className="flex-1">
-                            <h3 className="text-lg font-bold text-blue-900 mb-3">
+
+                        <div className="flex-1 w-full">
+                            <h3 className="text-base sm:text-lg font-bold text-blue-900 mb-3 text-center sm:text-left">
                                 💡 Como funciona o Sistema Híbrido
                             </h3>
-                            <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm text-blue-800">
                                 <div className="bg-white/50 rounded-lg p-3">
-                                    <p className="font-bold mb-1">🔄 Horários Recorrentes</p>
-                                    <p className="text-xs">Quando você cria um horário, ele se repete automaticamente toda semana naquele dia.</p>
+                                    <p className="font-bold mb-1 text-sm sm:text-base">🔄 Horários Recorrentes</p>
+                                    <p className="text-xs sm:text-sm">
+                                        Quando você cria um horário, ele se repete automaticamente toda semana naquele dia.
+                                    </p>
                                 </div>
+
                                 <div className="bg-white/50 rounded-lg p-3">
-                                    <p className="font-bold mb-1">📅 Controle por Data</p>
-                                    <p className="text-xs">Clique em uma data específica para ver/gerenciar os horários daquele dia.</p>
+                                    <p className="font-bold mb-1 text-sm sm:text-base">📅 Controle por Data</p>
+                                    <p className="text-xs sm:text-sm">
+                                        Clique em uma data específica para ver/gerenciar os horários daquele dia.
+                                    </p>
                                 </div>
+
                                 <div className="bg-white/50 rounded-lg p-3">
-                                    <p className="font-bold mb-1">⏸️ Bloquear Dias Específicos</p>
-                                    <p className="text-xs">Use o botão de ligar/desligar para bloquear feriados ou dias de folga.</p>
+                                    <p className="font-bold mb-1 text-sm sm:text-base">⏸️ Bloquear Dias Específicos</p>
+                                    <p className="text-xs sm:text-sm">
+                                        Use o botão de ligar/desligar para bloquear feriados ou dias de folga.
+                                    </p>
                                 </div>
+
                                 <div className="bg-white/50 rounded-lg p-3">
-                                    <p className="font-bold mb-1">🗑️ Excluir vs Desativar</p>
-                                    <p className="text-xs">Excluir remove de todas as semanas. Desativar bloqueia apenas aquele período.</p>
+                                    <p className="font-bold mb-1 text-sm sm:text-base">🗑️ Excluir vs Desativar</p>
+                                    <p className="text-xs sm:text-sm">
+                                        Excluir remove de todas as semanas. Desativar bloqueia apenas aquele período.
+                                    </p>
                                 </div>
                             </div>
+
                             <button
                                 onClick={() => setShowInfoModal(true)}
-                                className="mt-3 text-blue-600 hover:text-blue-800 font-semibold text-sm"
+                                className="mt-4 w-full sm:w-auto text-center sm:text-left text-blue-600 hover:text-blue-800 font-semibold text-sm"
                             >
                                 Ver tutorial completo →
                             </button>
@@ -324,15 +348,19 @@ export default function AgendaAdminPage() {
                 </motion.div>
 
                 {/* Actions */}
-                <div className="flex justify-end">
-                    <Button variant="primary" onClick={() => setShowAddModal(true)}>
-                        <Plus size={20} />
+                <div className="flex justify-center sm:justify-end">
+                    <Button
+                        variant="primary"
+                        onClick={() => setShowAddModal(true)}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm"
+                    >
+                        <Plus size={18} />
                         Novo Horário Recorrente
                     </Button>
                 </div>
 
                 {/* Estatísticas */}
-                <div className="grid md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
                     {[
                         { icon: Calendar, label: 'Dias Configurados', value: `${daysOfWeek.filter(d => getSlotsByDay(d.value).length > 0).length}/7` },
                         { icon: Clock, label: 'Horários Ativos', value: slots.filter(s => s.active).length },
@@ -340,22 +368,24 @@ export default function AgendaAdminPage() {
                     ].map((stat, index) => (
                         <motion.div
                             key={stat.label}
-                            className="bg-white rounded-xl shadow-lg p-6"
+                            className="bg-white rounded-xl shadow-lg p-4 sm:p-6"
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.3, delay: index * 0.1 }}
                         >
-                            <div className="flex items-center gap-3 mb-2">
-                                <stat.icon className="text-blue-500" size={24} />
-                                <p className="text-sm text-gray-600">{stat.label}</p>
+                            <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                                <stat.icon className="text-blue-500" size={20} />
+                                <p className="text-xs sm:text-sm text-gray-600">{stat.label}</p>
                             </div>
-                            <p className="text-3xl font-bold text-charcoal">{stat.value}</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-charcoal">
+                                {stat.value}
+                            </p>
                         </motion.div>
                     ))}
                 </div>
 
                 {/* Grid de dias COM DATAS CLICÁVEIS */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                     {daysOfWeek.map((day, dayIndex) => {
                         const isClosed = CLOSED_DAYS.includes(day.value)
                         const daySlots = getSlotsByDay(day.value)
@@ -365,28 +395,30 @@ export default function AgendaAdminPage() {
                         return (
                             <motion.div
                                 key={day.value}
-                                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all border-2 border-gray-100"
+                                className="bg-white rounded-xl sm:rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all border border-gray-100"
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.3, delay: dayIndex * 0.05 }}
                             >
                                 {/* Header */}
                                 <div
-                                    className={`text-white p-5 ${isClosed
+                                    className={`text-white p-4 sm:p-5 ${isClosed
                                         ? 'bg-gray-400'
                                         : `bg-gradient-to-br ${day.color}`
                                         }`}
                                 >
-                                    <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center justify-between mb-2 sm:mb-3">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-2xl">{day.emoji}</span>
-                                            <h3 className="text-lg font-bold">{day.short}</h3>
+                                            <span className="text-xl sm:text-2xl">{day.emoji}</span>
+                                            <h3 className="text-base sm:text-lg font-bold">{day.short}</h3>
                                         </div>
-                                        <span className="bg-white/30 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full">
+
+                                        <span className="bg-white/30 backdrop-blur-sm text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-1 rounded-full">
                                             {activeSlots}/{daySlots.length}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-white/90 mb-2">
+
+                                    <p className="text-[10px] sm:text-xs text-white/90 mb-2">
                                         {isClosed
                                             ? '🚫 Folga fixa'
                                             : daySlots.length === 0
@@ -395,37 +427,44 @@ export default function AgendaAdminPage() {
                                         }
                                     </p>
 
-
                                     {/* DATAS ESPECÍFICAS CLICÁVEIS */}
                                     {specificDates.length > 0 && (
                                         <div className="space-y-1">
-                                            <p className="text-xs text-white/70 font-semibold">Datas neste mês:</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {!isClosed && specificDates.map((date, idx) => (<button
-                                                    key={idx}
-                                                    onClick={() => openViewModal(day.value, date)}
-                                                    className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1"
-                                                >
-                                                    {formatDate(date)}
-                                                    <Eye size={12} />
-                                                </button>
-                                                ))}
+                                            <p className="text-[10px] sm:text-xs text-white/70 font-semibold">
+                                                Datas neste mês:
+                                            </p>
+
+                                            <div className="flex flex-wrap gap-1 sm:gap-2">
+                                                {!isClosed &&
+                                                    specificDates.map((date, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => openViewModal(day.value, date)}
+                                                            className="bg-white/20 hover:bg-white/30 backdrop-blur-sm px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center gap-1"
+                                                        >
+                                                            {formatDate(date)}
+                                                            <Eye size={10} />
+                                                        </button>
+                                                    ))}
                                             </div>
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Lista Resumida */}
-                                <div className="p-4">
+                                <div className="p-3 sm:p-4">
                                     {daySlots.length > 0 ? (
                                         <div className="space-y-2">
                                             {daySlots.slice(0, 3).map(slot => (
                                                 <div
                                                     key={slot.id}
-                                                    className={`p-2 rounded-lg text-sm font-semibold flex items-center justify-between ${slot.active ? 'bg-green-50 text-green-700' : 'bg-gray-50 text-gray-500'
+                                                    className={`p-2 rounded-lg text-xs sm:text-sm font-semibold flex items-center justify-between ${slot.active
+                                                        ? 'bg-green-50 text-green-700'
+                                                        : 'bg-gray-50 text-gray-500'
                                                         }`}
                                                 >
                                                     <span>{slot.timeSlot}</span>
+
                                                     <div className="flex gap-1">
                                                         <button
                                                             onClick={() => handleToggleSlot(slot.id, slot.active)}
@@ -434,6 +473,7 @@ export default function AgendaAdminPage() {
                                                         >
                                                             <Power size={12} />
                                                         </button>
+
                                                         <button
                                                             onClick={() => handleDeleteSlot(slot.id)}
                                                             className="p-1 hover:bg-white rounded transition-all text-red-600"
@@ -444,16 +484,16 @@ export default function AgendaAdminPage() {
                                                     </div>
                                                 </div>
                                             ))}
-                                            {daySlots.length > 3 && (
-                                                <p className="text-center text-xs text-gray-500">
-                                                    + {daySlots.length - 3} mais
-                                                </p>
-                                            )}
+
                                         </div>
                                     ) : (
-                                        <div className="text-center py-8">
-                                            <Clock size={28} className="mx-auto text-gray-300 mb-2" />
-                                            <p className="text-gray-400 text-xs mb-3">Nenhum horário</p>
+                                        <div className="text-center py-6 sm:py-8">
+                                            <Clock size={24} className="mx-auto text-gray-300 mb-2" />
+
+                                            <p className="text-gray-400 text-[10px] sm:text-xs mb-3">
+                                                Nenhum horário
+                                            </p>
+
                                             {!isClosed && (
                                                 <button
                                                     onClick={() => {
@@ -465,7 +505,6 @@ export default function AgendaAdminPage() {
                                                     + Adicionar
                                                 </button>
                                             )}
-
                                         </div>
                                     )}
                                 </div>
@@ -477,75 +516,96 @@ export default function AgendaAdminPage() {
                 {/* MODAL: Tutorial Completo */}
                 {showInfoModal && (
                     <div
-                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center justify-center z-50 p-2 sm:p-4"
                         onClick={() => setShowInfoModal(false)}
                     >
                         <div
-                            className="bg-white rounded-2xl p-8 max-w-2xl w-full shadow-2xl max-h-[80vh] overflow-y-auto"
+                            className="bg-white rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 lg:p-8 max-w-2xl w-full shadow-2xl max-h-[90vh] sm:max-h-[80vh] overflow-y-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <h2 className="text-2xl font-bold text-charcoal mb-6 flex items-center gap-2">
-                                <Info className="text-gold" />
+                            <h2 className="text-lg sm:text-2xl font-bold text-charcoal mb-4 sm:mb-6 flex items-center gap-2">
+                                <Info className="text-gold" size={20} />
                                 Tutorial: Sistema Híbrido de Agenda
                             </h2>
 
-                            <div className="space-y-6">
-                                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                                    <h3 className="font-bold text-blue-900 mb-2">1️⃣ Criar Horários Recorrentes</h3>
-                                    <p className="text-sm text-blue-800 mb-2">
-                                        Clique em &quot+ Novo Horário Recorrente&quot e escolha:
+                            <div className="space-y-4 sm:space-y-6">
+
+                                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 sm:p-4">
+                                    <h3 className="font-bold text-blue-900 mb-2 text-sm sm:text-base">
+                                        1️⃣ Criar Horários Recorrentes
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-blue-800 mb-2">
+                                        Clique em &quot;+ Novo Horário Recorrente&quot e escolha:
                                     </p>
-                                    <ul className="text-sm text-blue-700 space-y-1 ml-4">
+                                    <ul className="text-xs sm:text-sm text-blue-700 space-y-1 ml-4">
                                         <li>• Dia da semana (ex: Segunda-feira)</li>
                                         <li>• Horário (ex: 14:00)</li>
                                         <li>• Este horário se repetirá toda semana automaticamente</li>
                                     </ul>
                                 </div>
 
-                                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                                    <h3 className="font-bold text-green-900 mb-2">2️⃣ Ver Horários de uma Data Específica</h3>
-                                    <p className="text-sm text-green-800 mb-2">
+                                <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3 sm:p-4">
+                                    <h3 className="font-bold text-green-900 mb-2 text-sm sm:text-base">
+                                        2️⃣ Ver Horários de uma Data Específica
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-green-800 mb-2">
                                         Nos cards dos dias, clique nas datas (ex: 08/01, 15/01):
                                     </p>
-                                    <ul className="text-sm text-green-700 space-y-1 ml-4">
+                                    <ul className="text-xs sm:text-sm text-green-700 space-y-1 ml-4">
                                         <li>• Abre modal mostrando horários daquele dia</li>
                                         <li>• Pode ativar/desativar individualmente</li>
                                         <li>• Pode excluir permanentemente</li>
                                     </ul>
                                 </div>
 
-                                <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-4">
-                                    <h3 className="font-bold text-orange-900 mb-2">3️⃣ Bloquear Dias Específicos (Feriados, Folga)</h3>
-                                    <p className="text-sm text-orange-800 mb-2">
+                                <div className="bg-orange-50 border-2 border-orange-200 rounded-lg p-3 sm:p-4">
+                                    <h3 className="font-bold text-orange-900 mb-2 text-sm sm:text-base">
+                                        3️⃣ Bloquear Dias Específicos (Feriados, Folga)
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-orange-800 mb-2">
                                         Use o botão de Power (⚡) para:
                                     </p>
-                                    <ul className="text-sm text-orange-700 space-y-1 ml-4">
+                                    <ul className="text-xs sm:text-sm text-orange-700 space-y-1 ml-4">
                                         <li>• <strong>Desativar:</strong> Bloqueia aquele horário (clientes não veem)</li>
                                         <li>• <strong>Ativar:</strong> Disponibiliza novamente</li>
                                         <li>• Não precisa excluir e recriar toda semana!</li>
                                     </ul>
                                 </div>
 
-                                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
-                                    <h3 className="font-bold text-red-900 mb-2">4️⃣ Excluir vs Desativar - IMPORTANTE!</h3>
-                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 sm:p-4">
+                                    <h3 className="font-bold text-red-900 mb-2 text-sm sm:text-base">
+                                        4️⃣ Excluir vs Desativar - IMPORTANTE!
+                                    </h3>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
                                         <div className="bg-white rounded p-2">
-                                            <p className="font-bold text-red-800 mb-1">🗑️ Excluir (Trash)</p>
-                                            <p className="text-xs text-red-700">Remove de TODAS as semanas permanentemente</p>
+                                            <p className="font-bold text-red-800 mb-1">
+                                                🗑️ Excluir (Trash)
+                                            </p>
+                                            <p className="text-xs text-red-700">
+                                                Remove de TODAS as semanas permanentemente
+                                            </p>
                                         </div>
+
                                         <div className="bg-white rounded p-2">
-                                            <p className="font-bold text-orange-800 mb-1">⏸️ Desativar (Power)</p>
-                                            <p className="text-xs text-orange-700">Bloqueia temporariamente, pode reativar depois</p>
+                                            <p className="font-bold text-orange-800 mb-1">
+                                                ⏸️ Desativar (Power)
+                                            </p>
+                                            <p className="text-xs text-orange-700">
+                                                Bloqueia temporariamente, pode reativar depois
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
-                                    <h3 className="font-bold text-purple-900 mb-2">💡 Exemplo Prático</h3>
-                                    <p className="text-sm text-purple-800 mb-2">
+                                <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-3 sm:p-4">
+                                    <h3 className="font-bold text-purple-900 mb-2 text-sm sm:text-base">
+                                        💡 Exemplo Prático
+                                    </h3>
+                                    <p className="text-xs sm:text-sm text-purple-800 mb-2">
                                         <strong>Situação:</strong> Você trabalha segundas às 14:00, mas na próxima segunda é feriado.
                                     </p>
-                                    <p className="text-sm text-purple-700">
+                                    <p className="text-xs sm:text-sm text-purple-700">
                                         <strong>Solução:</strong> Clique na data do feriado → Desative o horário 14:00 apenas naquele dia →
                                         Na outra segunda, estará ativo automaticamente!
                                     </p>
@@ -555,7 +615,7 @@ export default function AgendaAdminPage() {
                             <Button
                                 variant="primary"
                                 onClick={() => setShowInfoModal(false)}
-                                className="w-full mt-6"
+                                className="w-full mt-4 sm:mt-6 flex items-center justify-center px-4 py-2 text-sm"
                             >
                                 Entendi!
                             </Button>
@@ -573,6 +633,7 @@ export default function AgendaAdminPage() {
                             className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl max-h-[80vh] overflow-y-auto"
                             onClick={(e) => e.stopPropagation()}
                         >
+                            {/* Header */}
                             <div className="flex items-center justify-between mb-6">
                                 <div>
                                     <h2 className="text-2xl font-bold text-charcoal flex items-center gap-2">
@@ -594,10 +655,12 @@ export default function AgendaAdminPage() {
                                 </button>
                             </div>
 
+                            {/* Dica */}
                             <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 mb-4 text-xs text-blue-800">
                                 💡 <strong>Dica:</strong> Use o botão de ligar/desligar para bloquear este dia específico sem afetar outras semanas.
                             </div>
 
+                            {/* Lista de Horários */}
                             <div className="space-y-3">
                                 {getSlotsByDay(viewingDay).length > 0 ? (
                                     getSlotsByDay(viewingDay).map(slot => (
@@ -614,8 +677,10 @@ export default function AgendaAdminPage() {
                                                         size={20}
                                                         className={slot.active ? 'text-green-600' : 'text-gray-400'}
                                                     />
-                                                    <span className={`text-lg font-bold ${slot.active ? 'text-green-900' : 'text-gray-500'
-                                                        }`}>
+                                                    <span
+                                                        className={`text-lg font-bold ${slot.active ? 'text-green-900' : 'text-gray-500'
+                                                            }`}
+                                                    >
                                                         {slot.timeSlot}
                                                     </span>
                                                     {slot.active ? (
@@ -628,6 +693,8 @@ export default function AgendaAdminPage() {
                                                         </span>
                                                     )}
                                                 </div>
+
+                                                {/* Ações */}
                                                 <div className="flex gap-2">
                                                     <button
                                                         onClick={() => handleToggleSlot(slot.id, slot.active)}
@@ -679,9 +746,12 @@ export default function AgendaAdminPage() {
                     </div>
                 )}
 
-                {/* MODAL: Adicionar Horário - MELHORADO */}
+                {/* MODAL: Adicionar Horário Recorrente */}
                 {showAddModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowAddModal(false)}>
+                    <div
+                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                        onClick={() => setShowAddModal(false)}
+                    >
                         <motion.div
                             className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
@@ -689,6 +759,7 @@ export default function AgendaAdminPage() {
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ duration: 0.3 }}
                         >
+                            {/* Header */}
                             <h2 className="text-2xl font-bold text-charcoal mb-2 flex items-center gap-2">
                                 <Plus className="text-gold" />
                                 Adicionar Horário Recorrente
@@ -698,7 +769,7 @@ export default function AgendaAdminPage() {
                             </p>
 
                             <div className="space-y-4">
-                                {/* DIA DA SEMANA */}
+                                {/* Dia da Semana */}
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
                                         Dia da Semana
@@ -715,7 +786,7 @@ export default function AgendaAdminPage() {
                                         ))}
                                     </select>
 
-                                    {/* MOSTRAR PRÓXIMAS DATAS */}
+                                    {/* Mostrar próximas datas */}
                                     <div className="mt-3 p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
                                         <p className="text-xs font-semibold text-blue-900 mb-2 flex items-center gap-1">
                                             <Calendar size={14} />
@@ -740,7 +811,7 @@ export default function AgendaAdminPage() {
                                     </div>
                                 </div>
 
-                                {/* HORÁRIO */}
+                                {/* Horário */}
                                 <div>
                                     <label className="block text-sm font-semibold text-charcoal mb-2">
                                         Horário
@@ -753,6 +824,7 @@ export default function AgendaAdminPage() {
                                     />
                                 </div>
 
+                                {/* Aviso se dia for folga fixa */}
                                 {isClosedDay && (
                                     <div className="mt-3 bg-red-50 border-2 border-red-200 rounded-lg p-3 text-xs text-red-800">
                                         🚫 <strong>Este dia é folga fixa.</strong><br />
@@ -761,8 +833,7 @@ export default function AgendaAdminPage() {
                                     </div>
                                 )}
 
-
-                                {/* INFO */}
+                                {/* Dica */}
                                 <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-3">
                                     <p className="text-xs text-yellow-800">
                                         <strong>💡 Dica:</strong> Depois de criar, você pode desativar este horário em datas específicas
@@ -770,7 +841,7 @@ export default function AgendaAdminPage() {
                                     </p>
                                 </div>
 
-                                {/* BOTÕES */}
+                                {/* Botões */}
                                 <div className="flex gap-3 pt-4">
                                     <Button
                                         variant="secondary"
@@ -790,9 +861,9 @@ export default function AgendaAdminPage() {
                                     >
                                         Criar Horário
                                     </Button>
-
                                 </div>
                             </div>
+
                         </motion.div>
                     </div>
                 )}

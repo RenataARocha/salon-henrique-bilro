@@ -39,8 +39,6 @@ export default function DashboardMetricas() {
 
     useEffect(() => {
         buscarMetricas()
-
-        // Atualizar a cada 5 minutos
         const interval = setInterval(buscarMetricas, 5 * 60 * 1000)
         return () => clearInterval(interval)
     }, [])
@@ -49,10 +47,7 @@ export default function DashboardMetricas() {
         try {
             const response = await fetch('/api/metrics')
             const data = await response.json()
-
-            if (data.success) {
-                setMetricas(data.metricas)
-            }
+            if (data.success) setMetricas(data.metricas)
         } catch (error) {
             console.error('Erro ao buscar métricas:', error)
         } finally {
@@ -67,7 +62,7 @@ export default function DashboardMetricas() {
             icone: MessageCircle,
             cor: 'from-green-500 to-green-600',
             bgColor: 'bg-green-50',
-            textColor: 'text-green-700'
+            textColor: 'text-green-600'
         },
         {
             titulo: 'Emails Enviados',
@@ -75,23 +70,23 @@ export default function DashboardMetricas() {
             icone: Mail,
             cor: 'from-blue-500 to-blue-600',
             bgColor: 'bg-blue-50',
-            textColor: 'text-blue-700'
+            textColor: 'text-blue-600'
         },
         {
-            titulo: 'Agendamentos Confirmados',
+            titulo: 'Confirmados',
             valor: metricas.agendamentosConfirmados,
             icone: CheckCircle,
             cor: 'from-emerald-500 to-emerald-600',
             bgColor: 'bg-emerald-50',
-            textColor: 'text-emerald-700'
+            textColor: 'text-emerald-600'
         },
         {
-            titulo: 'Agendamentos Pendentes',
+            titulo: 'Pendentes',
             valor: metricas.agendamentosPendentes,
             icone: Clock,
             cor: 'from-yellow-500 to-yellow-600',
             bgColor: 'bg-yellow-50',
-            textColor: 'text-yellow-700'
+            textColor: 'text-yellow-600'
         },
         {
             titulo: 'Taxa de Confirmação',
@@ -99,7 +94,7 @@ export default function DashboardMetricas() {
             icone: TrendingUp,
             cor: 'from-purple-500 to-purple-600',
             bgColor: 'bg-purple-50',
-            textColor: 'text-purple-700'
+            textColor: 'text-purple-600'
         },
         {
             titulo: 'Cupons Ativos',
@@ -107,7 +102,7 @@ export default function DashboardMetricas() {
             icone: Gift,
             cor: 'from-pink-500 to-pink-600',
             bgColor: 'bg-pink-50',
-            textColor: 'text-pink-700'
+            textColor: 'text-pink-600'
         },
         {
             titulo: 'Clientes Ativos',
@@ -115,7 +110,7 @@ export default function DashboardMetricas() {
             icone: Users,
             cor: 'from-indigo-500 to-indigo-600',
             bgColor: 'bg-indigo-50',
-            textColor: 'text-indigo-700'
+            textColor: 'text-indigo-600'
         },
         {
             titulo: 'Próximos 7 Dias',
@@ -123,58 +118,73 @@ export default function DashboardMetricas() {
             icone: Calendar,
             cor: 'from-orange-500 to-orange-600',
             bgColor: 'bg-orange-50',
-            textColor: 'text-orange-700'
+            textColor: 'text-orange-600'
         }
     ]
 
     if (carregando) {
         return (
-            <div className="flex items-center justify-center p-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500" />
+            <div className="flex items-center justify-center p-10">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-14 w-14 border-4 border-gold/20 border-t-gold mx-auto mb-4 shadow-md"></div>
+                    <p className="text-gray-500 font-medium tracking-wide text-sm uppercase">Carregando métricas...</p>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
+
             {/* Header */}
-            <div className="bg-gradient-gold rounded-xl p-6 text-white">
-                <h2 className="text-2xl font-bold mb-2">📊 Dashboard de Métricas</h2>
-                <p className="text-white/90">
-                    Acompanhe o desempenho do sistema de notificações em tempo real
-                </p>
+            <div className="bg-gradient-gold rounded-2xl overflow-hidden">
+                <div className="p-4 sm:p-6 text-white">
+                    <div className="flex flex-col gap-3">
+                        <div>
+                            <h2 className="text-lg sm:text-2xl font-bold">📊 Dashboard de Métricas</h2>
+                            <p className="text-xs sm:text-sm text-white/80 mt-1">
+                                Acompanhe o desempenho do sistema de notificações em tempo real
+                            </p>
+                        </div>
+
+                        {/* Mini resumo inline no header */}
+                        <div className="flex flex-wrap gap-3 text-xs">
+                            <span className="bg-white/20 px-3 py-1.5 rounded-full font-medium">
+                                💬 {metricas.whatsappEnviados + metricas.emailsEnviados} mensagens
+                            </span>
+                            <span className="bg-white/20 px-3 py-1.5 rounded-full font-medium">
+                                ✅ {metricas.taxaConfirmacao}% confirmação
+                            </span>
+                            <span className="bg-white/20 px-3 py-1.5 rounded-full font-medium">
+                                📅 {metricas.proximosAgendamentos} próx. semana
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Grid de Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {cards.map((card, index) => {
                     const Icon = card.icone
-
                     return (
                         <div
                             key={index}
-                            className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow overflow-hidden"
+                            className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all overflow-hidden"
                         >
                             {/* Barra colorida no topo */}
-                            <div className={`h-2 bg-gradient-to-r ${card.cor}`} />
+                            <div className={`h-1.5 bg-gradient-to-r ${card.cor}`} />
 
-                            <div className="p-6">
-                                {/* Ícone e Título */}
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className={`p-3 rounded-lg ${card.bgColor}`}>
-                                        <Icon className={`w-6 h-6 ${card.textColor}`} />
+                            <div className="p-3 sm:p-5">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className={`p-2 sm:p-2.5 rounded-xl ${card.bgColor}`}>
+                                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${card.textColor}`} />
                                     </div>
                                 </div>
-
-                                {/* Valor */}
-                                <div className="mb-2">
-                                    <p className="text-3xl font-bold text-gray-900">
-                                        {card.valor}
-                                    </p>
-                                </div>
-
-                                {/* Título */}
-                                <p className="text-sm text-gray-600 font-medium">
+                                <p className="text-2xl sm:text-3xl font-bold text-gray-900 leading-none mb-1.5">
+                                    {card.valor}
+                                </p>
+                                <p className="text-xs text-gray-500 font-medium leading-tight">
                                     {card.titulo}
                                 </p>
                             </div>
@@ -183,41 +193,43 @@ export default function DashboardMetricas() {
                 })}
             </div>
 
-            {/* Card de Resumo */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    📈 Resumo Geral
-                </h3>
-
-                <div className="grid md:grid-cols-3 gap-6">
-                    {/* Total de Mensagens */}
-                    <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-2">Total de Mensagens</p>
-                        <p className="text-3xl font-bold text-purple-600">
-                            {metricas.whatsappEnviados + metricas.emailsEnviados}
-                        </p>
+            {/* Card de Resumo Geral */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-gradient-gold text-white p-4 sm:p-5">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white/20 rounded-lg">
+                            <TrendingUp size={18} />
+                        </div>
+                        <h3 className="text-base sm:text-lg font-bold">Resumo Geral</h3>
                     </div>
+                </div>
 
-                    {/* Taxa de Sucesso */}
-                    <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-2">Taxa de Confirmação</p>
-                        <p className="text-3xl font-bold text-emerald-600">
-                            {metricas.taxaConfirmacao}%
-                        </p>
-                    </div>
-
-                    {/* Próximos Agendamentos */}
-                    <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-2">Próxima Semana</p>
-                        <p className="text-3xl font-bold text-orange-600">
-                            {metricas.proximosAgendamentos}
-                        </p>
+                <div className="p-4 sm:p-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl">
+                            <p className="text-xs text-gray-500 mb-1.5 font-medium">Total de Mensagens</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-purple-600">
+                                {metricas.whatsappEnviados + metricas.emailsEnviados}
+                            </p>
+                        </div>
+                        <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl">
+                            <p className="text-xs text-gray-500 mb-1.5 font-medium">Taxa de Confirmação</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-emerald-600">
+                                {metricas.taxaConfirmacao}%
+                            </p>
+                        </div>
+                        <div className="text-center p-3 sm:p-4 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl">
+                            <p className="text-xs text-gray-500 mb-1.5 font-medium">Próxima Semana</p>
+                            <p className="text-2xl sm:text-3xl font-bold text-orange-600">
+                                {metricas.proximosAgendamentos}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Última Atualização */}
-            <div className="text-center text-sm text-gray-500">
+            <div className="text-center text-xs text-gray-400">
                 Última atualização: {new Date().toLocaleString('pt-BR')}
             </div>
         </div>

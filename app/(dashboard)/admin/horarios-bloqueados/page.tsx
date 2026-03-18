@@ -244,13 +244,13 @@ export default function BlockedTimesPage() {
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center justify-center py-20">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gold mx-auto mb-4"></div>
-                            <p className="text-gray-600">Carregando...</p>
+                            <div className="animate-spin rounded-full h-14 w-14 border-4 border-gold/20 border-t-gold mx-auto mb-5 shadow-md"></div>
+                            <p className="text-gray-500 font-medium tracking-wide text-sm uppercase">Carregando...</p>
                         </div>
                     </div>
                 </div>
             </div>
-        )
+        );
     }
 
     return (
@@ -259,267 +259,281 @@ export default function BlockedTimesPage() {
                 <AdminHeader
                     title="Horários Bloqueados"
                     description="Gerencie horários indisponíveis para agendamento"
-                    showBackButton={true}
                 />
 
                 {/* Ações */}
                 <motion.div
-                    className="flex items-center justify-between flex-wrap gap-4"
+                    className="flex flex-col gap-4"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => setFilter('all')}
-                            className={`px-6 py-3 rounded-lg font-semibold transition-all ${filter === 'all'
-                                ? 'bg-gradient-gold text-white shadow-lg'
-                                : 'bg-white text-charcoal hover:shadow-md'
-                                }`}
-                        >
-                            📋 Todos ({blockedTimes.length})
-                        </button>
-                        <button
-                            onClick={() => setFilter('recurring')}
-                            className={`px-6 py-3 rounded-lg font-semibold transition-all ${filter === 'recurring'
-                                ? 'bg-gradient-gold text-white shadow-lg'
-                                : 'bg-white text-charcoal hover:shadow-md'
-                                }`}
-                        >
-                            🔄 Recorrentes ({recurringBlocks.length})
-                        </button>
-                        <button
-                            onClick={() => setFilter('punctual')}
-                            className={`px-6 py-3 rounded-lg font-semibold transition-all ${filter === 'punctual'
-                                ? 'bg-gradient-gold text-white shadow-lg'
-                                : 'bg-white text-charcoal hover:shadow-md'
-                                }`}
-                        >
-                            📅 Pontuais ({punctualBlocks.length})
-                        </button>
-                    </div>
+                    {/* Linha 1: Filtros + Ações lado a lado em telas maiores */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
 
-                    <div className="flex gap-3">
-                        {!selectMode ? (
+                        {/* Filtros */}
+                        <div className="flex flex-wrap gap-2">
                             <button
-                                onClick={() => setSelectMode(true)}
-                                className="flex items-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-semibold"
+                                onClick={() => setFilter('all')}
+                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${filter === 'all'
+                                    ? 'bg-gradient-gold text-white shadow-md scale-[1.02]'
+                                    : 'bg-white text-charcoal hover:shadow-md hover:scale-[1.01] border border-gray-100'
+                                    }`}
                             >
-                                <CheckSquare size={20} />
-                                Selecionar Múltiplos
+                                📋 Todos ({blockedTimes.length})
                             </button>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={toggleSelectAll}
-                                    className="flex items-center gap-2 px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-semibold"
-                                >
-                                    {selectedIds.size === filteredBlocks.length ? (
-                                        <>
-                                            <Square size={20} />
-                                            Desmarcar Todos
-                                        </>
-                                    ) : (
-                                        <>
-                                            <CheckSquare size={20} />
-                                            Selecionar Todos
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={handleDeleteMultiple}
-                                    disabled={selectedIds.size === 0}
-                                    className="flex items-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Trash2 size={20} />
-                                    Excluir Selecionados ({selectedIds.size})
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setSelectMode(false)
-                                        setSelectedIds(new Set())
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all"
-                                >
-                                    Cancelar
-                                </button>
-                            </>
-                        )}
+                            <button
+                                onClick={() => setFilter('recurring')}
+                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${filter === 'recurring'
+                                    ? 'bg-gradient-gold text-white shadow-md scale-[1.02]'
+                                    : 'bg-white text-charcoal hover:shadow-md hover:scale-[1.01] border border-gray-100'
+                                    }`}
+                            >
+                                🔄 Recorrentes ({recurringBlocks.length})
+                            </button>
+                            <button
+                                onClick={() => setFilter('punctual')}
+                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${filter === 'punctual'
+                                    ? 'bg-gradient-gold text-white shadow-md scale-[1.02]'
+                                    : 'bg-white text-charcoal hover:shadow-md hover:scale-[1.01] border border-gray-100'
+                                    }`}
+                            >
+                                📅 Pontuais ({punctualBlocks.length})
+                            </button>
+                        </div>
 
-                        {!selectMode && (
-                            <>
+                        {/* Ações múltiplas */}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {!selectMode ? (
                                 <button
-                                    onClick={fetchBlockedTimes}
-                                    className="flex items-center gap-2 px-4 py-3 bg-white rounded-lg hover:shadow-md transition-shadow"
+                                    onClick={() => setSelectMode(true)}
+                                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 active:scale-[0.98] transition-all text-sm font-semibold shadow-sm"
                                 >
-                                    <RefreshCw size={20} />
-                                    Atualizar
+                                    <CheckSquare size={17} />
+                                    <span className="hidden xs:inline">Selecionar Múltiplos</span>
+                                    <span className="xs:hidden">Selecionar</span>
                                 </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={toggleSelectAll}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all text-sm font-semibold shadow-sm"
+                                    >
+                                        {selectedIds.size === filteredBlocks.length ? (
+                                            <><Square size={17} /><span>Desmarcar Todos</span></>
+                                        ) : (
+                                            <><CheckSquare size={17} /><span>Selecionar Todos</span></>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteMultiple}
+                                        disabled={selectedIds.size === 0}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                    >
+                                        <Trash2 size={17} />
+                                        Excluir ({selectedIds.size})
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setSelectMode(false);
+                                            setSelectedIds(new Set());
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all text-sm font-medium"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </>
+                            )}
 
-                                <button
-                                    onClick={() => setShowLunchModal(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
-                                >
-                                    <UtensilsCrossed size={20} />
-                                    Horário de Almoço
-                                </button>
+                            {!selectMode && (
+                                <>
+                                    <button
+                                        onClick={fetchBlockedTimes}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl hover:shadow-md border border-gray-100 transition-all text-sm text-charcoal"
+                                        title="Atualizar"
+                                    >
+                                        <RefreshCw size={17} />
+                                        <span className="hidden sm:inline">Atualizar</span>
+                                    </button>
 
-                                <button
-                                    onClick={() => {
-                                        setEditingBlock(null)
-                                        setShowForm(true)
-                                    }}
-                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
-                                >
-                                    <Plus size={20} />
-                                    Novo Bloqueio
-                                </button>
-                            </>
-                        )}
+                                    <button
+                                        onClick={() => setShowLunchModal(true)}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold shadow-sm"
+                                    >
+                                        <UtensilsCrossed size={17} />
+                                        <span className="hidden sm:inline">Horário de Almoço</span>
+                                        <span className="sm:hidden">Almoço</span>
+                                    </button>
+
+                                    <button
+                                        onClick={() => {
+                                            setEditingBlock(null)
+                                            setShowForm(true)
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-gold text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold shadow-sm"
+                                    >
+                                        <Plus size={17} />
+                                        <span className="hidden sm:inline">Novo Bloqueio</span>
+                                        <span className="sm:hidden">Novo</span>
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
                 </motion.div>
+
                 {/* Bloqueios Recorrentes */}
                 {(filter === 'all' || filter === 'recurring') && recurringBlocks.length > 0 && (
                     <div>
                         <motion.h2
-                            className="text-xl font-bold text-charcoal mb-4 flex items-center gap-2"
+                            className="text-lg font-bold text-charcoal mb-4 flex items-center gap-2"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.4 }}
                         >
-                            <RefreshCw size={24} className="text-gold" />
+                            <div className="p-1.5 bg-gold/10 rounded-lg">
+                                <RefreshCw size={18} className="text-gold" />
+                            </div>
                             Bloqueios Recorrentes
+                            <span className="ml-1 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                {recurringBlocks.length}
+                            </span>
                         </motion.h2>
 
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
                             {/* 🍽️ Horário de Almoço AGRUPADO */}
                             {groupedLunchBreak && (
                                 <motion.div
-                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${isLunchSelected ? 'ring-4 ring-blue-500' : ''}`}
-                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all duration-200 ${isLunchSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+                                    initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.3 }}
                                 >
                                     <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-start gap-3 flex-1">
+                                        <div className="flex items-start gap-3 flex-1 min-w-0">
                                             {selectMode && (
-                                                <button onClick={toggleLunchSelection} className="mt-1">
+                                                <button onClick={toggleLunchSelection} className="mt-0.5 flex-shrink-0">
                                                     {isLunchSelected ? (
-                                                        <CheckSquare size={20} className="text-blue-500" />
+                                                        <CheckSquare size={19} className="text-blue-500" />
                                                     ) : (
-                                                        <Square size={20} className="text-gray-400" />
+                                                        <Square size={19} className="text-gray-300" />
                                                     )}
                                                 </button>
                                             )}
-
-                                            <div>
-                                                <span className="text-2xl">🍽️</span>
-                                                <h3 className="font-bold text-lg text-charcoal mt-1">
-                                                    Horário de Almoço
-                                                </h3>
-                                                <p className="text-sm text-gray-600">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xl leading-none">🍽️</span>
+                                                    <h3 className="font-bold text-base text-charcoal truncate">
+                                                        Horário de Almoço
+                                                    </h3>
+                                                </div>
+                                                <p className="text-xs text-gray-500">
                                                     Toda {groupedLunchBreak.days.map(d => DAYS_OF_WEEK[d!]).join(', ')}
                                                 </p>
                                             </div>
                                         </div>
 
                                         {!selectMode && (
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-1 flex-shrink-0 ml-2">
                                                 <button
                                                     onClick={() => setShowLunchModal(true)}
-                                                    className="p-2 hover:bg-gray-100 rounded-lg"
+                                                    className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Editar"
                                                 >
-                                                    <Edit size={18} className="text-blue-600" />
+                                                    <Edit size={16} className="text-blue-500" />
                                                 </button>
                                                 <button
                                                     onClick={handleDeleteLunch}
-                                                    className="p-2 hover:bg-gray-100 rounded-lg"
+                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Excluir"
                                                 >
-                                                    <Trash2 size={18} className="text-red-600" />
+                                                    <Trash2 size={16} className="text-red-500" />
                                                 </button>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                                        <Clock size={16} />
-                                        <span>
-                                            {groupedLunchBreak.startTime} - {groupedLunchBreak.endTime}
+                                    <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                                        <Clock size={14} className="text-gold flex-shrink-0" />
+                                        <span className="font-medium">
+                                            {groupedLunchBreak.startTime} – {groupedLunchBreak.endTime}
                                         </span>
                                     </div>
                                 </motion.div>
                             )}
 
-
                             {/* 🔁 OUTROS BLOQUEIOS RECORRENTES */}
                             {otherRecurringBlocks.map((block, index) => (
                                 <motion.div
                                     key={block.id}
-                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(block.id) ? 'ring-4 ring-blue-500' : ''}`}
-                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all duration-200 ${selectedIds.has(block.id) ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+                                    initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     transition={{ duration: 0.3, delay: index * 0.05 }}
                                 >
-
                                     <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-start gap-3 flex-1">
+                                        <div className="flex items-start gap-3 flex-1 min-w-0">
                                             {selectMode && (
                                                 <button
                                                     onClick={() => toggleSelection(block.id)}
-                                                    className="mt-1"
+                                                    className="mt-0.5 flex-shrink-0"
                                                 >
                                                     {selectedIds.has(block.id) ? (
-                                                        <CheckSquare className="text-blue-500" size={20} />
+                                                        <CheckSquare className="text-blue-500" size={19} />
                                                     ) : (
-                                                        <Square className="text-gray-400" size={20} />
+                                                        <Square className="text-gray-300" size={19} />
                                                     )}
                                                 </button>
                                             )}
-                                            <div>
-                                                <span className="text-2xl">
-                                                    {TYPE_LABELS[block.type]?.split(' ')[0]}
-                                                </span>
-                                                <h3 className="font-bold text-lg text-charcoal mt-1">
-                                                    {block.reason}
-                                                </h3>
-                                                <p className="text-sm text-gray-600">
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xl leading-none">
+                                                        {TYPE_LABELS[block.type]?.split(' ')[0]}
+                                                    </span>
+                                                    <h3 className="font-bold text-base text-charcoal truncate">
+                                                        {block.reason}
+                                                    </h3>
+                                                </div>
+                                                <p className="text-xs text-gray-500">
                                                     Toda {DAYS_OF_WEEK[block.dayOfWeek!]}
                                                 </p>
                                             </div>
                                         </div>
 
                                         {!selectMode && (
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-1 flex-shrink-0 ml-2">
                                                 <button
                                                     onClick={() => handleEdit(block)}
-                                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                                    className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Editar"
                                                 >
-                                                    <Edit size={18} className="text-blue-600" />
+                                                    <Edit size={16} className="text-blue-500" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(block.id)}
-                                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Excluir"
                                                 >
-                                                    <Trash2 size={18} className="text-red-600" />
+                                                    <Trash2 size={16} className="text-red-500" />
                                                 </button>
                                             </div>
                                         )}
                                     </div>
 
                                     {(block.startTime || block.endTime) && (
-                                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                                            <Clock size={16} />
-                                            <span>
-                                                {block.startTime || '00:00'} - {block.endTime || '23:59'}
+                                        <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-3">
+                                            <Clock size={14} className="text-gold flex-shrink-0" />
+                                            <span className="font-medium">
+                                                {block.startTime || '00:00'} – {block.endTime || '23:59'}
                                             </span>
                                         </div>
                                     )}
 
                                     {(block.startDate || block.endDate) && (
-                                        <div className="text-sm text-gray-600 mb-3">
-                                            <p className="font-semibold">Período de validade:</p>
-                                            <p>
+                                        <div className="text-xs text-gray-500 mb-3 bg-amber-50 rounded-lg px-3 py-2">
+                                            <p className="font-semibold text-amber-700 mb-0.5">Período de validade</p>
+                                            <p className="text-amber-600">
                                                 {block.startDate && formatDate(block.startDate)}
                                                 {block.startDate && block.endDate && ' até '}
                                                 {block.endDate && formatDate(block.endDate)}
@@ -528,13 +542,13 @@ export default function BlockedTimesPage() {
                                     )}
 
                                     {block.description && (
-                                        <p className="text-sm text-gray-600 mt-3 pt-3 border-t">
+                                        <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-dashed">
                                             {block.description}
                                         </p>
                                     )}
 
-                                    <div className="mt-4 pt-4 border-t text-xs text-gray-500">
-                                        Criado por {block.creator.name}
+                                    <div className="mt-3 pt-3 border-t border-gray-50 text-xs text-gray-400">
+                                        Criado por <span className="text-gray-500 font-medium">{block.creator.name}</span>
                                     </div>
                                 </motion.div>
                             ))}
@@ -542,91 +556,100 @@ export default function BlockedTimesPage() {
                     </div>
                 )}
 
-
                 {/* Bloqueios Pontuais */}
                 {(filter === 'all' || filter === 'punctual') && punctualBlocks.length > 0 && (
                     <div>
-                        <h2 className="text-xl font-bold text-charcoal mb-4 flex items-center gap-2">
-                            <Calendar size={24} className="text-gold" />
+                        <h2 className="text-lg font-bold text-charcoal mb-4 flex items-center gap-2">
+                            <div className="p-1.5 bg-gold/10 rounded-lg">
+                                <Calendar size={18} className="text-gold" />
+                            </div>
                             Bloqueios Pontuais
+                            <span className="ml-1 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                                {punctualBlocks.length}
+                            </span>
                         </h2>
                         <motion.div
-                            className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
                             initial={{ opacity: 0, y: -20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5 }}>
+                            transition={{ duration: 0.5 }}
+                        >
                             {punctualBlocks.map(block => (
                                 <div
                                     key={block.id}
-                                    className={`bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all ${selectedIds.has(block.id) ? 'ring-4 ring-blue-500' : ''
-                                        }`}
+                                    className={`bg-white rounded-2xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-all duration-200 ${selectedIds.has(block.id) ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
                                 >
                                     <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-start gap-3 flex-1">
+                                        <div className="flex items-start gap-3 flex-1 min-w-0">
                                             {selectMode && (
                                                 <button
                                                     onClick={() => toggleSelection(block.id)}
-                                                    className="mt-1"
+                                                    className="mt-0.5 flex-shrink-0"
                                                 >
                                                     {selectedIds.has(block.id) ? (
-                                                        <CheckSquare className="text-blue-500" size={20} />
+                                                        <CheckSquare className="text-blue-500" size={19} />
                                                     ) : (
-                                                        <Square className="text-gray-400" size={20} />
+                                                        <Square className="text-gray-300" size={19} />
                                                     )}
                                                 </button>
                                             )}
-                                            <div>
-                                                <span className="text-2xl">{TYPE_LABELS[block.type]?.split(' ')[0]}</span>
-                                                <h3 className="font-bold text-lg text-charcoal mt-1">
-                                                    {block.reason}
-                                                </h3>
-                                                {/* ✅ CORREÇÃO: Mostrar período para férias */}
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-xl leading-none">
+                                                        {TYPE_LABELS[block.type]?.split(' ')[0]}
+                                                    </span>
+                                                    <h3 className="font-bold text-base text-charcoal truncate">
+                                                        {block.reason}
+                                                    </h3>
+                                                </div>
                                                 {block.type === 'VACATION' && block.date && block.endDate ? (
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-xs text-gray-500">
                                                         {formatDate(block.date)} até {formatDate(block.endDate)}
                                                     </p>
                                                 ) : block.date ? (
-                                                    <p className="text-sm text-gray-600">
+                                                    <p className="text-xs text-gray-500">
                                                         {formatDate(block.date)}
                                                     </p>
                                                 ) : null}
                                             </div>
                                         </div>
                                         {!selectMode && (
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-1 flex-shrink-0 ml-2">
                                                 <button
                                                     onClick={() => handleEdit(block)}
-                                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                                    className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Editar"
                                                 >
-                                                    <Edit size={18} className="text-blue-600" />
+                                                    <Edit size={16} className="text-blue-500" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(block.id)}
-                                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Excluir"
                                                 >
-                                                    <Trash2 size={18} className="text-red-600" />
+                                                    <Trash2 size={16} className="text-red-500" />
                                                 </button>
                                             </div>
                                         )}
                                     </div>
 
                                     {(block.startTime || block.endTime) && (
-                                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                                            <Clock size={16} />
-                                            <span>
-                                                {block.startTime || '00:00'} - {block.endTime || '23:59'}
+                                        <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-3">
+                                            <Clock size={14} className="text-gold flex-shrink-0" />
+                                            <span className="font-medium">
+                                                {block.startTime || '00:00'} – {block.endTime || '23:59'}
                                             </span>
                                         </div>
                                     )}
 
                                     {block.description && (
-                                        <p className="text-sm text-gray-600 mt-3 pt-3 border-t">
+                                        <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-dashed">
                                             {block.description}
                                         </p>
                                     )}
 
-                                    <div className="mt-4 pt-4 border-t text-xs text-gray-500">
-                                        Criado por {block.creator.name}
+                                    <div className="mt-3 pt-3 border-t border-gray-50 text-xs text-gray-400">
+                                        Criado por <span className="text-gray-500 font-medium">{block.creator.name}</span>
                                     </div>
                                 </div>
                             ))}
@@ -636,33 +659,34 @@ export default function BlockedTimesPage() {
 
                 {/* Empty State */}
                 {filteredBlocks.length === 0 && (
-                    <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-                        <p className="text-6xl mb-4">📅</p>
-                        <h3 className="text-2xl font-bold text-charcoal mb-2">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+                        <p className="text-5xl mb-4">📅</p>
+                        <h3 className="text-xl font-bold text-charcoal mb-2">
                             Nenhum bloqueio cadastrado
                         </h3>
-                        <p className="text-gray-600 mb-6">
+                        <p className="text-sm text-gray-500 mb-6">
                             Configure horários indisponíveis para agendamento
                         </p>
-                        <div className="flex gap-3 justify-center">
+                        <div className="flex flex-wrap gap-3 justify-center">
                             <button
                                 onClick={() => setShowLunchModal(true)}
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold"
                             >
-                                <UtensilsCrossed size={20} />
+                                <UtensilsCrossed size={17} />
                                 Horário de Almoço
                             </button>
                             <button
                                 onClick={() => setShowForm(true)}
-                                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-shadow font-semibold"
+                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-gold text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold"
                             >
-                                <Plus size={20} />
+                                <Plus size={17} />
                                 Criar Bloqueio
                             </button>
                         </div>
                     </div>
                 )}
             </div>
+
 
             {
                 showForm && (
