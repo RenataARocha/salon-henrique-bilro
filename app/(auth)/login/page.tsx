@@ -13,10 +13,7 @@ import { motion } from 'framer-motion'
 export default function LoginPage() {
     const router = useRouter()
     const { showToast } = useToast()
-    const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    })
+    const [formData, setFormData] = useState({ email: '', password: '' })
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
 
@@ -24,33 +21,21 @@ export default function LoginPage() {
         e.preventDefault()
         setError('')
         setLoading(true)
-
         try {
             const result = await signIn('credentials', {
-                email: formData.email,
-                password: formData.password,
-                redirect: false
+                email: formData.email, password: formData.password, redirect: false
             })
-
             if (result?.error) {
                 setError('Email ou senha incorretos')
                 showToast('Email ou senha incorretos', 'error')
                 setLoading(false)
                 return
             }
-
             if (result?.ok) {
                 showToast('Login realizado com sucesso!', 'success')
-
                 const sessionResponse = await fetch('/api/auth/session')
                 const session = await sessionResponse.json()
-
-                if (session?.user?.role === 'ADMIN') {
-                    router.push('/admin')
-                } else {
-                    router.push('/agendar')
-                }
-
+                router.push(session?.user?.role === 'ADMIN' ? '/admin' : '/agendar')
                 router.refresh()
             }
         } catch (err) {
@@ -62,16 +47,14 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center 
-bg-[#0a0a0a] 
-bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent)] 
-py-8 sm:py-12 px-4 sm:px-6">
+        <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent)] py-8 sm:py-12 px-4 sm:px-6">
             <motion.div
                 className="max-w-md w-full"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
+                {/* Header */}
                 <motion.div
                     className="text-center mb-6 sm:mb-8"
                     initial={{ opacity: 0, y: -20 }}
@@ -79,22 +62,20 @@ py-8 sm:py-12 px-4 sm:px-6">
                     transition={{ duration: 0.5, delay: 0.2 }}
                 >
                     <div className="flex justify-center mb-4 sm:mb-6">
-                        <div className="scale-90 sm:scale-100">
-                            <Logo variant="header" />
-                        </div>
+                        <div className="scale-90 sm:scale-100"><Logo variant="header" /></div>
                     </div>
-
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-                        Bem-vindo de volta!
-                    </h2>
-
-                    <p className="text-sm sm:text-base text-gray-400">
-                        Entre com sua conta para agendar
-                    </p>
+                    <div className="inline-flex items-center gap-2 mb-3">
+                        <div className="h-px w-6 bg-gold opacity-60" />
+                        <span className="text-xs tracking-[0.3em] text-gold uppercase font-medium">Acesse sua conta</span>
+                        <div className="h-px w-6 bg-gold opacity-60" />
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">Bem-vindo de volta!</h2>
+                    <p className="text-sm sm:text-base text-white/40">Entre com sua conta para agendar</p>
                 </motion.div>
 
+                {/* Card */}
                 <motion.div
-                    className="bg-white rounded-xl shadow-2xl p-5 sm:p-8"
+                    className="bg-[#141414] border border-white/8 rounded-xl shadow-2xl shadow-black/60 p-5 sm:p-8"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
@@ -102,7 +83,7 @@ py-8 sm:py-12 px-4 sm:px-6">
                     <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                         {error && (
                             <motion.div
-                                className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm"
+                                className="bg-red-950/50 border border-red-700/30 text-red-400 px-4 py-3 rounded-lg text-sm"
                                 role="alert"
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -111,63 +92,31 @@ py-8 sm:py-12 px-4 sm:px-6">
                             </motion.div>
                         )}
 
-                        <Input
-                            id="email"
-                            type="email"
-                            label="Email"
-                            placeholder="seu@email.com"
-                            required
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        />
+                        <Input id="email" type="email" label="Email" placeholder="seu@email.com" required
+                            value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
 
-                        <Input
-                            id="password"
-                            type="password"
-                            label="Senha"
-                            placeholder="••••••••"
-                            required
-                            value={formData.password}
-                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        />
+                        <Input id="password" type="password" label="Senha" placeholder="••••••••" required
+                            value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                            <label className="flex items-center">
-                                <input
-                                    type="checkbox"
-                                    className="w-4 h-4 text-gold border-gray-300 rounded focus:ring-gold"
-                                />
-                                <span className="ml-2 text-sm text-gray-600">
-                                    Lembrar-me
-                                </span>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" className="w-4 h-4 rounded accent-gold border-white/20 bg-[#1e1e1e]" />
+                                <span className="text-sm text-white/50">Lembrar-me</span>
                             </label>
-
-                            <Link
-                                href="/forgot-password"
-                                className="text-sm text-gold hover:text-gold-dark font-semibold transition-colors"
-                            >
+                            <Link href="/forgot-password" className="text-sm text-gold hover:text-yellow-400 font-semibold transition-colors">
                                 Esqueceu a senha?
                             </Link>
                         </div>
 
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            size="lg"
-                            loading={loading}
-                            className="w-full"
-                        >
+                        <Button type="submit" variant="primary" size="lg" loading={loading} className="w-full">
                             Entrar
                         </Button>
                     </form>
 
-                    <div className="mt-5 sm:mt-6 text-center">
-                        <p className="text-sm text-gray-600">
+                    <div className="mt-5 sm:mt-6 pt-5 border-t border-white/8 text-center">
+                        <p className="text-sm text-white/40">
                             Não tem uma conta?{' '}
-                            <Link
-                                href="/register"
-                                className="text-gold hover:text-gold-dark font-semibold"
-                            >
+                            <Link href="/register" className="text-gold hover:text-yellow-400 font-semibold transition-colors">
                                 Cadastre-se
                             </Link>
                         </p>
@@ -180,10 +129,7 @@ py-8 sm:py-12 px-4 sm:px-6">
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.5 }}
                 >
-                    <Link
-                        href="/"
-                        className="text-gray-400 hover:text-white text-sm transition-colors"
-                    >
+                    <Link href="/" className="text-white/25 hover:text-white/60 text-sm transition-colors">
                         ← Voltar para o início
                     </Link>
                 </motion.div>
