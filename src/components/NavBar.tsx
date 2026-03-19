@@ -10,19 +10,8 @@ import NotificationBell from './NotificationBell'
 export default function Navbar() {
     const { data: session } = useSession()
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-    const [scrolled, setScrolled] = useState(false)
 
-    useEffect(() => {
-        const handleScroll = () => {
-            setScrolled(window.scrollY > 80)
-        }
-        window.addEventListener('scroll', handleScroll)
-        return () => window.removeEventListener('scroll', handleScroll)
-    }, [])
-
-    const handleLogout = () => {
-        signOut({ callbackUrl: '/' })
-    }
+    const handleLogout = () => signOut({ callbackUrl: '/' })
 
     const user = session?.user
     const isAdmin = user?.role === 'ADMIN'
@@ -32,101 +21,83 @@ export default function Navbar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300
-bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent)]
-${scrolled
-                    ? 'bg-[#0a0a0a]/90 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.4)] border-b border-white/5'
-                    : 'bg-transparent backdrop-blur-md'
-                }`}
+            className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0aec] border-b border-white/5 shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center h-20">
-                    {/* Logo - vem da esquerda */}
+
+                    {/* Logo */}
                     <motion.div
                         initial={{ x: -30, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
+                        className="flex-shrink-0"
                     >
                         <Logo variant="header" />
                     </motion.div>
 
-                    {/* Desktop Menu - vem da direita */}
+                    {/* Desktop Menu — só aparece em telas grandes o suficiente */}
                     <motion.div
-                        className="hidden md:flex items-center space-x-8"
+                        className="hidden lg:flex items-center gap-5 xl:gap-8"
                         initial={{ x: 30, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
-                        <a href="/#home" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium">
-                            Home
-                        </a>
-                        <a href="/#sobre" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium">
-                            Sobre
-                        </a>
-                        <a href="/#servicos" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium">
-                            Serviços
-                        </a>
-                        <a href="/#localizacao" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium">
-                            Localização
-                        </a>
+                        <a href="/#home" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium whitespace-nowrap">Home</a>
+                        <a href="/#sobre" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium whitespace-nowrap">Sobre</a>
+                        <a href="/#servicos" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium whitespace-nowrap">Serviços</a>
+                        <a href="/#localizacao" className="text-white hover-gold tracking-wide transition-colors text-sm font-medium whitespace-nowrap">Localização</a>
 
                         {!user ? (
                             <>
-                                <a href="/login" className="text-white hover-gold transition-colors text-sm font-medium">
-                                    Login
-                                </a>
-                                <a href="/register" className="bg-gradient-gold text-white px-6 py-2.5 rounded-md hover:shadow-lg transition-all text-sm font-semibold">
+                                <a href="/login" className="text-white hover-gold transition-colors text-sm font-medium whitespace-nowrap">Login</a>
+                                <a href="/register" className="bg-gradient-gold text-white px-5 py-2.5 rounded-md hover:shadow-lg transition-all text-sm font-semibold whitespace-nowrap">
                                     Cadastrar
                                 </a>
                             </>
                         ) : (
                             <>
-                                {/* Mostrar apenas para CLIENTE */}
                                 {!isAdmin && (
                                     <>
-                                        <a href="/agendar" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
-                                            <Calendar size={16} />
+                                        <a href="/agendar" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-1.5 whitespace-nowrap">
+                                            <Calendar size={15} />
                                             Agendar
                                         </a>
-                                        <a href="/meus-agendamentos" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
-                                            <List size={16} />
+                                        <a href="/meus-agendamentos" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-1.5 whitespace-nowrap">
+                                            <List size={15} />
                                             Meus Agendamentos
                                         </a>
                                     </>
                                 )}
-
-                                {/* Mostrar apenas para ADMIN */}
                                 {isAdmin && (
-                                    <a href="/admin" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-2">
-                                        <Settings size={16} />
+                                    <a href="/admin" className="text-white hover-gold transition-colors text-sm font-medium flex items-center gap-1.5 whitespace-nowrap">
+                                        <Settings size={15} />
                                         Admin
                                     </a>
                                 )}
 
-                                <div className="flex items-center gap-3 pl-4 border-l border-gray-500">
-                                    <span className="text-white text-sm">
+                                <div className="flex items-center gap-3 pl-4 border-l border-white/15">
+                                    <span className="text-white text-sm whitespace-nowrap">
                                         Olá, <span className="text-gold font-semibold">{user.name?.split(' ')[0]}</span>
                                     </span>
-                                    {session?.user?.role === 'ADMIN' && (
-                                        <NotificationBell />
-                                    )}
+                                    {isAdmin && <NotificationBell />}
                                     <button
                                         onClick={handleLogout}
-                                        className="text-white hover:text-red-400 transition-colors"
+                                        className="text-white/60 hover:text-red-400 transition-colors"
                                         aria-label="Sair"
                                         title="Sair"
                                     >
-                                        <LogOut size={18} />
+                                        <LogOut size={17} />
                                     </button>
                                 </div>
                             </>
                         )}
                     </motion.div>
 
-                    {/* Mobile Menu Button */}
+                    {/* Hamburguer — aparece abaixo de lg */}
                     <motion.button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                        className="md:hidden text-white hover-gold"
+                        className="lg:hidden text-white hover-gold p-1"
                         aria-label="Menu"
                         initial={{ x: 30, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
@@ -143,66 +114,77 @@ ${scrolled
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.3 }}
-                        className="md:hidden pb-4 space-y-3 border-t border-gray-700 mt-4 pt-4"
+                        className="lg:hidden pb-5 space-y-1 border-t border-white/8 mt-2 pt-4"
                     >
-                        <a href="/#home" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
-                            Home
-                        </a>
-                        <a href="/#sobre" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
-                            Sobre
-                        </a>
-                        <a href="/#servicos" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
-                            Serviços
-                        </a>
-                        <a href="/#localizacao" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
-                            Localização
-                        </a>
+                        {/* Links principais */}
+                        {[
+                            { href: '/#home', label: 'Home' },
+                            { href: '/#sobre', label: 'Sobre' },
+                            { href: '/#servicos', label: 'Serviços' },
+                            { href: '/#localizacao', label: 'Localização' },
+                        ].map(({ href, label }) => (
+                            <a
+                                key={href}
+                                href={href}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="flex items-center text-white/70 hover:text-white hover-gold py-2.5 px-2 rounded-lg hover:bg-white/4 text-sm transition-all"
+                            >
+                                {label}
+                            </a>
+                        ))}
+
+                        <div className="border-t border-white/8 my-2" />
 
                         {!user ? (
                             <>
-                                <a href="/login" className="block text-white hover-gold py-2 text-sm" onClick={() => setMobileMenuOpen(false)}>
+                                <a href="/login" onClick={() => setMobileMenuOpen(false)}
+                                    className="flex items-center text-white/70 hover:text-white hover-gold py-2.5 px-2 rounded-lg hover:bg-white/4 text-sm transition-all">
                                     Login
                                 </a>
-                                <a href="/register" className="block bg-gradient-gold text-white px-4 py-2 rounded-md text-center text-sm font-semibold" onClick={() => setMobileMenuOpen(false)}>
+                                <a href="/register" onClick={() => setMobileMenuOpen(false)}
+                                    className="block bg-gradient-gold text-white px-4 py-3 rounded-lg text-center text-sm font-semibold mt-2">
                                     Cadastrar
                                 </a>
                             </>
                         ) : (
                             <>
-                                <div className="text-white text-sm py-2 border-b border-gray-700">
+                                {/* Saudação */}
+                                <div className="px-2 py-2 text-sm text-white/50">
                                     Olá, <span className="text-gold font-semibold">{user.name?.split(' ')[0]}</span>
                                 </div>
 
                                 {!isAdmin && (
                                     <>
-                                        <a href="/agendar" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                                            <Calendar size={16} />
+                                        <a href="/agendar" onClick={() => setMobileMenuOpen(false)}
+                                            className="flex items-center gap-2 text-white/70 hover:text-white hover-gold py-2.5 px-2 rounded-lg hover:bg-white/4 text-sm transition-all">
+                                            <Calendar size={15} className="text-gold" />
                                             Agendar
                                         </a>
-                                        <a href="/meus-agendamentos" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                                            <List size={16} />
+                                        <a href="/meus-agendamentos" onClick={() => setMobileMenuOpen(false)}
+                                            className="flex items-center gap-2 text-white/70 hover:text-white hover-gold py-2.5 px-2 rounded-lg hover:bg-white/4 text-sm transition-all">
+                                            <List size={15} className="text-gold" />
                                             Meus Agendamentos
                                         </a>
                                     </>
                                 )}
 
                                 {isAdmin && (
-                                    <a href="/admin" className="block text-white hover-gold py-2 text-sm flex items-center gap-2" onClick={() => setMobileMenuOpen(false)}>
-                                        <Settings size={16} />
+                                    <a href="/admin" onClick={() => setMobileMenuOpen(false)}
+                                        className="flex items-center gap-2 text-white/70 hover:text-white hover-gold py-2.5 px-2 rounded-lg hover:bg-white/4 text-sm transition-all">
+                                        <Settings size={15} className="text-gold" />
                                         Admin
                                     </a>
                                 )}
 
-                                <button
-                                    onClick={() => {
-                                        handleLogout()
-                                        setMobileMenuOpen(false)
-                                    }}
-                                    className="block text-red-400 py-2 w-full text-left text-sm flex items-center gap-2"
-                                >
-                                    <LogOut size={16} />
-                                    Sair
-                                </button>
+                                <div className="border-t border-white/8 mt-2 pt-2">
+                                    <button
+                                        onClick={() => { handleLogout(); setMobileMenuOpen(false) }}
+                                        className="flex items-center gap-2 text-red-400/80 hover:text-red-400 py-2.5 px-2 rounded-lg hover:bg-red-950/30 w-full text-sm transition-all"
+                                    >
+                                        <LogOut size={15} />
+                                        Sair
+                                    </button>
+                                </div>
                             </>
                         )}
                     </motion.div>

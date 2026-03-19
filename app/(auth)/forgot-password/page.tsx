@@ -92,28 +92,36 @@ export default function ForgotPasswordPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
+        <div className="min-h-screen flex items-center justify-center 
+    bg-[#0a0a0a] 
+    bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent)] 
+    py-8 sm:py-12 px-4 sm:px-6">
+
             <motion.div
                 className="max-w-md w-full"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
             >
-                <div className="text-center mb-8">
-                    <div className="flex justify-center mb-6">
-                        <Logo variant="header" />
+                <div className="text-center mb-6 sm:mb-8">
+                    <div className="flex justify-center mb-4 sm:mb-6">
+                        <div className="scale-90 sm:scale-100">
+                            <Logo variant="header" />
+                        </div>
                     </div>
-                    <h2 className="text-3xl font-bold text-white mb-2">
+
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
                         Esqueceu sua senha?
                     </h2>
-                    <p className="text-gray-400">
+
+                    <p className="text-sm sm:text-base text-gray-400 px-2 sm:px-0">
                         Não se preocupe! Digite seu email e enviaremos instruções para redefinir sua senha.
                     </p>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-2xl p-8">
+                <div className="bg-white rounded-xl shadow-2xl p-5 sm:p-8">
                     {!sent ? (
-                        <form onSubmit={handleSubmit} className="space-y-6">
+                        <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                             {error && (
                                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm" role="alert">
                                     {error}
@@ -121,12 +129,15 @@ export default function ForgotPasswordPage() {
                             )}
 
                             {/* Aviso sobre tempo de entrega */}
-                            <div className="bg-blue-50 border-l-4 border-blue-500 p-4">
+                            <div className="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4">
                                 <div className="flex items-start gap-3">
-                                    <Clock size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
-                                    <div className="text-sm text-blue-800">
+                                    <Clock size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                                    <div className="text-xs sm:text-sm text-blue-800">
                                         <p className="font-semibold mb-1">Tempo de entrega:</p>
-                                        <p>O email é processado instantaneamente e pode levar <strong>1-3 minutos</strong> para chegar. Verifique também sua caixa de spam.</p>
+                                        <p>
+                                            O email é processado instantaneamente e pode levar <strong>1-3 minutos</strong> para chegar.
+                                            Verifique também sua caixa de spam.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -152,43 +163,47 @@ export default function ForgotPasswordPage() {
                             </Button>
                         </form>
                     ) : (
-                        <div className="text-center py-6">
-                            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <Mail className="text-green-600" size={32} />
+                        <div className="text-center py-4 sm:py-6">
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Mail className="text-green-600" size={28} />
                             </div>
-                            <h3 className="text-xl font-bold text-charcoal mb-2">
+
+                            <h3 className="text-lg sm:text-xl font-bold text-charcoal mb-2">
                                 Email Enviado!
                             </h3>
-                            <p className="text-gray-600 mb-4">
+
+                            <p className="text-sm sm:text-base text-gray-600 mb-4 px-2">
                                 Enviamos instruções para <strong>{email}</strong>
                             </p>
 
                             {/* Destaque sobre tempo de espera */}
-                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 mb-5 sm:mb-6">
                                 <div className="flex items-start gap-2 text-left">
-                                    <Clock size={18} className="text-yellow-600 mt-0.5 flex-shrink-0" />
-                                    <div className="text-sm text-yellow-800">
+                                    <Clock size={16} className="text-yellow-600 mt-0.5 flex-shrink-0" />
+                                    <div className="text-xs sm:text-sm text-yellow-800">
                                         <p className="font-semibold">Aguarde 1-3 minutos</p>
-                                        <p className="mt-1">O email está sendo processado e chegará em breve. Verifique também sua caixa de spam.</p>
+                                        <p className="mt-1">
+                                            O email está sendo processado e chegará em breve. Verifique também sua caixa de spam.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Botão de Reenviar com Contador */}
+                            {/* Botão de Reenviar */}
                             {!canResend ? (
                                 <button
                                     disabled
-                                    className="flex items-center justify-center gap-2 mx-auto text-sm text-gray-400 font-semibold cursor-not-allowed"
+                                    className="flex items-center justify-center gap-2 mx-auto text-xs sm:text-sm text-gray-400 font-semibold cursor-not-allowed"
                                 >
-                                    <RefreshCw size={16} className="animate-spin" />
+                                    <RefreshCw size={14} className="animate-spin" />
                                     Reenviar em {countdown}s
                                 </button>
                             ) : (
                                 <button
                                     onClick={handleResend}
-                                    className="flex items-center justify-center gap-2 mx-auto text-gold hover:text-gold-dark font-semibold text-sm transition-colors"
+                                    className="flex items-center justify-center gap-2 mx-auto text-gold hover:text-gold-dark font-semibold text-xs sm:text-sm transition-colors"
                                 >
-                                    <RefreshCw size={16} />
+                                    <RefreshCw size={14} />
                                     Reenviar email
                                 </button>
                             )}
@@ -199,7 +214,7 @@ export default function ForgotPasswordPage() {
                                         setSent(false)
                                         setEmail('')
                                     }}
-                                    className="text-sm text-gray-600 hover:text-charcoal transition-colors"
+                                    className="text-xs sm:text-sm text-gray-600 hover:text-charcoal transition-colors"
                                 >
                                     Tentar outro email
                                 </button>
@@ -207,23 +222,23 @@ export default function ForgotPasswordPage() {
                         </div>
                     )}
 
-                    <div className="mt-6 text-center space-y-3">
+                    <div className="mt-5 sm:mt-6 text-center space-y-3">
                         <Link
                             href="/login"
-                            className="flex items-center justify-center gap-2 text-sm text-gray-600 hover:text-charcoal transition-colors"
+                            className="flex items-center justify-center gap-2 text-xs sm:text-sm text-gray-600 hover:text-charcoal transition-colors"
                         >
-                            <ArrowLeft size={16} />
+                            <ArrowLeft size={14} />
                             Voltar para o login
                         </Link>
                     </div>
                 </div>
 
-                <div className="text-center mt-6">
+                <div className="text-center mt-5 sm:mt-6">
                     <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
                         ← Voltar para o início
                     </Link>
                 </div>
             </motion.div>
-        </div >
+        </div>
     )
 }

@@ -39,7 +39,7 @@ export default function WhatsAppButton({
 
                     {/* Botão com ícone de telefone */}
                     <div className="relative bg-gradient-to-br from-green-500 to-green-600 text-white p-4 rounded-full shadow-2xl hover:from-green-600 hover:to-green-700 transition-all duration-300 hover:scale-110">
-                        <Phone className="w-7 h-7" />
+                        <Phone className="w-4 h-4" />
                     </div>
                 </div>
 

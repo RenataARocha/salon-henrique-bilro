@@ -43,7 +43,7 @@ export default function ScrollToTopButton() {
 
                 {/* Botão */}
                 <div className="relative bg-gradient-to-br from-gold to-yellow-600 text-white p-3 rounded-full shadow-2xl hover:from-yellow-600 hover:to-gold transition-all duration-300 hover:scale-110">
-                    <ArrowUp className="w-6 h-6" />
+                    <ArrowUp className="w-4 h-4" />
                 </div>
             </div>
 

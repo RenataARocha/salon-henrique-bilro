@@ -62,7 +62,10 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
+        <div className="min-h-screen flex items-center justify-center 
+bg-[#0a0a0a] 
+bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent)] 
+py-8 sm:py-12 px-4 sm:px-6">
             <motion.div
                 className="max-w-md w-full"
                 initial={{ opacity: 0, y: 20 }}
@@ -70,29 +73,33 @@ export default function LoginPage() {
                 transition={{ duration: 0.5 }}
             >
                 <motion.div
-                    className="text-center mb-8"
+                    className="text-center mb-6 sm:mb-8"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                    <div className="flex justify-center mb-6">
-                        <Logo variant="header" />
+                    <div className="flex justify-center mb-4 sm:mb-6">
+                        <div className="scale-90 sm:scale-100">
+                            <Logo variant="header" />
+                        </div>
                     </div>
-                    <h2 className="text-3xl font-bold text-white mb-2">
+
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
                         Bem-vindo de volta!
                     </h2>
-                    <p className="text-gray-400">
+
+                    <p className="text-sm sm:text-base text-gray-400">
                         Entre com sua conta para agendar
                     </p>
                 </motion.div>
 
                 <motion.div
-                    className="bg-white rounded-xl shadow-2xl p-8"
+                    className="bg-white rounded-xl shadow-2xl p-5 sm:p-8"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
                 >
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                         {error && (
                             <motion.div
                                 className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm"
@@ -124,14 +131,17 @@ export default function LoginPage() {
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                         />
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <label className="flex items-center">
                                 <input
                                     type="checkbox"
                                     className="w-4 h-4 text-gold border-gray-300 rounded focus:ring-gold"
                                 />
-                                <span className="ml-2 text-sm text-gray-600">Lembrar-me</span>
+                                <span className="ml-2 text-sm text-gray-600">
+                                    Lembrar-me
+                                </span>
                             </label>
+
                             <Link
                                 href="/forgot-password"
                                 className="text-sm text-gold hover:text-gold-dark font-semibold transition-colors"
@@ -151,10 +161,13 @@ export default function LoginPage() {
                         </Button>
                     </form>
 
-                    <div className="mt-6 text-center">
+                    <div className="mt-5 sm:mt-6 text-center">
                         <p className="text-sm text-gray-600">
                             Não tem uma conta?{' '}
-                            <Link href="/register" className="text-gold hover:text-gold-dark font-semibold">
+                            <Link
+                                href="/register"
+                                className="text-gold hover:text-gold-dark font-semibold"
+                            >
                                 Cadastre-se
                             </Link>
                         </p>
@@ -162,12 +175,15 @@ export default function LoginPage() {
                 </motion.div>
 
                 <motion.div
-                    className="text-center mt-6"
+                    className="text-center mt-5 sm:mt-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.5 }}
                 >
-                    <Link href="/" className="text-gray-400 hover:text-white text-sm transition-colors">
+                    <Link
+                        href="/"
+                        className="text-gray-400 hover:text-white text-sm transition-colors"
+                    >
                         ← Voltar para o início
                     </Link>
                 </motion.div>

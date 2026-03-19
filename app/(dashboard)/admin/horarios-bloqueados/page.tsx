@@ -254,131 +254,136 @@ export default function BlockedTimesPage() {
     }
 
     return (
-        <div className="min-h-screen bg-beige py-8 px-4">
-            <div className="max-w-7xl mx-auto space-y-8">
+        <div className="min-h-screen bg-beige py-8 px-4 relative overflow-hidden">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent)] pointer-events-none" />
+
+            <div className="max-w-7xl mx-auto space-y-6">
+
                 <AdminHeader
                     title="Horários Bloqueados"
                     description="Gerencie horários indisponíveis para agendamento"
                 />
 
-                {/* Ações */}
+                {/* Área de Ações */}
                 <motion.div
-                    className="flex flex-col gap-4"
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 space-y-3"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
                 >
-                    {/* Linha 1: Filtros + Ações lado a lado em telas maiores */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    {/* Linha 1: Filtros */}
+                    <div className="flex gap-2 bg-gray-100/80 p-1.5 rounded-xl">
+                        <button
+                            onClick={() => setFilter('all')}
+                            className={`flex-1 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${filter === 'all'
+                                ? 'bg-gradient-gold text-white shadow-md'
+                                : 'text-charcoal hover:bg-white/70'
+                                }`}
+                        >
+                            <span className="sm:hidden">📋 ({blockedTimes.length})</span>
+                            <span className="hidden sm:inline">📋 Todos ({blockedTimes.length})</span>
+                        </button>
+                        <button
+                            onClick={() => setFilter('recurring')}
+                            className={`flex-1 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${filter === 'recurring'
+                                ? 'bg-gradient-gold text-white shadow-md'
+                                : 'text-charcoal hover:bg-white/70'
+                                }`}
+                        >
+                            <span className="sm:hidden">🔄 ({recurringBlocks.length})</span>
+                            <span className="hidden sm:inline">🔄 Recorrentes ({recurringBlocks.length})</span>
+                        </button>
+                        <button
+                            onClick={() => setFilter('punctual')}
+                            className={`flex-1 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 ${filter === 'punctual'
+                                ? 'bg-gradient-gold text-white shadow-md'
+                                : 'text-charcoal hover:bg-white/70'
+                                }`}
+                        >
+                            <span className="sm:hidden">📅 ({punctualBlocks.length})</span>
+                            <span className="hidden sm:inline">📅 Pontuais ({punctualBlocks.length})</span>
+                        </button>
+                    </div>
 
-                        {/* Filtros */}
-                        <div className="flex flex-wrap gap-2">
-                            <button
-                                onClick={() => setFilter('all')}
-                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${filter === 'all'
-                                    ? 'bg-gradient-gold text-white shadow-md scale-[1.02]'
-                                    : 'bg-white text-charcoal hover:shadow-md hover:scale-[1.01] border border-gray-100'
-                                    }`}
-                            >
-                                📋 Todos ({blockedTimes.length})
-                            </button>
-                            <button
-                                onClick={() => setFilter('recurring')}
-                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${filter === 'recurring'
-                                    ? 'bg-gradient-gold text-white shadow-md scale-[1.02]'
-                                    : 'bg-white text-charcoal hover:shadow-md hover:scale-[1.01] border border-gray-100'
-                                    }`}
-                            >
-                                🔄 Recorrentes ({recurringBlocks.length})
-                            </button>
-                            <button
-                                onClick={() => setFilter('punctual')}
-                                className={`px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${filter === 'punctual'
-                                    ? 'bg-gradient-gold text-white shadow-md scale-[1.02]'
-                                    : 'bg-white text-charcoal hover:shadow-md hover:scale-[1.01] border border-gray-100'
-                                    }`}
-                            >
-                                📅 Pontuais ({punctualBlocks.length})
-                            </button>
-                        </div>
-
-                        {/* Ações múltiplas */}
-                        <div className="flex flex-wrap items-center gap-2">
-                            {!selectMode ? (
+                    {/* Linha 2: Ações */}
+                    <div className="flex flex-wrap gap-2">
+                        {!selectMode ? (
+                            <>
+                                {/* Botão Selecionar */}
                                 <button
                                     onClick={() => setSelectMode(true)}
-                                    className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 active:scale-[0.98] transition-all text-sm font-semibold shadow-sm"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 active:scale-[0.98] transition-all text-xs sm:text-sm font-semibold shadow-sm"
                                 >
-                                    <CheckSquare size={17} />
-                                    <span className="hidden xs:inline">Selecionar Múltiplos</span>
-                                    <span className="xs:hidden">Selecionar</span>
+                                    <CheckSquare size={15} />
+                                    <span>Selecionar</span>
                                 </button>
-                            ) : (
-                                <>
-                                    <button
-                                        onClick={toggleSelectAll}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all text-sm font-semibold shadow-sm"
-                                    >
-                                        {selectedIds.size === filteredBlocks.length ? (
-                                            <><Square size={17} /><span>Desmarcar Todos</span></>
-                                        ) : (
-                                            <><CheckSquare size={17} /><span>Selecionar Todos</span></>
-                                        )}
-                                    </button>
-                                    <button
-                                        onClick={handleDeleteMultiple}
-                                        disabled={selectedIds.size === 0}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                                    >
-                                        <Trash2 size={17} />
-                                        Excluir ({selectedIds.size})
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setSelectMode(false);
-                                            setSelectedIds(new Set());
-                                        }}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all text-sm font-medium"
-                                    >
-                                        Cancelar
-                                    </button>
-                                </>
-                            )}
 
-                            {!selectMode && (
-                                <>
-                                    <button
-                                        onClick={fetchBlockedTimes}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-white rounded-xl hover:shadow-md border border-gray-100 transition-all text-sm text-charcoal"
-                                        title="Atualizar"
-                                    >
-                                        <RefreshCw size={17} />
-                                        <span className="hidden sm:inline">Atualizar</span>
-                                    </button>
+                                {/* Divider visual */}
+                                <div className="w-px bg-gray-100 self-stretch hidden sm:block" />
 
-                                    <button
-                                        onClick={() => setShowLunchModal(true)}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold shadow-sm"
-                                    >
-                                        <UtensilsCrossed size={17} />
-                                        <span className="hidden sm:inline">Horário de Almoço</span>
-                                        <span className="sm:hidden">Almoço</span>
-                                    </button>
+                                {/* Atualizar */}
+                                <button
+                                    onClick={fetchBlockedTimes}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-charcoal rounded-xl hover:bg-gray-200 active:scale-[0.98] transition-all text-xs sm:text-sm font-medium"
+                                    title="Atualizar"
+                                >
+                                    <RefreshCw size={15} />
+                                    <span className="hidden sm:inline">Atualizar</span>
+                                </button>
 
-                                    <button
-                                        onClick={() => {
-                                            setEditingBlock(null)
-                                            setShowForm(true)
-                                        }}
-                                        className="flex items-center gap-2 px-4 py-2.5 bg-gradient-gold text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold shadow-sm"
-                                    >
-                                        <Plus size={17} />
-                                        <span className="hidden sm:inline">Novo Bloqueio</span>
-                                        <span className="sm:hidden">Novo</span>
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                                {/* Almoço */}
+                                <button
+                                    onClick={() => setShowLunchModal(true)}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-md active:scale-[0.98] transition-all text-xs sm:text-sm font-semibold shadow-sm"
+                                >
+                                    <UtensilsCrossed size={15} />
+                                    <span className="hidden sm:inline">Horário de </span>Almoço
+                                </button>
+
+                                {/* Novo Bloqueio — destaque, cresce para preencher no mobile */}
+                                <button
+                                    onClick={() => {
+                                        setEditingBlock(null)
+                                        setShowForm(true)
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-gold text-white rounded-xl hover:shadow-md active:scale-[0.98] transition-all text-xs sm:text-sm font-semibold shadow-sm ml-auto"
+                                >
+                                    <Plus size={15} />
+                                    <span><span className="hidden sm:inline">Novo </span>Bloqueio</span>
+                                </button>
+                            </>
+                        ) : (
+                            /* Modo seleção */
+                            <>
+                                <button
+                                    onClick={toggleSelectAll}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-all text-xs sm:text-sm font-semibold shadow-sm"
+                                >
+                                    {selectedIds.size === filteredBlocks.length ? (
+                                        <><Square size={15} /><span>Desmarcar</span></>
+                                    ) : (
+                                        <><CheckSquare size={15} /><span>Selecionar Todos</span></>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={handleDeleteMultiple}
+                                    disabled={selectedIds.size === 0}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-all text-xs sm:text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                >
+                                    <Trash2 size={15} />
+                                    Excluir ({selectedIds.size})
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setSelectMode(false);
+                                        setSelectedIds(new Set());
+                                    }}
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all text-xs sm:text-sm font-medium ml-auto"
+                                >
+                                    Cancelar
+                                </button>
+                            </>
+                        )}
                     </div>
                 </motion.div>
 
@@ -386,22 +391,21 @@ export default function BlockedTimesPage() {
                 {(filter === 'all' || filter === 'recurring') && recurringBlocks.length > 0 && (
                     <div>
                         <motion.h2
-                            className="text-lg font-bold text-charcoal mb-4 flex items-center gap-2"
+                            className="text-base font-bold text-charcoal mb-3 flex items-center gap-2"
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.4 }}
                         >
                             <div className="p-1.5 bg-gold/10 rounded-lg">
-                                <RefreshCw size={18} className="text-gold" />
+                                <RefreshCw size={16} className="text-gold" />
                             </div>
                             Bloqueios Recorrentes
-                            <span className="ml-1 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                                 {recurringBlocks.length}
                             </span>
                         </motion.h2>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                             {/* 🍽️ Horário de Almoço AGRUPADO */}
                             {groupedLunchBreak && (
                                 <motion.div
@@ -433,32 +437,20 @@ export default function BlockedTimesPage() {
                                                 </p>
                                             </div>
                                         </div>
-
                                         {!selectMode && (
                                             <div className="flex gap-1 flex-shrink-0 ml-2">
-                                                <button
-                                                    onClick={() => setShowLunchModal(true)}
-                                                    className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
+                                                <button onClick={() => setShowLunchModal(true)} className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                                                     <Edit size={16} className="text-blue-500" />
                                                 </button>
-                                                <button
-                                                    onClick={handleDeleteLunch}
-                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
+                                                <button onClick={handleDeleteLunch} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
                                                     <Trash2 size={16} className="text-red-500" />
                                                 </button>
                                             </div>
                                         )}
                                     </div>
-
                                     <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
                                         <Clock size={14} className="text-gold flex-shrink-0" />
-                                        <span className="font-medium">
-                                            {groupedLunchBreak.startTime} – {groupedLunchBreak.endTime}
-                                        </span>
+                                        <span className="font-medium">{groupedLunchBreak.startTime} – {groupedLunchBreak.endTime}</span>
                                     </div>
                                 </motion.div>
                             )}
@@ -475,10 +467,7 @@ export default function BlockedTimesPage() {
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-start gap-3 flex-1 min-w-0">
                                             {selectMode && (
-                                                <button
-                                                    onClick={() => toggleSelection(block.id)}
-                                                    className="mt-0.5 flex-shrink-0"
-                                                >
+                                                <button onClick={() => toggleSelection(block.id)} className="mt-0.5 flex-shrink-0">
                                                     {selectedIds.has(block.id) ? (
                                                         <CheckSquare className="text-blue-500" size={19} />
                                                     ) : (
@@ -488,50 +477,31 @@ export default function BlockedTimesPage() {
                                             )}
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-xl leading-none">
-                                                        {TYPE_LABELS[block.type]?.split(' ')[0]}
-                                                    </span>
-                                                    <h3 className="font-bold text-base text-charcoal truncate">
-                                                        {block.reason}
-                                                    </h3>
+                                                    <span className="text-xl leading-none">{TYPE_LABELS[block.type]?.split(' ')[0]}</span>
+                                                    <h3 className="font-bold text-base text-charcoal truncate">{block.reason}</h3>
                                                 </div>
-                                                <p className="text-xs text-gray-500">
-                                                    Toda {DAYS_OF_WEEK[block.dayOfWeek!]}
-                                                </p>
+                                                <p className="text-xs text-gray-500">Toda {DAYS_OF_WEEK[block.dayOfWeek!]}</p>
                                             </div>
                                         </div>
-
                                         {!selectMode && (
                                             <div className="flex gap-1 flex-shrink-0 ml-2">
-                                                <button
-                                                    onClick={() => handleEdit(block)}
-                                                    className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
+                                                <button onClick={() => handleEdit(block)} className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                                                     <Edit size={16} className="text-blue-500" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(block.id)}
-                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
+                                                <button onClick={() => handleDelete(block.id)} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
                                                     <Trash2 size={16} className="text-red-500" />
                                                 </button>
                                             </div>
                                         )}
                                     </div>
-
                                     {(block.startTime || block.endTime) && (
                                         <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-3">
                                             <Clock size={14} className="text-gold flex-shrink-0" />
-                                            <span className="font-medium">
-                                                {block.startTime || '00:00'} – {block.endTime || '23:59'}
-                                            </span>
+                                            <span className="font-medium">{block.startTime || '00:00'} – {block.endTime || '23:59'}</span>
                                         </div>
                                     )}
-
                                     {(block.startDate || block.endDate) && (
-                                        <div className="text-xs text-gray-500 mb-3 bg-amber-50 rounded-lg px-3 py-2">
+                                        <div className="text-xs mb-3 bg-amber-50 rounded-lg px-3 py-2">
                                             <p className="font-semibold text-amber-700 mb-0.5">Período de validade</p>
                                             <p className="text-amber-600">
                                                 {block.startDate && formatDate(block.startDate)}
@@ -540,13 +510,9 @@ export default function BlockedTimesPage() {
                                             </p>
                                         </div>
                                     )}
-
                                     {block.description && (
-                                        <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-dashed">
-                                            {block.description}
-                                        </p>
+                                        <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-dashed">{block.description}</p>
                                     )}
-
                                     <div className="mt-3 pt-3 border-t border-gray-50 text-xs text-gray-400">
                                         Criado por <span className="text-gray-500 font-medium">{block.creator.name}</span>
                                     </div>
@@ -559,12 +525,12 @@ export default function BlockedTimesPage() {
                 {/* Bloqueios Pontuais */}
                 {(filter === 'all' || filter === 'punctual') && punctualBlocks.length > 0 && (
                     <div>
-                        <h2 className="text-lg font-bold text-charcoal mb-4 flex items-center gap-2">
+                        <h2 className="text-base font-bold text-charcoal mb-3 flex items-center gap-2">
                             <div className="p-1.5 bg-gold/10 rounded-lg">
-                                <Calendar size={18} className="text-gold" />
+                                <Calendar size={16} className="text-gold" />
                             </div>
                             Bloqueios Pontuais
-                            <span className="ml-1 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                                 {punctualBlocks.length}
                             </span>
                         </h2>
@@ -582,10 +548,7 @@ export default function BlockedTimesPage() {
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-start gap-3 flex-1 min-w-0">
                                             {selectMode && (
-                                                <button
-                                                    onClick={() => toggleSelection(block.id)}
-                                                    className="mt-0.5 flex-shrink-0"
-                                                >
+                                                <button onClick={() => toggleSelection(block.id)} className="mt-0.5 flex-shrink-0">
                                                     {selectedIds.has(block.id) ? (
                                                         <CheckSquare className="text-blue-500" size={19} />
                                                     ) : (
@@ -595,59 +558,36 @@ export default function BlockedTimesPage() {
                                             )}
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-xl leading-none">
-                                                        {TYPE_LABELS[block.type]?.split(' ')[0]}
-                                                    </span>
-                                                    <h3 className="font-bold text-base text-charcoal truncate">
-                                                        {block.reason}
-                                                    </h3>
+                                                    <span className="text-xl leading-none">{TYPE_LABELS[block.type]?.split(' ')[0]}</span>
+                                                    <h3 className="font-bold text-base text-charcoal truncate">{block.reason}</h3>
                                                 </div>
                                                 {block.type === 'VACATION' && block.date && block.endDate ? (
-                                                    <p className="text-xs text-gray-500">
-                                                        {formatDate(block.date)} até {formatDate(block.endDate)}
-                                                    </p>
+                                                    <p className="text-xs text-gray-500">{formatDate(block.date)} até {formatDate(block.endDate)}</p>
                                                 ) : block.date ? (
-                                                    <p className="text-xs text-gray-500">
-                                                        {formatDate(block.date)}
-                                                    </p>
+                                                    <p className="text-xs text-gray-500">{formatDate(block.date)}</p>
                                                 ) : null}
                                             </div>
                                         </div>
                                         {!selectMode && (
                                             <div className="flex gap-1 flex-shrink-0 ml-2">
-                                                <button
-                                                    onClick={() => handleEdit(block)}
-                                                    className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
+                                                <button onClick={() => handleEdit(block)} className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors" title="Editar">
                                                     <Edit size={16} className="text-blue-500" />
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDelete(block.id)}
-                                                    className="p-1.5 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
+                                                <button onClick={() => handleDelete(block.id)} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
                                                     <Trash2 size={16} className="text-red-500" />
                                                 </button>
                                             </div>
                                         )}
                                     </div>
-
                                     {(block.startTime || block.endTime) && (
                                         <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-lg px-3 py-2 mb-3">
                                             <Clock size={14} className="text-gold flex-shrink-0" />
-                                            <span className="font-medium">
-                                                {block.startTime || '00:00'} – {block.endTime || '23:59'}
-                                            </span>
+                                            <span className="font-medium">{block.startTime || '00:00'} – {block.endTime || '23:59'}</span>
                                         </div>
                                     )}
-
                                     {block.description && (
-                                        <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-dashed">
-                                            {block.description}
-                                        </p>
+                                        <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-dashed">{block.description}</p>
                                     )}
-
                                     <div className="mt-3 pt-3 border-t border-gray-50 text-xs text-gray-400">
                                         Criado por <span className="text-gray-500 font-medium">{block.creator.name}</span>
                                     </div>
@@ -661,23 +601,19 @@ export default function BlockedTimesPage() {
                 {filteredBlocks.length === 0 && (
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
                         <p className="text-5xl mb-4">📅</p>
-                        <h3 className="text-xl font-bold text-charcoal mb-2">
-                            Nenhum bloqueio cadastrado
-                        </h3>
-                        <p className="text-sm text-gray-500 mb-6">
-                            Configure horários indisponíveis para agendamento
-                        </p>
-                        <div className="flex flex-wrap gap-3 justify-center">
+                        <h3 className="text-xl font-bold text-charcoal mb-2">Nenhum bloqueio cadastrado</h3>
+                        <p className="text-sm text-gray-500 mb-6">Configure horários indisponíveis para agendamento</p>
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <button
                                 onClick={() => setShowLunchModal(true)}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold"
                             >
                                 <UtensilsCrossed size={17} />
                                 Horário de Almoço
                             </button>
                             <button
                                 onClick={() => setShowForm(true)}
-                                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-gold text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold"
+                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-gold text-white rounded-xl hover:shadow-lg active:scale-[0.98] transition-all text-sm font-semibold"
                             >
                                 <Plus size={17} />
                                 Criar Bloqueio
@@ -706,6 +642,7 @@ export default function BlockedTimesPage() {
                     />
                 )
             }
+
         </div >
     )
 }

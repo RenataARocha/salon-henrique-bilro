@@ -106,7 +106,11 @@ export default function RegisterPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-charcoal py-12 px-4">
+        <div className="min-h-screen flex items-center justify-center 
+    bg-[#0a0a0a] 
+    bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.05),transparent)] 
+    py-8 sm:py-12 px-4 sm:px-6">
+
             <motion.div
                 className="max-w-md w-full"
                 initial={{ opacity: 0, y: 20 }}
@@ -114,29 +118,33 @@ export default function RegisterPage() {
                 transition={{ duration: 0.5 }}
             >
                 <motion.div
-                    className="text-center mb-8"
+                    className="text-center mb-6 sm:mb-8"
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                    <div className="flex justify-center mb-6">
-                        <Logo variant="header" />
+                    <div className="flex justify-center mb-4 sm:mb-6">
+                        <div className="scale-90 sm:scale-100">
+                            <Logo variant="header" />
+                        </div>
                     </div>
-                    <h2 className="text-3xl font-bold text-white mb-2">
+
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2">
                         Crie sua conta
                     </h2>
-                    <p className="text-gray-400">
+
+                    <p className="text-sm sm:text-base text-gray-400 px-2 sm:px-0">
                         Cadastre-se para agendar seus horários
                     </p>
                 </motion.div>
 
                 <motion.div
-                    className="bg-white rounded-xl shadow-2xl p-8"
+                    className="bg-white rounded-xl shadow-2xl p-5 sm:p-8"
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
                 >
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
                         <Input
                             id="name"
                             type="text"
@@ -200,13 +208,13 @@ export default function RegisterPage() {
                             error={errors.confirmPassword}
                         />
 
-                        <div className="flex items-start">
+                        <div className="flex items-start gap-2">
                             <input
                                 type="checkbox"
                                 required
-                                className="w-4 h-4 text-gold border-gray-300 rounded focus:ring-gold mt-1"
+                                className="w-4 h-4 text-gold border-gray-300 rounded focus:ring-gold mt-1 flex-shrink-0"
                             />
-                            <label className="ml-2 text-sm text-gray-600">
+                            <label className="text-xs sm:text-sm text-gray-600 leading-relaxed">
                                 Aceito os{' '}
                                 <a href="#" className="text-gold hover:text-gold-dark font-semibold">
                                     termos de uso
@@ -229,7 +237,7 @@ export default function RegisterPage() {
                         </Button>
                     </form>
 
-                    <div className="mt-6 text-center">
+                    <div className="mt-5 sm:mt-6 text-center">
                         <p className="text-sm text-gray-600">
                             Já tem uma conta?{' '}
                             <Link href="/login" className="text-gold hover:text-gold-dark font-semibold">
@@ -240,7 +248,7 @@ export default function RegisterPage() {
                 </motion.div>
 
                 <motion.div
-                    className="text-center mt-6"
+                    className="text-center mt-5 sm:mt-6"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.5 }}
