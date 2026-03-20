@@ -194,41 +194,14 @@ async function sendWhatsAppMessage(phone: string, text: string) {
     }
 }
 
-// ── Evolution API: envia botões ──────────────────────────────────────────────
+// ── Evolution API: envia opções como texto numerado ─────────────────────────
 async function sendWhatsAppButtons(phone: string, buttons: string[]) {
-    try {
-        // WhatsApp suporta no máximo 3 botões
-        // Se tiver mais, envia como lista numerada em texto
-        if (buttons.length <= 3) {
-            await fetch(
-                `${EVOLUTION_API_URL}/message/sendButtons/${EVOLUTION_INSTANCE}`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': EVOLUTION_API_KEY
-                    },
-                    body: JSON.stringify({
-                        number: phone,
-                        title: 'Menu',
-                        description: 'Escolha uma opção:',
-                        footer: 'Henrique Bilro Cabeleireiros',
-                        buttons: buttons.map((btn, i) => ({
-                            buttonId: `btn${i + 1}`,
-                            buttonText: { displayText: btn },
-                            type: 1
-                        }))
-                    })
-                }
-            )
-        } else {
-            // Mais de 3 botões → envia como lista
-            const text = buttons.map((btn, i) => `${i + 1}. ${btn}`).join('\n')
-            await sendWhatsAppMessage(phone, `Escolha uma opção:\n\n${text}`)
-        }
-    } catch (error) {
-        console.error('❌ Erro ao enviar botões:', error)
-    }
+    const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']
+    const text = buttons
+        .map((btn, i) => `${emojis[i] || `${i + 1}.`} ${btn}`)
+        .join('\n')
+
+    await sendWhatsAppMessage(phone, `${text}\n\n_Digite o número da opção desejada_`)
 }
 
 // GET para verificar se o webhook está ativo
