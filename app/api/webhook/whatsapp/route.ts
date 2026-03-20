@@ -1,19 +1,28 @@
 // app/api/webhook/whatsapp/route.ts
-// Recebe mensagens do WhatsApp via Evolution API
-// e responde usando o Typebot como cérebro
+// Menu de atendimento direto — sem dependência do Typebot
 
 import { NextRequest, NextResponse } from 'next/server'
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL!
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY!
 const EVOLUTION_INSTANCE = process.env.EVOLUTION_INSTANCE || 'salon-bilro'
-const TYPEBOT_API_URL = 'https://typebot.co/api/v1'
-const TYPEBOT_PUBLIC_ID = 'henrique-bilro-atendimento-z9x2j8w'
-const TYPEBOT_API_KEY = process.env.TYPEBOT_API_KEY!
 
-// Sessões ativas por número de telefone
-// Em produção considere usar Redis ou banco de dados
-const sessions = new Map<string, string>()
+// Sessões ativas: guarda em qual etapa do menu o cliente está
+const sessions = new Map<string, { step: string }>()
+
+const MENU = `1️⃣ Agendamento
+2️⃣ Serviços e preços
+3️⃣ Localização e horários
+4️⃣ Falar com a equipe
+
+_Digite o número da opção desejada_`
+
+const RESPOSTAS: Record<string, string> = {
+    '1': `Para agendar, reagendar ou cancelar seu horário, acesse nosso site — é rápido e fácil! 😊\n\n👉 https://salon-henrique-bilro.vercel.app/agendar\n\nDigite *menu* para voltar ao início.`,
+    '2': `Confira todos os nossos serviços e valores acessando o site:\n\n👉 https://salon-henrique-bilro.vercel.app/#servicos\n\nQualquer dúvida, estamos aqui! 💛\n\nDigite *menu* para voltar ao início.`,
+    '3': `📍 *Endereço:* Av. Rio Doce, 3101 – Potengi, Natal/RN\n\n🕐 *Horário de Funcionamento:*\nTerça a Sábado: 9h às 19h\nDomingo e Segunda: Fechado\n\n🗺️ Como chegar:\nhttps://maps.app.goo.gl/bilro\n\nDigite *menu* para voltar ao início.`,
+    '4': `Certo! 💛 Nossa equipe vai entrar em contato com você em breve.\n\nCaso seja urgente, você também pode nos chamar diretamente neste número. 😊`,
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -26,18 +35,16 @@ export async function POST(req: NextRequest) {
 
         // Ignora se não for mensagem de texto
         const messageType = body.data?.messageType
-        if (!['conversation', 'extendedTextMessage', 'buttonsResponseMessage', 'listResponseMessage'].includes(messageType)) {
+        if (!['conversation', 'extendedTextMessage'].includes(messageType)) {
             return NextResponse.json({ ok: true })
         }
 
-        // Extrai dados da mensagem
         const phone = body.data?.key?.remoteJid?.replace('@s.whatsapp.net', '')
-        const messageText =
+        const messageText = (
             body.data?.message?.conversation ||
             body.data?.message?.extendedTextMessage?.text ||
-            body.data?.message?.buttonsResponseMessage?.selectedDisplayText ||
-            body.data?.message?.listResponseMessage?.title ||
             ''
+        ).trim().toLowerCase()
 
         if (!phone || !messageText) {
             return NextResponse.json({ ok: true })
@@ -45,137 +52,48 @@ export async function POST(req: NextRequest) {
 
         console.log(`📱 Mensagem de ${phone}: ${messageText}`)
 
-        // Verifica se o cliente digitou "sair" para encerrar o bot
-        if (messageText.toLowerCase().trim() === 'sair') {
-            sessions.delete(phone)
-            await sendWhatsAppMessage(phone, 'Até logo! 💛 Se precisar de algo, é só chamar.')
+        // Comando "menu" volta para o início
+        if (messageText === 'menu') {
+            await sendMessage(phone, `Olá! 💛 Seja bem-vinda ao *Henrique Bilro Cabeleireiros*!\n\nComo posso te ajudar hoje?\n\n${MENU}`)
+            sessions.set(phone, { step: 'menu' })
             return NextResponse.json({ ok: true })
         }
 
-        // Obtém ou cria sessão do Typebot
-        const sessionId = sessions.get(phone)
+        const session = sessions.get(phone)
 
-        let typebotResponse
-
-        if (!sessionId) {
-            // Nova conversa — inicia sessão no Typebot
-            typebotResponse = await startTypebotSession(phone, messageText)
-        } else {
-            // Conversa existente — continua sessão
-            typebotResponse = await continueTypebotSession(sessionId, messageText)
-        }
-
-        if (!typebotResponse) {
-            await sendWhatsAppMessage(phone, 'Desculpe, tive um problema. Digite qualquer mensagem para recomeçar. 😊')
-            sessions.delete(phone)
+        // Primeira mensagem ou sessão expirada → envia boas-vindas + menu
+        if (!session) {
+            await sendMessage(phone, `Olá! 💛 Seja bem-vinda ao *Henrique Bilro Cabeleireiros*!\n\nSou o assistente virtual do salão. Como posso te ajudar hoje?\n\n${MENU}`)
+            sessions.set(phone, { step: 'menu' })
             return NextResponse.json({ ok: true })
         }
 
-        // Salva o sessionId
-        if (typebotResponse.sessionId) {
-            sessions.set(phone, typebotResponse.sessionId)
-        }
+        // Cliente escolheu uma opção do menu
+        if (RESPOSTAS[messageText]) {
+            await sendMessage(phone, RESPOSTAS[messageText])
 
-        // Envia as mensagens de resposta do Typebot
-        const messages = typebotResponse.messages || []
-        const input = typebotResponse.input
-
-        for (const message of messages) {
-            if (message.type === 'text') {
-                const text = message.content?.richText
-                    ?.map((block: any) =>
-                        block.children?.map((child: any) => child.text || '').join('') || ''
-                    )
-                    .join('\n') || ''
-
-                if (text.trim()) {
-                    await sendWhatsAppMessage(phone, text)
-                    // Pequeno delay entre mensagens
-                    await new Promise(r => setTimeout(r, 500))
-                }
+            // Opção 4 (falar com equipe) encerra o bot
+            if (messageText === '4') {
+                sessions.delete(phone)
             }
+
+            return NextResponse.json({ ok: true })
         }
 
-        // Se tiver botões, envia como lista
-        if (input?.type === 'choice input') {
-            const buttons = input.items?.map((item: any) => item.content) || []
-            if (buttons.length > 0) {
-                await sendWhatsAppButtons(phone, buttons)
-            }
-        }
+        // Resposta não reconhecida → reenviar o menu
+        await sendMessage(phone, `Não entendi 😊 Por favor, escolha uma das opções:\n\n${MENU}`)
 
         return NextResponse.json({ ok: true })
 
     } catch (error) {
         console.error('❌ Erro no webhook:', error)
-        return NextResponse.json({ ok: true }) // Sempre retorna 200 para a Evolution não reenviar
+        return NextResponse.json({ ok: true })
     }
 }
 
-// ── Typebot: inicia nova sessão ──────────────────────────────────────────────
-async function startTypebotSession(phone: string, message: string) {
+async function sendMessage(phone: string, text: string) {
     try {
         const res = await fetch(
-            `${TYPEBOT_API_URL}/typebots/${TYPEBOT_PUBLIC_ID}/startChat`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${TYPEBOT_API_KEY}`
-                },
-                body: JSON.stringify({
-                    isStreamEnabled: false,
-                    prefilledVariables: { phone }
-                })
-            }
-        )
-
-        if (!res.ok) {
-            console.error('❌ Erro ao iniciar sessão Typebot:', await res.text())
-            return null
-        }
-
-        return await res.json()
-    } catch (error) {
-        console.error('❌ Erro ao iniciar sessão Typebot:', error)
-        return null
-    }
-}
-
-// ── Typebot: continua sessão existente ───────────────────────────────────────
-async function continueTypebotSession(sessionId: string, message: string) {
-    try {
-        const res = await fetch(
-            `${TYPEBOT_API_URL}/typebots/${TYPEBOT_PUBLIC_ID}/continueChat`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${TYPEBOT_API_KEY}`
-                },
-                body: JSON.stringify({
-                    sessionId,
-                    message
-                })
-            }
-        )
-
-        if (!res.ok) {
-            console.error('❌ Erro ao continuar sessão Typebot:', await res.text())
-            return null
-        }
-
-        return await res.json()
-    } catch (error) {
-        console.error('❌ Erro ao continuar sessão Typebot:', error)
-        return null
-    }
-}
-
-// ── Evolution API: envia mensagem de texto ───────────────────────────────────
-async function sendWhatsAppMessage(phone: string, text: string) {
-    try {
-        await fetch(
             `${EVOLUTION_API_URL}/message/sendText/${EVOLUTION_INSTANCE}`,
             {
                 method: 'POST',
@@ -183,25 +101,15 @@ async function sendWhatsAppMessage(phone: string, text: string) {
                     'Content-Type': 'application/json',
                     'apikey': EVOLUTION_API_KEY
                 },
-                body: JSON.stringify({
-                    number: phone,
-                    text
-                })
+                body: JSON.stringify({ number: phone, text })
             }
         )
+        if (!res.ok) {
+            console.error('❌ Erro ao enviar mensagem:', await res.text())
+        }
     } catch (error) {
         console.error('❌ Erro ao enviar mensagem:', error)
     }
-}
-
-// ── Evolution API: envia opções como texto numerado ─────────────────────────
-async function sendWhatsAppButtons(phone: string, buttons: string[]) {
-    const emojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']
-    const text = buttons
-        .map((btn, i) => `${emojis[i] || `${i + 1}.`} ${btn}`)
-        .join('\n')
-
-    await sendWhatsAppMessage(phone, `${text}\n\n_Digite o número da opção desejada_`)
 }
 
 // GET para verificar se o webhook está ativo
