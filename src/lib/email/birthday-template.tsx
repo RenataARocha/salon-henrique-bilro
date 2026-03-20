@@ -211,7 +211,6 @@ export async function sendBirthdayEmail({
             <p style="margin-top: 20px; font-size: 12px; color: #999;">
                 📍 Av. Rio Doce, 3101 – Potengi, Natal / RN<br>
                 📱 (84) 98881-4965<br>
-                📱 (84) 99965-1972<br>
                 💌 salaobilro@icloud.com
             </p>
         </div>

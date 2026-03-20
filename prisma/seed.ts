@@ -18,7 +18,6 @@ async function main() {
             email: 'renatabolos12@gmail.com',
             password: hashedPassword,
             phone: '(84) 98881-4965',
-            secondaryPhone: '(84) 99965-1972',
             role: 'ADMIN',
             emailVerified: new Date()
         }

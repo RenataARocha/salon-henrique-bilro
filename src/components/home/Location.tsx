@@ -71,13 +71,6 @@ export default function Location() {
                                         (84) 98881-4965
                                     </a>
 
-                                    <a
-                                        href="https://wa.me/5584999651972?text=Olá! Quero informações sobre serviços e horários disponíveis 💇‍♂️✨"
-                                        target="_blank"
-                                        className="text-gold hover:text-gold-dark text-sm sm:text-base"
-                                    >
-                                        (84) 99965-1972
-                                    </a>
                                 </div>
                             </ContactItem>
 

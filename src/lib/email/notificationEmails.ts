@@ -194,7 +194,7 @@ function appointmentConfirmationTemplate(data: {
                             </p>
                             <p style="color: #9ca3af; font-size: 13px; margin: 0;">
                                 Av. Rio Doce, 3101 – Potengi, Natal/RN<br>
-                                (84) 98881-4965 | (84) 99965-1972
+                                (84) 98881-4965
                             </p>
                         </td>
                     </tr>
@@ -277,7 +277,7 @@ function appointmentReminderTemplate(data: {
                             <p style="color: #666; font-size: 14px; line-height: 22px; margin: 30px 0 0 0;">
                                 📍 Av. Rio Doce, 3101 – Potengi, Natal/RN<br><br>
                                 Caso precise reagendar ou cancelar, entre em contato o quanto antes!<br>
-                                📞 (84) 98881-4965 | (84) 99965-1972
+                                📞 (84) 98881-4965 
                             </p>
                         </td>
                     </tr>
