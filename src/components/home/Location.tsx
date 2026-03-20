@@ -96,7 +96,7 @@ export default function Location() {
 
                             <ContactItem icon="🕐" title="Horário de Funcionamento">
                                 <span className="text-sm sm:text-base">
-                                    Terça a Sábado: 9h às 19h<br />
+                                    Terça a Sábado: 10h às 18h<br />
                                     Domingo: Fechado<br />
                                     Segunda: Fechado
                                 </span>
