@@ -8,6 +8,8 @@ import Button from '@/components/ui/Button'
 import { useToast } from '@/components/ui/ToastContainer'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { motion } from 'framer-motion'
+import ViewDayModal from '@/components/admin/ViewDayModal'
+
 
 const CLOSED_DAYS = [0, 1] // Domingo e Segunda
 
@@ -625,125 +627,16 @@ export default function AgendaAdminPage() {
 
                 {/* MODAL: Visualizar Horários de Data Específica */}
                 {showViewModal && viewingDate && (
-                    <div
-                        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-                        onClick={() => setShowViewModal(false)}
-                    >
-                        <div
-                            className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl max-h-[80vh] overflow-y-auto"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-charcoal flex items-center gap-2">
-                                        <Calendar className="text-gold" />
-                                        Horários do Dia
-                                    </h2>
-                                    <p className="text-gray-600 text-sm mt-1">
-                                        {daysOfWeek[viewingDay].emoji} {daysOfWeek[viewingDay].label}
-                                    </p>
-                                    <p className="text-sm font-bold text-gold capitalize">
-                                        {formatFullDate(viewingDate)}
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={() => setShowViewModal(false)}
-                                    className="text-gray-400 hover:text-gray-600 text-2xl"
-                                >
-                                    ×
-                                </button>
-                            </div>
-
-                            {/* Dica */}
-                            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 mb-4 text-xs text-blue-800">
-                                💡 <strong>Dica:</strong> Use o botão de ligar/desligar para bloquear este dia específico sem afetar outras semanas.
-                            </div>
-
-                            {/* Lista de Horários */}
-                            <div className="space-y-3">
-                                {getSlotsByDay(viewingDay).length > 0 ? (
-                                    getSlotsByDay(viewingDay).map(slot => (
-                                        <div
-                                            key={slot.id}
-                                            className={`p-4 rounded-xl border-2 ${slot.active
-                                                ? 'border-green-200 bg-green-50'
-                                                : 'border-gray-200 bg-gray-50 opacity-60'
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <Clock
-                                                        size={20}
-                                                        className={slot.active ? 'text-green-600' : 'text-gray-400'}
-                                                    />
-                                                    <span
-                                                        className={`text-lg font-bold ${slot.active ? 'text-green-900' : 'text-gray-500'
-                                                            }`}
-                                                    >
-                                                        {slot.timeSlot}
-                                                    </span>
-                                                    {slot.active ? (
-                                                        <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full font-semibold">
-                                                            Disponível
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-xs bg-red-200 text-red-800 px-2 py-1 rounded-full font-semibold">
-                                                            Bloqueado
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Ações */}
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => handleToggleSlot(slot.id, slot.active)}
-                                                        className={`p-2 rounded-lg transition-all ${slot.active
-                                                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-                                                            : 'bg-green-100 text-green-600 hover:bg-green-200'
-                                                            }`}
-                                                        title={slot.active ? 'Desativar (bloquear)' : 'Ativar (disponibilizar)'}
-                                                    >
-                                                        <Power size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDeleteSlot(slot.id)}
-                                                        className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all"
-                                                        title="Excluir permanentemente de todas as semanas"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="text-center py-12">
-                                        <Clock size={48} className="mx-auto text-gray-300 mb-4" />
-                                        <p className="text-gray-500 mb-4">Nenhum horário configurado para este dia</p>
-                                        <button
-                                            onClick={() => {
-                                                setSelectedDay(viewingDay)
-                                                setShowViewModal(false)
-                                                setShowAddModal(true)
-                                            }}
-                                            className="text-gold hover:text-gold-dark font-semibold"
-                                        >
-                                            + Adicionar horário recorrente
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                            <Button
-                                variant="secondary"
-                                onClick={() => setShowViewModal(false)}
-                                className="w-full mt-6"
-                            >
-                                Fechar
-                            </Button>
-                        </div>
-                    </div>
+                    <ViewDayModal
+                        viewingDate={viewingDate}
+                        viewingDay={viewingDay}
+                        daysOfWeek={daysOfWeek}
+                        slots={getSlotsByDay(viewingDay)}
+                        formatFullDate={formatFullDate}
+                        onClose={() => setShowViewModal(false)}
+                        onSlotDeleted={fetchSlots}
+                        showToast={showToast}
+                    />
                 )}
 
                 {/* MODAL: Adicionar Horário Recorrente */}
