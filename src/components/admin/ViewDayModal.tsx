@@ -26,7 +26,7 @@ interface Props {
     formatFullDate: (date: Date) => string
     onClose: () => void
     onSlotDeleted: () => void
-    showToast: (msg: string, type: string) => void
+    showToast: (msg: string, type: 'info' | 'error' | 'success' | 'warning') => void
 }
 
 export default function ViewDayModal({
@@ -164,8 +164,8 @@ export default function ViewDayModal({
 
                         return (
                             <div key={slot.id} className={`p-4 rounded-xl border transition-all ${isBlockedThisDay ? 'border-red-800/40 bg-red-950/30' :
-                                    slot.active ? 'border-emerald-800/30 bg-emerald-950/20' :
-                                        'border-white/8 bg-white/4 opacity-60'
+                                slot.active ? 'border-emerald-800/30 bg-emerald-950/20' :
+                                    'border-white/8 bg-white/4 opacity-60'
                                 }`}>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
@@ -174,8 +174,8 @@ export default function ViewDayModal({
                                             {slot.timeSlot}
                                         </span>
                                         <span className={`text-xs px-2 py-0.5 rounded-full font-semibold border ${isBlockedThisDay ? 'bg-red-900/50 text-red-400 border-red-700/30' :
-                                                slot.active ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700/30' :
-                                                    'bg-white/8 text-white/30 border-white/10'
+                                            slot.active ? 'bg-emerald-900/40 text-emerald-400 border-emerald-700/30' :
+                                                'bg-white/8 text-white/30 border-white/10'
                                             }`}>
                                             {isBlockedThisDay ? 'Bloqueado hoje' : slot.active ? 'Disponível' : 'Inativo'}
                                         </span>
@@ -187,8 +187,8 @@ export default function ViewDayModal({
                                             disabled={isLoading}
                                             title={isBlockedThisDay ? 'Liberar este dia' : 'Bloquear só hoje'}
                                             className={`p-2 rounded-lg transition-all ${isBlockedThisDay
-                                                    ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/60'
-                                                    : 'bg-orange-900/40 text-orange-400 hover:bg-orange-900/60'
+                                                ? 'bg-emerald-900/40 text-emerald-400 hover:bg-emerald-900/60'
+                                                : 'bg-orange-900/40 text-orange-400 hover:bg-orange-900/60'
                                                 }`}
                                         >
                                             {isLoading ? <span className="text-xs">⏳</span> :
