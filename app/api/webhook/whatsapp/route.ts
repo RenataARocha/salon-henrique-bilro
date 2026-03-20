@@ -20,7 +20,7 @@ _Digite o número da opção desejada_`
 const RESPOSTAS: Record<string, string> = {
     '1': `Para agendar, reagendar ou cancelar seu horário, acesse nosso site — é rápido e fácil! 😊\n\n👉 https://salon-henrique-bilro.vercel.app/agendar\n\nDigite *menu* para voltar ao início.`,
     '2': `Confira todos os nossos serviços e valores acessando o site:\n\n👉 https://salon-henrique-bilro.vercel.app/#servicos\n\nQualquer dúvida, estamos aqui! 💛\n\nDigite *menu* para voltar ao início.`,
-    '3': `📍 *Endereço:* Av. Rio Doce, 3101 – Potengi, Natal/RN\n\n🕐 *Horário de Funcionamento:*\nTerça a Sábado: 9h às 19h\nDomingo e Segunda: Fechado\n\n🗺️ Como chegar:\nhttps://maps.app.goo.gl/bilro\n\nDigite *menu* para voltar ao início.`,
+    '3': `📍 *Endereço:* Av. Rio Doce, 3101 – Potengi, Natal/RN\n\n🕐 *Horário de Funcionamento:*\nTerça a Sábado: 9h às 19h\nDomingo e Segunda: Fechado\n\n🗺️ Como chegar:\nhttps://www.google.com/maps/place/Henrique+Bilro+Cabeleireiros/@-5.7407769,-35.256693,17z/data=!4m6!3m5!1s0x7b3aa3210598e31:0x91e7dcbd464dbf67!8m2!3d-5.7407769!4d-35.2541181!16s%2Fg%2F11gf8fk3hn?entry=ttu&g_ep=EgoyMDI2MDMxNy4wIKXMDSoASAFQAw%3D%3D\n\nDigite *menu* para voltar ao início.`,
     '4': `Certo! 💛 Nossa equipe vai entrar em contato com você em breve.\n\nCaso seja urgente, você também pode nos chamar diretamente neste número. 😊`,
 }
 
