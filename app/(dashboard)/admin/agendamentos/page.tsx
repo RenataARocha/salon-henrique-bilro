@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Filter, X, Search, CheckSquare, Square, FileText, Link, ArrowLeft, Home, Plus } from 'lucide-react'
+// ✅ CORRETO - separa os imports
+import { Filter, X, Search, CheckSquare, Square, FileText, ArrowLeft, Home, Plus } from 'lucide-react'
+import Link from 'next/link'
 import AdminHeader from '@/components/admin/AdminHeader'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
 import { Calendar } from 'lucide-react'

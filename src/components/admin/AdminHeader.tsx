@@ -36,7 +36,7 @@ export default function AdminHeader({
 
             <div className="flex flex-col sm:flex-row sm:justify-end items-center gap-3">
                 {/* ✅ Slot para botões customizados */}
-                {actions && <div className="w-full sm:w-auto">{actions}</div>}
+                {actions && <div className="w-full sm:w-auto flex-shrink-0">{actions}</div>}
 
                 <Link
                     href="/admin"
