@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Filter, X, Search, CheckSquare, Square, FileText, Link, ArrowLeft, Home } from 'lucide-react'
+import { Filter, X, Search, CheckSquare, Square, FileText, Link, ArrowLeft, Home, Plus } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import RescheduleModal from '@/components/appointments/RescheduleModal'
 import { Calendar } from 'lucide-react'
@@ -721,7 +721,17 @@ export default function AdminAgendamentosPage() {
                 <AdminHeader
                     title="Agendamentos"
                     description="Gerencie todos os agendamentos do salão"
+                    actions={
+                        <Link
+                            href="/admin/agendamentos/novo"
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-gold text-white rounded-lg hover:shadow-lg transition-all font-semibold text-sm sm:text-base"
+                        >
+                            <Plus size={18} />
+                            Novo Agendamento
+                        </Link>
+                    }
                 />
+
 
                 {/* Barra de Busca e Controles */}
                 <motion.div
@@ -731,6 +741,7 @@ export default function AdminAgendamentosPage() {
                     transition={{ duration: 0.5 }}
                 >
                     <div className="flex flex-col sm:flex-row gap-3">
+
                         <div className="flex-1 relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                             <input

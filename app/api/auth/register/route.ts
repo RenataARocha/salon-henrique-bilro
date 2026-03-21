@@ -12,19 +12,8 @@ export async function POST(request: Request) {
         let body
         try {
             body = await request.json()
-            console.log('📦 [REGISTER] Body recebido:', {
-                email: body.email,
-                name: body.name,
-                hasPassword: !!body.password,
-                hasPhone: !!body.phone,
-                hasBirthDate: !!body.birthDate
-            })
         } catch (error) {
-            console.error('❌ [REGISTER] Erro ao fazer parse do body:', error)
-            return NextResponse.json(
-                { success: false, error: 'Dados inválidos' },
-                { status: 400 }
-            )
+            return NextResponse.json({ success: false, error: 'Dados inválidos' }, { status: 400 })
         }
 
         const { name, email, password, phone, birthDate } = body
@@ -43,11 +32,16 @@ export async function POST(request: Request) {
             )
         }
 
-        const existingUser = await prisma.user.findUnique({
-            where: { email: email.toLowerCase().trim() }
+        const emailNormalized = email.toLowerCase().trim()
+        const phoneNormalized = phone ? phone.trim() : null
+
+        // ── Verifica email já cadastrado (com email real) ──────────────────
+        const existingByEmail = await prisma.user.findUnique({
+            where: { email: emailNormalized }
         })
 
-        if (existingUser) {
+        // Se já existe com email real (não temporário), bloqueia
+        if (existingByEmail && !existingByEmail.email.includes('@cliente.salao')) {
             return NextResponse.json(
                 { success: false, error: 'Este email já está cadastrado' },
                 { status: 400 }
@@ -65,24 +59,50 @@ export async function POST(request: Request) {
             }
         }
 
-        const user = await prisma.user.create({
-            data: {
-                name: name.trim(),
-                email: email.toLowerCase().trim(),
-                password: hashedPassword,
-                phone: phone ? phone.trim() : null,
-                birthDate: birthDateFormatted,
-                role: 'CLIENT'
-            }
-        })
+        let user
 
-        console.log('✅ [REGISTER] Usuário criado:', user.email)
+        // ── Verifica pré-cadastro por telefone ─────────────────────────────
+        // Rosie pode ter criado um agendamento com o telefone da cliente
+        const preCadastro = phoneNormalized
+            ? await prisma.user.findFirst({
+                where: {
+                    phone: phoneNormalized,
+                    email: { contains: '@cliente.salao' } // email temporário gerado pelo sistema
+                }
+            })
+            : null
 
-        // ============================================
-        // NOTIFICAÇÕES DE BOAS-VINDAS
-        // ============================================
+        if (preCadastro) {
+            // ✅ Encontrou pré-cadastro — atualiza com os dados reais da cliente
+            console.log('🔄 [REGISTER] Pré-cadastro encontrado, atualizando...')
+            user = await prisma.user.update({
+                where: { id: preCadastro.id },
+                data: {
+                    name: name.trim(),
+                    email: emailNormalized,
+                    password: hashedPassword,
+                    phone: phoneNormalized,
+                    birthDate: birthDateFormatted ?? preCadastro.birthDate,
+                }
+            })
+            console.log('✅ [REGISTER] Pré-cadastro atualizado:', user.email)
+        } else {
+            // ✅ Novo cadastro normal
+            user = await prisma.user.create({
+                data: {
+                    name: name.trim(),
+                    email: emailNormalized,
+                    password: hashedPassword,
+                    phone: phoneNormalized,
+                    birthDate: birthDateFormatted,
+                    role: 'CLIENT'
+                }
+            })
+            console.log('✅ [REGISTER] Novo usuário criado:', user.email)
+        }
+
+        // ── Notificações de boas-vindas ────────────────────────────────────
         try {
-            // 1. Cupom ativo mais recente
             if (user.phone) {
                 const cupomAtivo = await prisma.coupon.findFirst({
                     where: {
@@ -92,49 +112,29 @@ export async function POST(request: Request) {
                     },
                     orderBy: { createdAt: 'desc' }
                 })
-
                 if (cupomAtivo) {
                     await notifyNewCoupon(cupomAtivo, user)
-                    console.log('✅ Cupom enviado para nova cliente')
                 }
 
-                // 2. Combo em destaque
                 const comboDestaque = await prisma.serviceCombo.findFirst({
                     where: { active: true, featured: true },
-                    include: {
-                        services: { include: { service: true } }
-                    }
+                    include: { services: { include: { service: true } } }
                 })
-
                 if (comboDestaque) {
                     const services = comboDestaque.services.map(cs => cs.service)
                     const originalPrice = services.reduce((sum, s) => sum + s.price, 0)
                     const comboPrice = originalPrice * (1 - comboDestaque.discountPercent / 100)
-
-                    await notifyNewCombo({
-                        ...comboDestaque,
-                        services,
-                        originalPrice,
-                        comboPrice
-                    }, user)
-                    console.log('✅ Combo enviado para nova cliente')
+                    await notifyNewCombo({ ...comboDestaque, services, originalPrice, comboPrice }, user)
                 }
             }
 
-            // 3. Aniversariante do mês
             if (user.birthDate) {
                 const hoje = new Date()
                 const nascimento = new Date(user.birthDate)
-
                 if (nascimento.getMonth() === hoje.getMonth()) {
                     const firstName = user.name.split(' ')[0].toUpperCase()
                     const couponCode = `ANIVERSARIO-${firstName}-${hoje.getFullYear()}`
-
-                    // Verificar se já existe
-                    const existing = await prisma.coupon.findUnique({
-                        where: { code: couponCode }
-                    })
-
+                    const existing = await prisma.coupon.findUnique({ where: { code: couponCode } })
                     if (!existing) {
                         const couponAniversario = await prisma.coupon.create({
                             data: {
@@ -150,39 +150,26 @@ export async function POST(request: Request) {
                                 applicableServices: []
                             }
                         })
-
-                        await notifyBirthdayCoupon(user, {
-                            ...couponAniversario,
-                            expiresAt: couponAniversario.validUntil
-                        })
-                        console.log('✅ Cupom de aniversário enviado para nova cliente')
+                        await notifyBirthdayCoupon(user, { ...couponAniversario, expiresAt: couponAniversario.validUntil })
                     }
                 }
             }
         } catch (notificationError) {
             console.error('⚠️ Erro nas notificações de boas-vindas:', notificationError)
-            // NÃO bloqueia o cadastro
         }
 
         return NextResponse.json({
             success: true,
-            data: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            },
-            message: 'Cadastro realizado com sucesso!'
+            data: { id: user.id, name: user.name, email: user.email, role: user.role },
+            message: preCadastro
+                ? 'Cadastro completado! Seus agendamentos já estão disponíveis.'
+                : 'Cadastro realizado com sucesso!'
         })
 
     } catch (error: any) {
         console.error('❌ [REGISTER] ERRO FATAL:', error)
         return NextResponse.json(
-            {
-                success: false,
-                error: 'Erro ao criar conta. Tente novamente.',
-                details: error.message
-            },
+            { success: false, error: 'Erro ao criar conta. Tente novamente.', details: error.message },
             { status: 500 }
         )
     }
