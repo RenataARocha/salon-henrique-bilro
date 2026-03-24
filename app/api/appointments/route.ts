@@ -49,8 +49,11 @@ export async function GET(request: Request) {
 
         // ✅ NOVO: Filtro por data específica (para comanda)
         if (date) {
-            const dateObj = parseDateSafe(date)
-            where.date = dateObj
+            const dateOnly = date.split('T')[0]
+            where.date = {
+                gte: new Date(`${dateOnly}T00:00:00.000Z`),
+                lte: new Date(`${dateOnly}T23:59:59.999Z`)
+            }
         } else if (startDate || endDate) {
             where.date = {}
             if (startDate) where.date.gte = parseDateSafe(startDate)
