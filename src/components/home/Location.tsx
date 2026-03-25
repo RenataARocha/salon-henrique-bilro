@@ -111,18 +111,26 @@ export default function Location() {
                                 href="https://wa.me/5584988814965?text=Olá! Gostaria de agendar um horário no Salão Henrique Bilro 💇‍♀️✨"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full sm:flex-1 bg-green-500 text-white text-center py-3 sm:py-4 rounded-lg hover:bg-green-600 transition-all font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base"
+                                onClick={() => {
+                                    console.log('Abrindo WhatsApp...')
+                                }}
+                                className="w-full sm:flex-1 bg-green-500 text-white text-center py-3 sm:py-4 rounded-lg hover:bg-green-600 active:scale-95 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl text-sm sm:text-base flex items-center justify-center gap-2"
                             >
-                                💬 Falar no WhatsApp
+                                <span className="animate-pulse">💬</span>
+                                Falar no WhatsApp
                             </a>
 
                             <a
                                 href="https://www.google.com/maps/dir/?api=1&destination=Henrique+Bilro+Cabeleireiros"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="w-full sm:flex-1 border-2 border-gold text-gold text-center py-3 sm:py-4 rounded-lg hover:bg-gold hover:text-white transition-all font-semibold text-sm sm:text-base"
+                                onClick={() => {
+                                    console.log('Abrindo Google Maps...')
+                                }}
+                                className="w-full sm:flex-1 border-2 border-gold text-gold text-center py-3 sm:py-4 rounded-lg hover:bg-gold hover:text-white active:scale-95 transition-all duration-200 font-semibold text-sm sm:text-base flex items-center justify-center gap-2"
                             >
-                                🧭 Como chegar
+                                <span className="animate-pulse">🧭</span>
+                                Como chegar
                             </a>
 
                         </div>

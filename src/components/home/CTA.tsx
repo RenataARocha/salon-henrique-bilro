@@ -58,7 +58,7 @@ export default function CTA() {
                 >
                     <SmartBookingButton
                         variant="link"
-                        className="inline-block w-full sm:w-auto bg-gradient-gold text-white px-6 sm:px-10 lg:px-14 py-3 sm:py-4 rounded-full hover:shadow-[0_0_40px_rgba(201,168,76,0.35)] transition-all text-sm sm:text-base font-semibold tracking-wide cursor-po"
+                        className="inline-block w-full sm:w-auto bg-gradient-gold text-white px-6 sm:px-10 lg:px-14 py-3 sm:py-4 rounded-full hover:shadow-[0_0_40px_rgba(201,168,76,0.35)] transition-all text-sm sm:text-base font-semibold tracking-wide cursor-pointer"
                     >
                         Começar Agora
                     </SmartBookingButton>

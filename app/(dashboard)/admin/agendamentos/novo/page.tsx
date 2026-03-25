@@ -185,6 +185,7 @@ export default function NovoAgendamentoAdminPage() {
     const [discountFromApi, setDiscountFromApi] = useState(0)
     const [finalPriceFromApi, setFinalPriceFromApi] = useState(0)
 
+    const [loadingStep, setLoadingStep] = useState<number | null>(null)
     const [loading, setLoading] = useState(false)
     const [step, setStep] = useState(1)
 
@@ -430,9 +431,20 @@ export default function NovoAgendamentoAdminPage() {
                                 )}
                             </div>
 
-                            <button onClick={() => setStep(2)} disabled={!canGoStep2}
-                                className="w-full bg-gradient-gold text-white py-3.5 rounded-lg font-semibold hover:shadow-lg hover:shadow-gold/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
-                                Continuar
+                            <button
+                                onClick={() => {
+                                    setLoadingStep(2)
+                                    setTimeout(() => {
+                                        setStep(2)
+                                        setLoadingStep(null)
+                                    }, 200)
+                                }}
+                                disabled={!canGoStep2 || loadingStep === 2}
+                                className="w-full bg-gradient-gold text-white py-3.5 rounded-lg font-semibold 
+    hover:shadow-lg hover:shadow-gold/20 transition-all active:scale-95 
+    disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loadingStep === 2 ? 'Carregando...' : 'Continuar'}
                             </button>
                         </motion.div>
                     )}
@@ -475,9 +487,20 @@ export default function NovoAgendamentoAdminPage() {
                                     className="w-full px-4 py-3 bg-[#1e1e1e] border border-white/10 rounded-lg text-white placeholder:text-white/25 focus:border-gold/60 focus:outline-none text-sm resize-none" />
                             </div>
 
-                            <button onClick={() => setStep(3)} disabled={!canGoStep3}
-                                className="w-full bg-gradient-gold text-white py-3.5 rounded-lg font-semibold hover:shadow-lg hover:shadow-gold/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed">
-                                Continuar
+                            <button
+                                onClick={() => {
+                                    setLoadingStep(3)
+                                    setTimeout(() => {
+                                        setStep(3)
+                                        setLoadingStep(null)
+                                    }, 200)
+                                }}
+                                disabled={!canGoStep3 || loadingStep === 3}
+                                className="w-full bg-gradient-gold text-white py-3.5 rounded-lg font-semibold 
+    hover:shadow-lg hover:shadow-gold/20 transition-all active:scale-95 
+    disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {loadingStep === 3 ? 'Carregando...' : 'Continuar'}
                             </button>
                         </motion.div>
                     )}

@@ -73,6 +73,10 @@ export default function AdminCuponsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (isSubmitting) return; // 🛑 trava clique duplo
+
+        setIsSubmitting(true);
+
         const payload = {
             code: formData.code.toUpperCase(),
             description: formData.description,
@@ -84,7 +88,10 @@ export default function AdminCuponsPage() {
         };
 
         try {
-            const url = editingId ? `/api/admin/cupons?id=${editingId}` : '/api/admin/cupons';
+            const url = editingId
+                ? `/api/admin/cupons?id=${editingId}`
+                : '/api/admin/cupons';
+
             const method = editingId ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
@@ -96,18 +103,27 @@ export default function AdminCuponsPage() {
             const result = await response.json();
 
             if (result.success) {
-                alert(result.message || (editingId ? 'Cupom atualizado!' : 'Cupom criado!'));
+                alert(
+                    result.message ||
+                    (editingId ? 'Cupom atualizado com sucesso!' : 'Cupom criado com sucesso!')
+                );
+
                 setShowModal(false);
                 resetForm();
                 carregarCupons();
             } else {
                 alert(result.message || 'Erro ao salvar cupom');
             }
+
         } catch (error) {
             console.error('Erro:', error);
             alert('Erro ao salvar cupom');
+        } finally {
+            setIsSubmitting(false); // 🔥 sempre libera no final
         }
     };
+
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleEdit = (cupom: Cupom) => {
         setEditingId(cupom.id);
@@ -374,16 +390,6 @@ export default function AdminCuponsPage() {
                                             <Trash2 size={20} />
                                         </button>
 
-                                        <button
-                                            onClick={() => {
-                                                setCupomSelecionado({ id: cupom.id, code: cupom.code })
-                                                setModalEnvioAberto(true)
-                                            }}
-                                            className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
-                                            title="Enviar para Clientes"
-                                        >
-                                            <Send size={20} />
-                                        </button>
                                     </div>
                                 </div>
                             </motion.div>
@@ -512,22 +518,37 @@ export default function AdminCuponsPage() {
                                 </div>
 
                                 <div className="flex gap-3 pt-4">
+
+                                    {/* CANCELAR */}
                                     <button
                                         type="button"
                                         onClick={() => {
                                             setShowModal(false);
                                             resetForm();
                                         }}
-                                        className="flex-1 px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                        disabled={isSubmitting}
+                                        className="flex-1 px-6 py-3 border border-gray-300 rounded-lg 
+        hover:bg-gray-50 transition-colors
+        disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Cancelar
                                     </button>
+
+                                    {/* SUBMIT */}
                                     <button
                                         type="submit"
-                                        className="flex-1 px-6 py-3 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors"
+                                        disabled={isSubmitting}
+                                        className="flex-1 px-6 py-3 bg-rose-600 text-white rounded-lg 
+        hover:bg-rose-700 transition-colors
+        disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {editingId ? 'Salvar Alterações' : 'Criar Cupom'}
+                                        {isSubmitting
+                                            ? 'Salvando...'
+                                            : editingId
+                                                ? 'Salvar Alterações'
+                                                : 'Criar Cupom'}
                                     </button>
+
                                 </div>
                             </form>
                         </div>
@@ -535,20 +556,6 @@ export default function AdminCuponsPage() {
                 </div>
             )
             }
-
-            {/* Modal de Envio em Massa */}
-            {modalEnvioAberto && cupomSelecionado && (
-                <ModalEnvioMassa
-                    isOpen={modalEnvioAberto}
-                    onClose={() => {
-                        setModalEnvioAberto(false)
-                        setCupomSelecionado(null)
-                    }}
-                    tipo="cupom"
-                    itemId={cupomSelecionado.id}
-                    itemName={cupomSelecionado.code}
-                />
-            )}
         </div >
     );
 }

@@ -194,7 +194,7 @@ export default function FeaturedCombos() {
 
                                         <SmartBookingButton
                                             variant="button"
-                                            className="w-full bg-gradient-gold text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:shadow-xl transition-all"
+                                            className="w-full bg-gradient-gold text-white py-2.5 sm:py-3 rounded-lg font-semibold text-sm sm:text-base hover:shadow-xl transition-all cursor-pointer"
                                         >
                                             🎁 Agendar Combo
                                         </SmartBookingButton>

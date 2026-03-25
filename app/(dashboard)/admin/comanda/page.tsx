@@ -82,6 +82,7 @@ export default function ComandaPage() {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
     const [selectedStaffId, setSelectedStaffId] = useState<string>('')
     const [showAllDates, setShowAllDates] = useState(false)
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     useEffect(() => { loadData() }, [])
     useEffect(() => { loadFilteredServices() }, [selectedDate, selectedStaffId, showAllDates])
@@ -191,7 +192,7 @@ export default function ComandaPage() {
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
 
-        if (editingService) return
+        if (editingService || isSubmitting) return
 
         if (selectedAppointments.length === 0) {
             alert('Selecione pelo menos um agendamento')
@@ -201,76 +202,79 @@ export default function ComandaPage() {
         const selectedStaff = staff.find(s => s.id === modalStaffId)
         if (!selectedStaff) return
 
+        setIsSubmitting(true) // 🔥 COMEÇA O LOADING
+
         let sucessos = 0
         let erros = 0
 
-        for (const appointmentId of selectedAppointments) {
-            const appointment = appointments.find(a => a.id === appointmentId)
-            if (!appointment) continue
+        try {
+            for (const appointmentId of selectedAppointments) {
+                const appointment = appointments.find(a => a.id === appointmentId)
+                if (!appointment) continue
 
-            const serviceValue = appointment.finalPrice || appointment.service?.price || 0
+                const serviceValue = appointment.finalPrice || appointment.service?.price || 0
 
-            const dateStr = new Date(appointment.date).toISOString().split('T')[0]
-            const executedAtStr = `${dateStr}T${appointment.time}:00`
+                const dateStr = new Date(appointment.date).toISOString().split('T')[0]
+                const executedAtStr = `${dateStr}T${appointment.time}:00`
 
-            let paymentMethod = appointment.paymentMethod || 'DINHEIRO'
-            paymentMethod = paymentMethod.replace('_DE_', '_')
+                let paymentMethod = appointment.paymentMethod || 'DINHEIRO'
+                paymentMethod = paymentMethod.replace('_DE_', '_')
 
-            // ✅ Monta o payload base — sem serviceId nem comboId ainda
-            const data: any = {
-                staffId: modalStaffId,
-                appointmentId: appointment.id,
-                clientName: appointment.user.name,
-                clientPhone: appointment.user.phone?.replace(/\D/g, '') || '',
-                serviceValue,
-                paymentMethod,
-                executedAt: executedAtStr,
-                notes: getNomeServico(appointment), // ✅ Salva o nome do serviço nas notas
-            }
-
-            // ✅ CORREÇÃO PRINCIPAL:
-            // Só adiciona serviceId ou comboId se existir de verdade.
-            // Se o agendamento tem múltiplos serviços livres (sem vínculo
-            // direto com service ou combo), envia sem os dois campos —
-            // a API foi ajustada para aceitar isso.
-            if (appointment.combo?.id) {
-                data.comboId = appointment.combo.id
-            } else if (appointment.service?.id) {
-                data.serviceId = appointment.service.id
-            }
-            // Se nenhum dos dois existir, não envia nenhum → sem FK violation
-
-            try {
-                const res = await fetch('/api/staff/services', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                })
-
-                const result = await res.json()
-                if (result.success) {
-                    sucessos++
-                } else {
-                    erros++
-                    console.error(`Erro no agendamento ${appointmentId}:`, result.error)
+                const data: any = {
+                    staffId: modalStaffId,
+                    appointmentId: appointment.id,
+                    clientName: appointment.user.name,
+                    clientPhone: appointment.user.phone?.replace(/\D/g, '') || '',
+                    serviceValue,
+                    paymentMethod,
+                    executedAt: executedAtStr,
+                    notes: getNomeServico(appointment),
                 }
-            } catch (err) {
-                erros++
-                console.error('Erro na requisição:', err)
+
+                if (appointment.combo?.id) {
+                    data.comboId = appointment.combo.id
+                } else if (appointment.service?.id) {
+                    data.serviceId = appointment.service.id
+                }
+
+                try {
+                    const res = await fetch('/api/staff/services', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    })
+
+                    const result = await res.json()
+
+                    if (result.success) {
+                        sucessos++
+                    } else {
+                        erros++
+                        console.error(`Erro no agendamento ${appointmentId}:`, result.error)
+                    }
+                } catch (err) {
+                    erros++
+                    console.error('Erro na requisição:', err)
+                }
             }
-        }
 
-        if (erros === 0) {
-            alert(`✅ ${sucessos} serviço(s) registrado(s) com sucesso!`)
-        } else {
-            alert(`⚠️ ${sucessos} registrado(s) com sucesso, ${erros} com erro. Verifique o console.`)
-        }
+            // ✅ FEEDBACK FINAL
+            if (erros === 0) {
+                alert(`✅ ${sucessos} serviço(s) registrado(s) com sucesso!`)
+            } else {
+                alert(`⚠️ ${sucessos} registrado(s), ${erros} com erro.`)
+            }
 
-        setShowModal(false)
-        setSelectedDate(modalDate)
-        setSelectedStaffId(modalStaffId)
-        setShowAllDates(false)
-        loadFilteredServices()
+            // 🔄 RESET UI
+            setShowModal(false)
+            setSelectedDate(modalDate)
+            setSelectedStaffId(modalStaffId)
+            setShowAllDates(false)
+            loadFilteredServices()
+
+        } finally {
+            setIsSubmitting(false) // 🔥 FINALIZA O LOADING (MESMO SE DER ERRO)
+        }
     }
 
     async function handleDelete(id: string) {
@@ -715,20 +719,33 @@ export default function ComandaPage() {
                                 )}
 
                                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
+
+                                    {/* CANCELAR */}
                                     <button
                                         type="button"
                                         onClick={() => setShowModal(false)}
-                                        className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-300 text-charcoal rounded-lg font-semibold hover:bg-gray-50 text-sm sm:text-base"
+                                        disabled={isSubmitting}
+                                        className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 border-2 border-gray-300 text-charcoal rounded-lg font-semibold 
+        hover:bg-gray-50 active:scale-[0.98] transition-all 
+        disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                                     >
                                         Cancelar
                                     </button>
+
+                                    {/* SUBMIT */}
                                     <button
                                         type="submit"
-                                        disabled={selectedAppointments.length === 0}
-                                        className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-gold text-white rounded-lg font-semibold hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                                        disabled={selectedAppointments.length === 0 || isSubmitting}
+                                        className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-gold text-white rounded-lg font-semibold 
+        hover:shadow-lg active:scale-[0.98] transition-all 
+        disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                                     >
-                                        Registrar {selectedAppointments.length > 0 ? `(${selectedAppointments.length})` : ''}
+                                        {isSubmitting
+                                            ? 'Registrando...'
+                                            : `Registrar ${selectedAppointments.length > 0 ? `(${selectedAppointments.length})` : ''}`
+                                        }
                                     </button>
+
                                 </div>
                             </form>
                         </motion.div>

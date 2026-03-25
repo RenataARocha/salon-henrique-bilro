@@ -300,6 +300,7 @@ export default function AgendarPage() {
         type: 'info' | 'warning' | 'error';
         text: string;
     } | null>(null);
+    const [loadingStep, setLoadingStep] = useState<number | null>(null)
 
     useEffect(() => {
         fetchServices();
@@ -702,11 +703,19 @@ export default function AgendarPage() {
                                 )}
 
                                 <button
-                                    onClick={() => setStep(2)}
-                                    disabled={selectedServices.size === 0 && !selectedCombo}
-                                    className="w-full bg-gradient-gold text-white py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-gold/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                    onClick={() => {
+                                        setLoadingStep(2)
+                                        setTimeout(() => {
+                                            setStep(2)
+                                            setLoadingStep(null)
+                                        }, 200)
+                                    }}
+                                    disabled={selectedServices.size === 0 && !selectedCombo || loadingStep === 2}
+                                    className="w-full bg-gradient-gold text-white py-4 rounded-lg font-semibold 
+    hover:shadow-lg hover:shadow-gold/20 transition-all active:scale-95 
+    disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    Continuar
+                                    {loadingStep === 2 ? 'Carregando...' : 'Continuar'}
                                 </button>
                             </div>
                         )}
@@ -950,11 +959,19 @@ export default function AgendarPage() {
                                     </div>
 
                                     <button
-                                        onClick={() => setStep(3)}
-                                        disabled={!selectedDate || !selectedTime}
-                                        className="w-full bg-gradient-gold text-white py-4 rounded-lg font-semibold hover:shadow-lg hover:shadow-gold/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                        onClick={() => {
+                                            setLoadingStep(3)
+                                            setTimeout(() => {
+                                                setStep(3)
+                                                setLoadingStep(null)
+                                            }, 200)
+                                        }}
+                                        disabled={!selectedDate || !selectedTime || loadingStep === 3}
+                                        className="w-full bg-gradient-gold text-white py-4 rounded-lg font-semibold 
+    hover:shadow-lg hover:shadow-gold/20 transition-all active:scale-95 
+    disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
-                                        Continuar
+                                        {loadingStep === 3 ? 'Carregando...' : 'Continuar'}
                                     </button>
                                 </div>
                             </div>

@@ -128,20 +128,33 @@ export default function FuncionariosPage() {
         }))
     }
 
+    const [isSubmitting, setIsSubmitting] = useState(false)
+
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault()
+
         if (!formData.name || formData.specialties.length === 0) {
             alert('Preencha nome e selecione pelo menos uma especialidade')
             return
         }
+
         try {
+            setIsSubmitting(true)
+
             const method = editingStaff ? 'PATCH' : 'POST'
+
             const res = await fetch('/api/staff', {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editingStaff ? { id: editingStaff.id, ...formData } : formData)
+                body: JSON.stringify(
+                    editingStaff
+                        ? { id: editingStaff.id, ...formData }
+                        : formData
+                )
             })
+
             const data = await res.json()
+
             if (data.success) {
                 alert(data.message)
                 setShowModal(false)
@@ -149,9 +162,12 @@ export default function FuncionariosPage() {
             } else {
                 alert(data.error)
             }
+
         } catch (error) {
             console.error('Erro:', error)
             alert('Erro ao salvar')
+        } finally {
+            setIsSubmitting(false)
         }
     }
 
@@ -541,7 +557,8 @@ export default function FuncionariosPage() {
                                         <button
                                             type="button"
                                             onClick={adicionarEspecialidade}
-                                            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gold text-white rounded-xl text-sm font-semibold hover:bg-gold-dark active:scale-[0.98] transition-all"
+                                            className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gold text-white rounded-xl text-sm font-semibold 
+    hover:bg-gold-dark active:scale-[0.98] transition-all"
                                         >
                                             <Plus size={16} />
                                             Adicionar
@@ -554,19 +571,34 @@ export default function FuncionariosPage() {
 
                                 {/* Botões do form */}
                                 <div className="flex flex-col sm:flex-row gap-3 pt-2">
+
+                                    {/* CANCELAR */}
                                     <button
                                         type="button"
                                         onClick={() => setShowModal(false)}
-                                        className="flex-1 px-6 py-3 border-2 border-gray-200 text-charcoal rounded-xl text-sm font-semibold hover:bg-gray-50 active:scale-[0.98] transition-all"
+                                        disabled={isSubmitting}
+                                        className="flex-1 px-6 py-3 border-2 border-gray-200 text-charcoal rounded-xl text-sm font-semibold 
+        hover:bg-gray-50 active:scale-[0.98] transition-all 
+        disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         Cancelar
                                     </button>
+
+                                    {/* SUBMIT */}
                                     <button
                                         type="submit"
-                                        className="flex-1 px-6 py-3 bg-gradient-gold text-white rounded-xl text-sm font-semibold hover:shadow-lg active:scale-[0.98] transition-all"
+                                        disabled={isSubmitting}
+                                        className="flex-1 px-6 py-3 bg-gradient-gold text-white rounded-xl text-sm font-semibold 
+        hover:shadow-lg active:scale-[0.98] transition-all 
+        disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {editingStaff ? 'Atualizar' : 'Cadastrar'}
+                                        {isSubmitting
+                                            ? 'Salvando...'
+                                            : editingStaff
+                                                ? 'Atualizar'
+                                                : 'Cadastrar'}
                                     </button>
+
                                 </div>
                             </form>
                         </motion.div>

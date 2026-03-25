@@ -309,17 +309,6 @@ export default function AdminCombosPage() {
                                     </div>
                                 )}
 
-                                {/* Botão de Envio em Massa */}
-                                <button
-                                    onClick={() => {
-                                        setComboSelecionado({ id: combo.id, name: combo.name })
-                                        setModalEnvioAberto(true)
-                                    }}
-                                    className="w-full mb-2 sm:mb-3 py-2 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 bg-green-100 text-green-700 hover:bg-green-200 text-xs sm:text-sm"
-                                >
-                                    <Send size={14} />
-                                    📢 Enviar para Clientes
-                                </button>
 
                                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3 sm:mb-4">
                                     <div className="flex items-center gap-3">
@@ -535,8 +524,8 @@ export default function AdminCombosPage() {
                                             <label
                                                 key={service.id}
                                                 className={`flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border-2 cursor-pointer transition-all ${formData.selectedServiceIds.includes(service.id)
-                                                        ? 'border-gold bg-gold/5'
-                                                        : 'border-gray-200 hover:border-gray-300'
+                                                    ? 'border-gold bg-gold/5'
+                                                    : 'border-gray-200 hover:border-gray-300'
                                                     }`}
                                             >
                                                 <input
@@ -616,19 +605,6 @@ export default function AdminCombosPage() {
                 )}
             </div>
 
-            {/* Modal de Envio em Massa */}
-            {modalEnvioAberto && comboSelecionado && (
-                <ModalEnvioMassa
-                    isOpen={modalEnvioAberto}
-                    onClose={() => {
-                        setModalEnvioAberto(false)
-                        setComboSelecionado(null)
-                    }}
-                    tipo="combo"
-                    itemId={comboSelecionado.id}
-                    itemName={comboSelecionado.name}
-                />
-            )}
         </div >
     )
 }
