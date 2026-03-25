@@ -5,6 +5,21 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+const getServiceDisplay = (appointment: any) => {
+    if (appointment.service?.name) return appointment.service.name
+
+    if (appointment.combo?.name) return appointment.combo.name
+
+    if (appointment.appointmentServices?.length > 0) {
+        return appointment.appointmentServices
+            .map((s: any) => s.service?.name)
+            .filter(Boolean)
+            .join(', ')
+    }
+
+    return 'Serviço não identificado'
+}
+
 export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
@@ -73,14 +88,13 @@ export async function GET(request: NextRequest) {
                             userId: user.id
                         },
                         include: {
-                            service: {
-                                select: {
-                                    name: true
-                                }
-                            },
-                            combo: { // ✅ ADICIONAR COMBO
-                                select: {
-                                    name: true
+                            service: { select: { name: true } },
+                            combo: { select: { name: true } },
+                            appointmentServices: {
+                                include: {
+                                    service: {
+                                        select: { name: true }
+                                    }
                                 }
                             }
                         },
@@ -116,8 +130,7 @@ export async function GET(request: NextRequest) {
                         lastAppointment: lastAppointment
                             ? {
                                 date: lastAppointment.date,
-                                service: lastAppointment.service, // ✅ Pode ser null
-                                combo: lastAppointment.combo // ✅ Pode ser null
+                                serviceName: getServiceDisplay(lastAppointment)
                             }
                             : null
                     }

@@ -124,10 +124,7 @@ export default function AniversariantesPage() {
 
     // ✅ FUNÇÃO PARA PEGAR NOME DO SERVIÇO/COMBO
     const getServiceName = (lastAppointment: Birthday['lastAppointment']) => {
-        if (!lastAppointment) return '-'
-        if (lastAppointment.service?.name) return lastAppointment.service.name
-        if (lastAppointment.combo?.name) return lastAppointment.combo.name
-        return 'Serviço não identificado'
+        return lastAppointment?.serviceName || '-'
     }
 
     if (loading) {

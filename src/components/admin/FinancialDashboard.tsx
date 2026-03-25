@@ -41,7 +41,6 @@ const FinancialDashboard = () => {
     useEffect(() => {
         loadAnalytics();
         loadGoal();
-        saveGoal();
     }, [period]);
 
     const formatCurrency = (value: number) => {
@@ -338,7 +337,8 @@ const FinancialDashboard = () => {
 
                             <input
                                 type="text"
-                                value={formatCurrency(goalInput)}
+                                value={goalInput === 0 ? '' : goalInput.toString()}
+                                placeholder="Ex: 5000"
                                 onChange={(e) => {
                                     const raw = e.target.value.replace(/\D/g, "")
                                     setGoalInput(Number(raw))
