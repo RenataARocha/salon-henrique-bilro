@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-
+import { toZonedTime } from 'date-fns-tz';
+import { differenceInDays, startOfDay } from 'date-fns';
 export async function GET(
     req: NextRequest,
     context: { params: Promise<{ id: string }> }
@@ -148,9 +149,22 @@ export async function GET(
             ? client.reviews.reduce((sum, r) => sum + r.rating, 0) / client.reviews.length
             : 0;
 
-        const lastAppointment = client.appointments[0];
+        const now = new Date();
+
+        const lastAppointment = client.appointments.find(
+            apt => new Date(apt.date) <= now
+        );
+
+        const timeZone = 'America/Sao_Paulo';
+
+
         const daysSinceLastAppointment = lastAppointment
-            ? Math.floor((Date.now() - new Date(lastAppointment.date).getTime()) / (1000 * 60 * 60 * 24))
+            ? (() => {
+                const now = startOfDay(toZonedTime(new Date(), timeZone));
+                const appointment = startOfDay(toZonedTime(new Date(lastAppointment.date), timeZone));
+
+                return differenceInDays(now, appointment);
+            })()
             : null;
 
         return NextResponse.json({

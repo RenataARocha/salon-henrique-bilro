@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { toZonedTime } from 'date-fns-tz'
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL!
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY!
@@ -101,14 +102,20 @@ export async function GET(req: NextRequest) {
             where: { id: 'singleton' }
         })
 
-        const hoje = new Date()
+
+
+        const timeZone = 'America/Sao_Paulo'
+
+        const hoje = toZonedTime(new Date(), timeZone)
+
         const amanha = new Date(hoje)
         amanha.setDate(hoje.getDate() + 1)
 
-        const diaHoje = hoje.getUTCDate()
-        const mesHoje = hoje.getUTCMonth() + 1
-        const diaAmanha = amanha.getUTCDate()
-        const mesAmanha = amanha.getUTCMonth() + 1
+        const diaHoje = hoje.getDate()
+        const mesHoje = hoje.getMonth() + 1
+
+        const diaAmanha = amanha.getDate()
+        const mesAmanha = amanha.getMonth() + 1
 
         // Buscar todos os usuários com aniversário
         const usuarios = await prisma.user.findMany({

@@ -433,3 +433,19 @@ model FinancialGoal {
   @@unique([month, year])
   @@map("financial_goals")
 }
+
+model SalonSettings {
+  id String @id @default("singleton")
+
+  birthdayAutoEnabled        Boolean  @default(false)
+  birthdayDiscountType       String   @default("PERCENTAGE")
+  birthdayDiscountValue      Float    @default(20)
+  birthdayValidDays          Int      @default(30)
+  birthdayMessage            String?
+  birthdayApplicableServices String[] @default([]) // ✅ novo
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("salon_settings")
+}

@@ -2,10 +2,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Calendar, Gift, Mail, MessageCircle, ChevronLeft, ChevronRight, Cake, TrendingUp, Clock } from 'lucide-react'
+import { Calendar, Gift, Mail, MessageCircle, ChevronLeft, ChevronRight, Cake, TrendingUp, Clock, Settings } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import BirthdayOfferModal from '@/components/admin/BirthdayOfferModal'
 import { motion } from 'framer-motion'
+import BirthdaySettingsModal from '@/components/admin/BirthdaySettingsModal'
 
 interface Birthday {
     id: string
@@ -52,6 +53,7 @@ export default function AniversariantesPage() {
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear())
     const [selectedBirthday, setSelectedBirthday] = useState<Birthday | null>(null)
     const [showOfferModal, setShowOfferModal] = useState(false)
+    const [showSettingsModal, setShowSettingsModal] = useState(false)
 
     useEffect(() => {
         fetchBirthdays()
@@ -151,6 +153,15 @@ export default function AniversariantesPage() {
                 <AdminHeader
                     title="Aniversariantes do Mês"
                     description="Envie ofertas especiais para clientes aniversariantes"
+                    actions={
+                        <button
+                            onClick={() => setShowSettingsModal(true)}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-200 text-charcoal rounded-lg hover:shadow-lg transition-all font-semibold text-sm"
+                        >
+                            <Settings size={18} />
+                            Configurações
+                        </button>
+                    }
                 />
 
                 {/* Seletor de Mês */}
@@ -346,6 +357,13 @@ export default function AniversariantesPage() {
                     </div>
                 )}
             </div>
+
+            {showSettingsModal && (
+                <BirthdaySettingsModal
+                    onClose={() => setShowSettingsModal(false)}
+                    onSaved={() => { }}
+                />
+            )}
 
             {/* Modal de Oferta */}
             {showOfferModal && selectedBirthday && (
