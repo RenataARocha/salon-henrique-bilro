@@ -5,8 +5,6 @@ import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Search, Calendar, Tag, Percent, ArrowLeft, Home } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion'
-import ModalEnvioMassa from '@/components/ModalEnvioMassa'
-import { Send } from 'lucide-react'
 interface Cupom {
     id: string;
     code: string;

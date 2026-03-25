@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, Gift, Percent, X, Check, Send } from 'lucide-react'
 import AdminHeader from '@/components/admin/AdminHeader'
 import { motion } from 'framer-motion'
-import ModalEnvioMassa from '@/components/ModalEnvioMassa'
 
 interface Service {
     id: string
