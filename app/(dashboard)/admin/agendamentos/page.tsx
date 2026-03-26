@@ -331,7 +331,11 @@ export default function AdminAgendamentosPage() {
             const data = await res.json()
 
             if (data.success) {
-                setAppointments(data.data)
+                // Filtra agendamentos com user inválido
+                const valid = data.data.filter(
+                    (apt: Appointment) => apt.user && apt.user.name
+                )
+                setAppointments(valid)
             }
         } catch (error) {
             console.error('Erro ao buscar agendamentos:', error)

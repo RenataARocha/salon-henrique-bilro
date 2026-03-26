@@ -6,6 +6,11 @@ import { prisma } from '@/lib/prisma'
 type FormattedAppointment = {
     id: string
     date: Date
+    user: {
+        name: string
+        email: string
+        phone: string | null
+    }
 
     service: {
         id: string
@@ -85,6 +90,7 @@ export async function GET(request: NextRequest) {
             const formattedApt: FormattedAppointment = {
                 id: apt.id,
                 date: apt.date,
+                user: apt.user,
 
                 service: apt.service
                     ? {
