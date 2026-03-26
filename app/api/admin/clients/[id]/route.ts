@@ -6,6 +6,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { toZonedTime } from 'date-fns-tz';
 import { differenceInDays, startOfDay } from 'date-fns';
+import { Prisma } from '@prisma/client';
+
 export async function GET(
     req: NextRequest,
     context: { params: Promise<{ id: string }> }
@@ -227,7 +229,7 @@ export async function PATCH(
         const { name, email, phone, birthDate } = body;
 
         // Preparar dados para atualização
-        const updateData: any = {};
+        const updateData: Prisma.UserUpdateInput = {};
 
         if (name) updateData.name = name;
         if (email) updateData.email = email;

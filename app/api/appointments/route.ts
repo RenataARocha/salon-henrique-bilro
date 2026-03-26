@@ -7,6 +7,53 @@ import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { parseDateSafe } from '@/lib/dateUtils'
 import { notifyAppointmentCreated } from '@/lib/notifications'
+import { Prisma } from '@prisma/client'
+
+type FormattedCombo = {
+    id: string
+    name: string
+    description: string | null
+    services: {
+        id: string
+        name: string
+        price: number
+        duration: number
+    }[]
+    originalPrice: number
+    comboPrice: number
+    discountPercent: number
+}
+
+
+
+type FormattedAppointment = Prisma.AppointmentGetPayload<{
+    include: {
+        user: { select: { name: true; email: true; phone: true } }
+        service: { select: { id: true; name: true; price: true; duration: true } }
+        combo: {
+            include: {
+                services: {
+                    include: { service: true }
+                }
+            }
+        }
+        coupon: true
+        appointmentServices: {
+            include: {
+                service: true
+            }
+        }
+    }
+}> & {
+    service: {
+        id: string
+        name: string
+        price: number
+        duration: number
+    } | null
+    combo: FormattedCombo | null
+}
+
 
 // GET - Listar agendamentos do usuário logado
 export async function GET(request: Request) {
@@ -38,7 +85,7 @@ export async function GET(request: Request) {
         const endDate = searchParams.get('endDate')
 
         // ✅ ADMIN vê TODOS os agendamentos, usuário normal só os próprios
-        const where: any = {}
+        const where: Prisma.AppointmentWhereInput = {}
 
         if (session.user.role !== 'ADMIN') {
             where.userId = session.user.id
@@ -89,51 +136,32 @@ export async function GET(request: Request) {
         const appointments = await prisma.appointment.findMany({
             where,
             include: {
-                user: {
-                    select: { name: true, email: true, phone: true }
-                },
-                service: {
-                    select: { id: true, name: true, price: true, duration: true }
-                },
-                combo: {
-                    include: {
-                        services: {
-                            include: { service: true }
-                        }
-                    }
-                },
+                user: { select: { name: true, email: true, phone: true } },
+                service: { select: { id: true, name: true, price: true, duration: true } },
+                combo: { include: { services: { include: { service: true } } } },
                 coupon: true,
-                // ✅ ADICIONAR ISTO:
-                appointmentServices: {
-                    include: {
-                        service: true
-                    }
-                }
+                appointmentServices: { include: { service: true } }
             },
             orderBy: { date: 'desc' }
         })
 
         const formattedAppointments = appointments.map(apt => {
-            let formattedApt: any = { ...apt, service: apt.service || null, combo: null }
+            const formattedApt = {
+                ...apt,
+                service: (apt.service as { id: string; name: string; price: number; duration: number } | null) || null,
+                combo: null as FormattedCombo | null
+            }
 
-            // ✅ SE TEM MÚLTIPLOS SERVIÇOS, CRIAR UM SERVICE VIRTUAL
             if (apt.appointmentServices && apt.appointmentServices.length > 0) {
                 const totalPrice = apt.appointmentServices.reduce((sum, as) => sum + (as.price * as.quantity), 0)
                 const totalDuration = apt.appointmentServices.reduce((sum, as) => sum + (as.service.duration * as.quantity), 0)
-
                 const serviceNames = apt.appointmentServices
                     .map(as => as.quantity > 1 ? `${as.quantity}x ${as.service.name}` : as.service.name)
                     .join(' + ')
 
-                formattedApt.service = {
-                    id: 'multiple',
-                    name: serviceNames,
-                    price: totalPrice,
-                    duration: totalDuration
-                }
+                formattedApt.service = { id: 'multiple', name: serviceNames, price: totalPrice, duration: totalDuration }
             }
 
-            // Resto do código do combo...
             if (apt.combo) {
                 const comboServices = apt.combo.services.map(cs => cs.service)
                 const originalPrice = comboServices.reduce((sum, s) => sum + s.price, 0)
@@ -362,7 +390,7 @@ export async function POST(request: Request) {
 
                 ...(services?.length > 0 && {
                     appointmentServices: {
-                        create: services.map((s: any) => ({
+                        create: services.map((s: { serviceId: string; quantity?: number; price: number }) => ({
                             serviceId: s.serviceId,
                             quantity: s.quantity || 1,
                             price: s.price

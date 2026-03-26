@@ -5,10 +5,29 @@ import { prisma } from '@/lib/prisma'
 import { ADMIN_CREDENTIALS } from '@/lib/admin-auth'
 import crypto from 'crypto'
 
+// Tipos auxiliares
+type QueuePasswordResetEmailFn = (params: {
+    email: string
+    resetUrl: string
+    userName: string | null
+}) => Promise<void>
+
+type CheckRateLimitFn = (
+    key: string,
+    limit: number,
+    windowSeconds: number
+) => Promise<{ allowed: boolean; remaining: number }>
+
+type SendPasswordResetEmailFn = (params: {
+    to: string
+    resetUrl: string
+    userName: string | null
+}) => Promise<void>
+
 // Importar funções com try/catch para evitar erro em produção
-let queuePasswordResetEmail: any = null
-let checkRateLimit: any = null
-let sendPasswordResetEmail: any = null
+let queuePasswordResetEmail: QueuePasswordResetEmailFn | null = null
+let checkRateLimit: CheckRateLimitFn | null = null
+let sendPasswordResetEmail: SendPasswordResetEmailFn | null = null
 
 // Tentar importar (funciona local, falha na Vercel)
 try {
@@ -151,7 +170,7 @@ export async function POST(request: Request) {
                 email: user.email,
                 resetUrl,
                 userName: user.name,
-            }).catch((error: any) => {
+            }).catch((error: unknown) => {
                 console.error('❌ Erro ao adicionar email à fila:', error)
             })
         } else if (sendPasswordResetEmail) {
@@ -205,7 +224,7 @@ export async function POST(request: Request) {
             }),
         })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         const errorTime = Date.now() - startTime
         console.error(`❌ Erro em forgot-password (${errorTime}ms):`, error)
 

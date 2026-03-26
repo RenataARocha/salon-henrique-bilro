@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { PaymentMethod } from '@prisma/client'
 
 // ✅ Mapeia qualquer formato de pagamento para o enum correto do Prisma
 // Enum aceita: DINHEIRO | CARTAO_DEBITO | CARTAO_CREDITO | PIX | TRANSFERENCIA
@@ -80,7 +81,17 @@ export async function GET(request: Request) {
         const endDate = searchParams.get('endDate')
         const unpaidOnly = searchParams.get('unpaid') === 'true'
 
-        const where: any = {}
+        type StaffServiceWhere = {
+            staffId?: string
+            executedAt?: {
+                gte?: Date
+                lte?: Date
+                lt?: Date
+            }
+            commissionPaid?: boolean
+        }
+
+        const where: StaffServiceWhere = {}
 
         if (staffId) where.staffId = staffId
 
@@ -114,7 +125,13 @@ export async function GET(request: Request) {
             orderBy: { executedAt: 'desc' }
         })
 
-        const totals = services.reduce((acc, s) => {
+        type Totals = {
+            totalRevenue: number
+            totalCommission: number
+            count: number
+        }
+
+        const totals = services.reduce((acc: Totals, s) => {
             acc.totalRevenue += s.serviceValue
             acc.totalCommission += s.commissionValue
             acc.count += 1
@@ -123,7 +140,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({ success: true, data: services, totals })
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Erro ao listar serviços:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao listar serviços' },
@@ -132,8 +149,10 @@ export async function GET(request: Request) {
     }
 }
 
+
 // POST - Registrar novo serviço executado
 export async function POST(request: Request) {
+
     try {
         const session = await getServerSession(authOptions)
 
@@ -144,7 +163,20 @@ export async function POST(request: Request) {
             )
         }
 
-        const body = await request.json()
+        type CreateStaffServiceBody = {
+            staffId: string
+            serviceId?: string | null
+            comboId?: string | null
+            appointmentId?: string | null
+            clientName: string
+            clientPhone?: string | null
+            serviceValue: number
+            paymentMethod?: string | null
+            executedAt?: string | Date
+            notes?: string | null
+        }
+
+        const body: CreateStaffServiceBody = await request.json()
         const {
             staffId,
             serviceId: serviceIdRaw,
@@ -244,18 +276,20 @@ export async function POST(request: Request) {
         // ✅ Normaliza o método de pagamento para o enum do Prisma
         const paymentMethodNormalizado = normalizarPaymentMethod(paymentMethod)
 
-        // Criar registro
         const staffService = await prisma.staffService.create({
             data: {
                 staffId,
                 appointmentId: appointmentId || null,
-                serviceId: serviceId || null,   // opcional
-                comboId: comboId || null,   // opcional
+                serviceId: serviceId || null,
+                comboId: comboId || null,
                 clientName,
                 clientPhone: clientPhone || null,
                 serviceValue,
                 commissionValue,
-                paymentMethod: paymentMethodNormalizado as any,
+
+                // 👇 AQUI
+                paymentMethod: paymentMethodNormalizado as PaymentMethod,
+
                 executedAt: executedAt ? new Date(executedAt) : new Date(),
                 notes: notes || null
             },
@@ -276,7 +310,7 @@ export async function POST(request: Request) {
             message: 'Serviço registrado com sucesso!'
         })
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Erro ao registrar serviço:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao registrar serviço' },
@@ -297,7 +331,11 @@ export async function PATCH(request: Request) {
             )
         }
 
-        const body = await request.json()
+        type PatchBody = {
+            ids: string[]
+        }
+
+        const body: PatchBody = await request.json()
         const { ids } = body
 
         if (!Array.isArray(ids) || ids.length === 0) {
@@ -332,7 +370,7 @@ export async function PATCH(request: Request) {
             message: 'Comissões marcadas como pagas'
         })
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Erro ao marcar como pago:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao marcar como pago' },
@@ -381,7 +419,7 @@ export async function DELETE(request: Request) {
             message: 'Serviço removido com sucesso'
         })
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Erro ao remover serviço:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao remover serviço' },
@@ -427,7 +465,7 @@ async function updateMonthlyReport(staffId: string, year: number, month: number)
         })
 
         console.log(`✅ Relatório: ${staffId} ${month}/${year} | ${paidCount}/${totalServices} pagos`)
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Erro ao atualizar relatório mensal:', error)
     }
 }

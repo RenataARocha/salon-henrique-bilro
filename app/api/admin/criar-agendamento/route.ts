@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { Prisma } from '@prisma/client'
+
 
 function generateTempPassword(): string {
     return Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase()
@@ -72,11 +74,21 @@ export async function POST(req: Request) {
                 }
             })
         } else {
-            const updateData: any = {}
-            if (clientBirthDate && !user.birthDate) updateData.birthDate = new Date(clientBirthDate)
-            if (clientPhone && !user.phone) updateData.phone = clientPhone
+            const updateData: Prisma.UserUpdateInput = {}
+
+            if (clientBirthDate && !user.birthDate) {
+                updateData.birthDate = new Date(clientBirthDate)
+            }
+
+            if (clientPhone && !user.phone) {
+                updateData.phone = clientPhone
+            }
+
             if (Object.keys(updateData).length > 0) {
-                user = await prisma.user.update({ where: { id: user.id }, data: updateData })
+                user = await prisma.user.update({
+                    where: { id: user.id },
+                    data: updateData
+                })
             }
         }
 

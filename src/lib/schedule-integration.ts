@@ -4,6 +4,7 @@
 
 import { prisma } from './prisma'
 import { isHoliday as checkIsHoliday } from './holidays'
+import { Prisma } from '@prisma/client'
 
 // Tipo correto do BlockedTime (mesma estrutura do Prisma)
 interface BlockedTime {
@@ -459,7 +460,7 @@ export async function autoBlockTimesForBlockedTime(
         const dateEnd = new Date(blockedTime.date)
         dateEnd.setHours(23, 59, 59, 999)
 
-        const where: any = {
+        const where: Prisma.AppointmentWhereInput = {
             date: {
                 gte: dateStart,
                 lte: dateEnd

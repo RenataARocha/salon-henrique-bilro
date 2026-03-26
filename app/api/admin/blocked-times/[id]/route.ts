@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { Prisma } from '@prisma/client'
+
+type BlockedTimeUpdateInput = Prisma.BlockedTimeUpdateInput
 
 // ✅ CORREÇÃO: params agora é Promise no Next.js 16
 export async function DELETE(
@@ -82,7 +85,7 @@ export async function PUT(
 
         const { type, reason, description, isRecurring, date, startTime, endTime, dayOfWeek, startDate, endDate } = body
 
-        const data: any = {
+        const data: BlockedTimeUpdateInput = {
             type,
             reason,
             description: description || null,
@@ -92,7 +95,7 @@ export async function PUT(
         }
 
         if (isRecurring) {
-            data.dayOfWeek = dayOfWeek
+            data.dayOfWeek = dayOfWeek ?? null
             data.startDate = startDate ? parseDate(startDate) : null
             data.endDate = endDate ? parseDate(endDate) : null
             data.date = null

@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
+
 
 // GET - Listar todas as avaliações
 export async function GET(req: NextRequest) {
@@ -21,7 +23,7 @@ export async function GET(req: NextRequest) {
         const status = searchParams.get('status'); // PENDING, APPROVED, REJECTED
         const featured = searchParams.get('featured');
 
-        const where: any = {};
+        const where: Prisma.ReviewWhereInput = {};
 
         if (status) {
             where.status = status;
@@ -112,7 +114,7 @@ export async function PATCH(req: NextRequest) {
             );
         }
 
-        const updateData: any = {
+        const updateData: Prisma.ReviewUpdateInput = {
             moderatedBy: session.user.id,
             moderatedAt: new Date(),
             moderationNote: moderationNote || null

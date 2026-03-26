@@ -24,7 +24,13 @@ export async function GET(request: Request) {
         const startDate = searchParams.get('startDate')
         const endDate = searchParams.get('endDate')
 
-        let dateFilter: any = {}
+        type DateFilter = {
+            gte?: Date
+            lte?: Date
+            lt?: Date
+        }
+
+        let dateFilter: DateFilter = {}
 
         // Definir período
         const now = new Date()
@@ -71,7 +77,12 @@ export async function GET(request: Request) {
                 dateFilter = { gte: defaultStart }
         }
 
-        const where: any = {
+        type StaffServiceWhere = {
+            executedAt: DateFilter
+            staffId?: string
+        }
+
+        const where: StaffServiceWhere = {
             executedAt: dateFilter
         }
 
@@ -110,7 +121,24 @@ export async function GET(request: Request) {
         })
 
         // Agrupar por funcionário
-        const staffReports = services.reduce((acc: any, service) => {
+        type StaffReport = {
+            staff: {
+                id: string
+                name: string | null
+                photo: string | null
+                commissionPercent: number
+            }
+            totalServices: number
+            totalRevenue: number
+            totalCommission: number
+            commissionPaid: number
+            commissionPending: number
+            services: typeof services
+        }
+
+        type StaffReportsMap = Record<string, StaffReport>
+
+        const staffReports = services.reduce((acc: StaffReportsMap, service) => {
             const staffId = service.staff.id
 
             if (!acc[staffId]) {
@@ -121,7 +149,7 @@ export async function GET(request: Request) {
                     totalCommission: 0,
                     commissionPaid: 0,
                     commissionPending: 0,
-                    services: []
+                    services: [] as typeof services
                 }
             }
 
@@ -141,12 +169,20 @@ export async function GET(request: Request) {
         }, {})
 
         // Converter para array e ordenar por faturamento
-        const reportArray = Object.values(staffReports).sort((a: any, b: any) =>
+        const reportArray = Object.values(staffReports).sort((a: StaffReport, b: StaffReport) =>
             b.totalRevenue - a.totalRevenue
         )
 
         // Totais gerais
-        const totals = reportArray.reduce((acc: any, report: any) => {
+        type Totals = {
+            totalServices: number
+            totalRevenue: number
+            totalCommission: number
+            commissionPaid: number
+            commissionPending: number
+        }
+
+        const totals = reportArray.reduce((acc: Totals, report: StaffReport) => {
             acc.totalServices += report.totalServices
             acc.totalRevenue += report.totalRevenue
             acc.totalCommission += report.totalCommission
@@ -172,7 +208,7 @@ export async function GET(request: Request) {
             }
         })
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Erro ao gerar relatório:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao gerar relatório' },
@@ -244,7 +280,7 @@ export async function POST(request: Request) {
             message: 'Comissões marcadas como pagas!'
         })
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Erro ao marcar como pago:', error)
         return NextResponse.json(
             { success: false, error: 'Erro ao processar pagamento' },

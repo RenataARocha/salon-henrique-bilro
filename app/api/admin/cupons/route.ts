@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { notifyNewCoupon } from '@/lib/notifications'
+import { Prisma } from '@prisma/client'
 
 
 // GET - Listar todos os cupons
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
         const expired = searchParams.get('expired')
 
         const now = new Date()
-        const where: any = {}
+        const where: Prisma.CouponWhereInput = {}
 
         if (active === 'true') {
             where.active = true

@@ -54,7 +54,17 @@ interface ClientDetails {
             name: string
         }
     }>
+
+
 }
+
+type UpdateClientPayload = {
+    name: string
+    email: string
+    phone: string
+    birthDate?: string
+}
+
 
 export default function ClientDetailsModal({
     clientId,
@@ -113,7 +123,7 @@ export default function ClientDetailsModal({
     const handleSave = async () => {
         try {
             // CORREÇÃO: Preparar dados para envio
-            const dataToSend: any = {
+            const dataToSend: UpdateClientPayload = {
                 name: editForm.name,
                 email: editForm.email,
                 phone: editForm.phone

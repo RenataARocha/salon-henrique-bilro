@@ -1,6 +1,7 @@
 // lib/blocked-times-utils.ts
 
 import { prisma } from './prisma'
+import { Prisma } from '@prisma/client'
 
 interface BlockedTime {
     id: string
@@ -143,7 +144,7 @@ export async function checkBlockingConflicts(
     const dateEnd = new Date(date)
     dateEnd.setHours(23, 59, 59, 999)
 
-    const where: any = {
+    const where: Prisma.AppointmentWhereInput = {
         date: {
             gte: dateStart,
             lte: dateEnd

@@ -20,6 +20,19 @@ interface BlockedTime {
     endDate?: string
 }
 
+type BlockedTimePayload = {
+    type: string
+    reason: string
+    description?: string
+    isRecurring: boolean
+    date?: string
+    startTime?: string
+    endTime?: string
+    dayOfWeek?: number
+    startDate?: string
+    endDate?: string
+}
+
 interface Props {
     onClose: () => void
     onSuccess: () => void
@@ -145,7 +158,7 @@ export default function BlockedTimeForm({ onClose, onSuccess, editData }: Props)
         setLoading(true)
 
         try {
-            const payload: any = {
+            const payload: BlockedTimePayload = {
                 type,
                 reason: reason.trim(),
                 description: description.trim() || undefined,
