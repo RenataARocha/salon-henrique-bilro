@@ -3,6 +3,13 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { Prisma } from '@prisma/client'
+
+type BlockedTimeCreateInput = Prisma.BlockedTimeCreateInput
+type BlockedTimeUpdateInput = Prisma.BlockedTimeUpdateInput
+
+
+
 
 // ✅ Criar Date no timezone local (sem conversão UTC)
 function parseDate(dateStr: string): Date {
@@ -85,7 +92,7 @@ export async function POST(request: Request) {
         }
 
         // ✅ BLOQUEIO NORMAL (Pontual ou Recorrente)
-        const data: any = {
+        const data: BlockedTimeCreateInput = {
             type,
             reason,
             description: description || null,
@@ -104,7 +111,7 @@ export async function POST(request: Request) {
                     { status: 400 }
                 )
             }
-            data.dayOfWeek = dayOfWeek
+            data.dayOfWeek = dayOfWeek ?? null
             data.startDate = startDate ? parseDate(startDate) : null
             data.endDate = endDate ? parseDate(endDate) : null
         } else {
@@ -191,17 +198,18 @@ export async function PUT(request: Request) {
             )
         }
 
-        const data: any = {
+        const data: BlockedTimeUpdateInput = {
             type,
             reason,
             description: description || null,
             isRecurring,
             startTime: startTime || null,
-            endTime: endTime || null
+            endTime: endTime || null,
+
         }
 
         if (isRecurring) {
-            data.dayOfWeek = dayOfWeek
+            data.dayOfWeek = dayOfWeek ?? null
             data.startDate = startDate ? parseDate(startDate) : null
             data.endDate = endDate ? parseDate(endDate) : null
             data.date = null

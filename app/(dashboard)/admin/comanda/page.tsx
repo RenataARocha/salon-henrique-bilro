@@ -12,12 +12,6 @@ interface Staff {
     commissionPercent: number
 }
 
-interface Service {
-    id: string
-    name: string
-    price: number
-}
-
 interface Appointment {
     id: string
     date: string
@@ -66,6 +60,27 @@ interface StaffService {
     serviceFreeText?: string | null
 }
 
+interface CreateStaffServicePayload {
+    staffId: string
+    appointmentId: string
+    clientName: string
+    clientPhone: string
+    serviceValue: number
+    paymentMethod: string
+    executedAt: string
+    notes: string
+    serviceId?: string
+    comboId?: string
+}
+
+interface StaffGroup {
+    staff: StaffService['staff']
+    services: StaffService[]
+    totalValue: number
+    totalCommission: number
+}
+
+
 export default function ComandaPage() {
     const [staff, setStaff] = useState<Staff[]>([])
     const [todayServices, setTodayServices] = useState<StaffService[]>([])
@@ -110,7 +125,7 @@ export default function ComandaPage() {
             const data = await res.json()
 
             if (data.success) {
-                const sorted = data.data.sort((a: any, b: any) =>
+                const sorted = data.data.sort((a: StaffService, b: StaffService) =>
                     new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime()
                 )
                 setTodayServices(sorted)
@@ -134,6 +149,10 @@ export default function ComandaPage() {
         setShowModal(true)
     }
 
+    interface RegisteredService {
+        appointmentId: string | null
+    }
+
     async function loadAppointments() {
         if (!modalStaffId || !modalDate) {
             alert('Selecione funcionário e data')
@@ -152,8 +171,8 @@ export default function ComandaPage() {
 
                 const registeredAppointmentIds = new Set(
                     registeredData.data
-                        ?.filter((s: any) => s.appointmentId)
-                        .map((s: any) => s.appointmentId) || []
+                        ?.filter((s: RegisteredService) => s.appointmentId)
+                        .map((s: RegisteredService) => s.appointmentId)
                 )
 
                 const unregistered = (data.data || []).filter(
@@ -220,7 +239,7 @@ export default function ComandaPage() {
                 let paymentMethod = appointment.paymentMethod || 'DINHEIRO'
                 paymentMethod = paymentMethod.replace('_DE_', '_')
 
-                const data: any = {
+                const data: CreateStaffServicePayload = {
                     staffId: modalStaffId,
                     appointmentId: appointment.id,
                     clientName: appointment.user.name,
@@ -231,10 +250,13 @@ export default function ComandaPage() {
                     notes: getNomeServico(appointment),
                 }
 
+                // 👇 adiciona dinamicamente (isso aqui é o segredo)
+                if (appointment.service?.id) {
+                    data.serviceId = appointment.service.id
+                }
+
                 if (appointment.combo?.id) {
                     data.comboId = appointment.combo.id
-                } else if (appointment.service?.id) {
-                    data.serviceId = appointment.service.id
                 }
 
                 try {
@@ -304,7 +326,7 @@ export default function ComandaPage() {
         return 'Serviço avulso'
     }
 
-    const groupedByStaff = todayServices.reduce((acc: any, service) => {
+    const groupedByStaff = todayServices.reduce<Record<string, StaffGroup>>((acc, service) => {
         const staffName = service.staff.name
         if (!acc[staffName]) {
             acc[staffName] = {
@@ -320,7 +342,7 @@ export default function ComandaPage() {
         return acc
     }, {})
 
-    const staffGroups = Object.values(groupedByStaff)
+    const staffGroups: StaffGroup[] = Object.values(groupedByStaff)
 
     if (loading) {
         return (
@@ -462,7 +484,7 @@ export default function ComandaPage() {
                 {/* Lista agrupada por funcionário */}
                 <div className="space-y-4 sm:space-y-6 max-h-[90vh] overflow-y-auto p-2 sm:p-4">
                     {staffGroups.length > 0 ? (
-                        staffGroups.map((group: any, index) => (
+                        staffGroups.map((group: StaffGroup, index) => (
                             <motion.div
                                 key={group.staff.name}
                                 className="bg-white rounded-xl shadow-md overflow-hidden"

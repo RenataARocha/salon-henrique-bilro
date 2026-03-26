@@ -3,6 +3,38 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+type FormattedAppointment = {
+    id: string
+    date: Date
+
+    service: {
+        id: string
+        name: string
+        price: number
+        duration: number
+    } | null
+
+    combo: {
+        id: string
+        name: string
+        description: string | null
+        services: {
+            id: string
+            name: string
+            price: number
+            duration: number
+        }[]
+        originalPrice: number
+        comboPrice: number
+        discountPercent: number
+    } | null
+
+    staffName: string | null
+
+    // mantém o resto do Prisma
+    [key: string]: unknown
+}
+
 export async function GET(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions)
@@ -49,22 +81,32 @@ export async function GET(request: NextRequest) {
         })
 
         // Formatar dados
-        const formattedAppointments = appointments.map(apt => {
-            let formattedApt: any = {
-                ...apt,
-                service: apt.service || null,
+        const formattedAppointments: FormattedAppointment[] = appointments.map((apt) => {
+            const formattedApt: FormattedAppointment = {
+                id: apt.id,
+                date: apt.date,
+
+                service: apt.service
+                    ? {
+                        id: apt.service.id,
+                        name: apt.service.name,
+                        price: apt.service.price,
+                        duration: apt.service.duration
+                    }
+                    : null,
                 combo: null,
-                staffName: null // ✅ ADICIONAR campo staffName
+                staffName: null,
+
             }
 
             // ✅ SE TEM MÚLTIPLOS SERVIÇOS, CRIAR SERVICE VIRTUAL
             if (apt.appointmentServices && apt.appointmentServices.length > 0) {
                 const totalPrice = apt.appointmentServices.reduce(
-                    (sum, as) => sum + (as.price * as.quantity),
+                    (sum: number, as) => sum + (as.price * as.quantity),
                     0
                 )
                 const totalDuration = apt.appointmentServices.reduce(
-                    (sum, as) => sum + (as.service.duration * as.quantity),
+                    (sum: number, as) => sum + (as.service.duration * as.quantity),
                     0
                 )
 
@@ -87,7 +129,10 @@ export async function GET(request: NextRequest) {
 
             if (apt.combo) {
                 const comboServices = apt.combo.services.map(cs => cs.service)
-                const originalPrice = comboServices.reduce((sum, s) => sum + s.price, 0)
+                const originalPrice = comboServices.reduce(
+                    (sum: number, s) => sum + s.price,
+                    0
+                )
                 const comboPrice = originalPrice * (1 - apt.combo.discountPercent / 100)
 
                 formattedApt.combo = {
@@ -105,7 +150,10 @@ export async function GET(request: NextRequest) {
                         id: apt.combo.id,
                         name: apt.combo.name,
                         price: comboPrice,
-                        duration: comboServices.reduce((sum, s) => sum + s.duration, 0)
+                        duration: comboServices.reduce(
+                            (sum: number, s) => sum + s.duration,
+                            0
+                        )
                     }
                 }
             }

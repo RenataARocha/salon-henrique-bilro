@@ -5,13 +5,36 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+type AppointmentSafe = {
+    finalPrice?: number | null;
+    discountAmount?: number | null;
+    time: string;
+    date: Date;
+
+    service?: {
+        name: string;
+        price: number;
+    } | null;
+
+    combo?: {
+        name: string;
+        discountPercent: number;
+        services: {
+            service: {
+                name?: string;
+                price: number;
+            };
+        }[];
+    } | null;
+};
+
 // ✅ FUNÇÃO AUXILIAR PARA CALCULAR PREÇO (aceita combo)
-function getAppointmentPrice(apt: any): number {
+function getAppointmentPrice(apt: AppointmentSafe): number {
     if (apt.finalPrice) return apt.finalPrice;
 
     if (apt.combo) {
         const originalPrice = apt.combo.services.reduce(
-            (sum: number, cs: any) => sum + cs.service.price,
+            (sum: number, cs) => sum + cs.service.price,
             0
         );
         return originalPrice * (1 - apt.combo.discountPercent / 100);
@@ -23,7 +46,7 @@ function getAppointmentPrice(apt: any): number {
 }
 
 // ✅ FUNÇÃO AUXILIAR PARA PEGAR NOME DO SERVIÇO/COMBO
-function getAppointmentName(apt: any): string {
+function getAppointmentName(apt: AppointmentSafe): string {
     return apt.combo?.name || apt.service?.name || 'Serviço não identificado';
 }
 
@@ -47,7 +70,10 @@ export async function GET(req: NextRequest) {
 
         // Calcular datas
         const now = new Date();
-        let dateFilter: any = {};
+        let dateFilter: {
+            gte?: Date;
+            lte?: Date;
+        } = {};
 
         // ✅ MODO DEBUG: Se period for 'all', busca tudo
         if (period === 'all') {
@@ -215,6 +241,7 @@ export async function GET(req: NextRequest) {
                     service: true,
                     combo: {
                         select: {
+                            name: true,
                             discountPercent: true,
                             services: {
                                 include: {
@@ -354,6 +381,7 @@ async function calculateRevenue(startDate: Date, endDate: Date): Promise<number>
             service: true,
             combo: {
                 select: {
+                    name: true,
                     discountPercent: true,
                     services: {
                         include: {
