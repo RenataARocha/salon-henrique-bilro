@@ -324,13 +324,6 @@ export default function AdminAgendamentosPage() {
         fetchServices()
     }, [])
 
-
-    // NOVO useEffect
-    useEffect(() => {
-        fetchAppointments()
-        fetchServices()
-    }, [])
-
     const fetchAppointments = async () => {
         try {
             setLoading(true)
@@ -360,6 +353,7 @@ export default function AdminAgendamentosPage() {
     }
 
     const getTimeOfDay = (time: string): string => {
+        if (!time || !time.includes(':')) return 'morning' // fallback
         const hour = parseInt(time.split(':')[0])
         if (hour >= 6 && hour < 12) return 'morning'
         if (hour >= 12 && hour < 18) return 'afternoon'
@@ -625,7 +619,11 @@ export default function AdminAgendamentosPage() {
 
             return true
         })
+
         const buildDateTime = (date: string, time: string) => {
+            if (!time || !time.includes(':')) {
+                return new Date(date) // fallback sem horário
+            }
             const [hour, minute] = time.split(':')
             const d = new Date(date)
             d.setHours(Number(hour), Number(minute), 0, 0)
