@@ -24,12 +24,7 @@ interface Birthday {
     totalAppointments: number
     lastAppointment?: {
         date: string
-        service: {
-            name: string
-        } | null
-        combo: {
-            name: string
-        } | null
+        serviceName: string
     }
 }
 
