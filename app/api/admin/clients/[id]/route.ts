@@ -254,3 +254,39 @@ export async function PATCH(
         );
     }
 }
+
+export async function DELETE(
+    req: NextRequest,
+    context: { params: Promise<{ id: string }> }
+) {
+    try {
+        const session = await getServerSession(authOptions);
+
+        if (!session || session.user.role !== 'ADMIN') {
+            return NextResponse.json(
+                { success: false, error: 'Não autorizado' },
+                { status: 401 }
+            );
+        }
+
+        const params = await context.params;
+        const clientId = params.id;
+
+        await prisma.user.delete({
+            where: { id: clientId }
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: 'Cliente excluído com sucesso'
+        });
+
+    } catch (error) {
+        console.error('Erro ao excluir cliente:', error);
+
+        return NextResponse.json(
+            { success: false, error: 'Erro ao excluir cliente' },
+            { status: 500 }
+        );
+    }
+}

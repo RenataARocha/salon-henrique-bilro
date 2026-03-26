@@ -231,6 +231,30 @@ export default function ClientDetailsModal({
     const { client, stats, appointments, reviews } = data
     const clientAge = calculateAge(client.birthDate)
 
+
+    const handleDelete = async () => {
+        const confirm1 = window.confirm(`⚠️ Tem certeza que deseja excluir a cliente ${client.name}?\n\nTodos os agendamentos e dados serão removidos permanentemente.`)
+        if (!confirm1) return
+
+        const confirm2 = window.confirm(`🚨 ÚLTIMA CONFIRMAÇÃO!\n\nExcluir ${client.name} permanentemente?`)
+        if (!confirm2) return
+
+        try {
+            const res = await fetch(`/api/admin/clients/${clientId}`, { method: 'DELETE' })
+            const result = await res.json()
+
+            if (result.success) {
+                alert('✅ Cliente excluída com sucesso!')
+                if (onUpdate) onUpdate()
+                onClose()
+            } else {
+                alert('❌ ' + (result.error || 'Erro ao excluir'))
+            }
+        } catch {
+            alert('❌ Erro ao excluir cliente')
+        }
+    }
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl max-w-5xl w-full my-8">
@@ -532,6 +556,13 @@ Fico à disposição 💛`
                         Enviar WhatsApp
                     </button>
 
+                    {/* ✅ BOTÃO NOVO */}
+                    <button
+                        onClick={handleDelete}
+                        className="flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-semibold"
+                    >
+                        🗑️ Excluir Cliente
+                    </button>
                 </div>
             </div>
 

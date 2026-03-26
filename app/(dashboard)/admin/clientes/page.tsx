@@ -50,6 +50,10 @@ export default function ClientesPage() {
         fetchClients()
     }, [])
 
+    const handleRemoveClient = (id: string) => {
+        setClients(prev => prev.filter(c => c.id !== id))
+    }
+
     const fetchClients = async () => {
         try {
             setLoading(true)
@@ -552,6 +556,11 @@ export default function ClientesPage() {
                     <ClientDetailsModal
                         clientId={selectedClientId}
                         onClose={() => setSelectedClientId(null)}
+                        onUpdate={() => {
+                            handleRemoveClient(selectedClientId!)
+                            fetchClients() // opcional (garante sincronização)
+                            setSelectedClientId(null)
+                        }}
                     />
                 )
             }
