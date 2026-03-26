@@ -271,6 +271,7 @@ export async function DELETE(request: NextRequest) {
 
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')
+        const type = searchParams.get('type') // 👈 NOVO
 
         if (!id) {
             return NextResponse.json(
@@ -279,7 +280,6 @@ export async function DELETE(request: NextRequest) {
             )
         }
 
-        // ✅ Buscar cupom para verificar se é de aniversário
         const coupon = await prisma.coupon.findUnique({
             where: { id }
         })
@@ -291,32 +291,45 @@ export async function DELETE(request: NextRequest) {
             )
         }
 
-        // ✅ SE FOR CUPOM DE ANIVERSÁRIO → DELETAR PERMANENTEMENTE
-        if (coupon.code.startsWith('ANIVERSARIO-')) {
+        // 🗑️ EXCLUSÃO REAL
+        if (type === 'delete') {
+
+            // 🔒 REGRA: não deixar excluir se já foi usado
+            if (coupon.usedCount > 0) {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        message: `Este cupom já foi usado ${coupon.usedCount}x e não pode ser excluído`
+                    },
+                    { status: 400 }
+                )
+            }
+
             await prisma.coupon.delete({
                 where: { id }
             })
 
             return NextResponse.json({
                 success: true,
-                message: 'Cupom de aniversário excluído permanentemente!'
+                message: 'Cupom excluído permanentemente!'
             })
         }
 
-        // ✅ SE FOR CUPOM NORMAL → APENAS DESATIVAR
-        const deactivatedCoupon = await prisma.coupon.update({
+        // 🔘 DESATIVAR (padrão)
+        const updated = await prisma.coupon.update({
             where: { id },
             data: { active: false }
         })
 
         return NextResponse.json({
             success: true,
-            data: deactivatedCoupon,
+            data: updated,
             message: 'Cupom desativado com sucesso!'
         })
 
     } catch (error) {
         console.error('❌ Erro ao processar cupom:', error)
+
         return NextResponse.json(
             {
                 success: false,

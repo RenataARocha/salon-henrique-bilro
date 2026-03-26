@@ -194,7 +194,8 @@ export async function PATCH(
         const { status } = body
 
         const appointment = await prisma.appointment.findUnique({
-            where: { id }
+            where: { id },
+            include: { coupon: true }
         })
 
         if (!appointment) {
@@ -202,6 +203,29 @@ export async function PATCH(
                 { success: false, message: 'Agendamento não encontrado' },
                 { status: 404 }
             )
+        }
+
+
+        // 👇 ANTES DE ATUALIZAR O STATUS
+        if (
+            appointment?.couponId &&
+            appointment.status !== 'CANCELLED' &&
+            status === 'CANCELLED'
+        ) {
+            const coupon = await prisma.coupon.findUnique({
+                where: { id: appointment.couponId }
+            })
+
+            if (coupon && coupon.usedCount > 0) {
+                await prisma.coupon.update({
+                    where: { id: coupon.id },
+                    data: {
+                        usedCount: {
+                            decrement: 1
+                        }
+                    }
+                })
+            }
         }
 
         const updated = await prisma.appointment.update({
@@ -246,7 +270,8 @@ export async function DELETE(
             include: {
                 user: true,
                 service: true,
-                combo: true
+                combo: true,
+                coupon: true
             }
         })
 
@@ -259,6 +284,25 @@ export async function DELETE(
 
         const itemName = appointment.combo?.name || appointment.service?.name || 'Serviço'
 
+        // 👇 DEVOLVE O CUPOM ANTES DE DELETAR
+        if (appointment.couponId) {
+            const coupon = await prisma.coupon.findUnique({
+                where: { id: appointment.couponId }
+            })
+
+            if (coupon && coupon.usedCount > 0) {
+                await prisma.coupon.update({
+                    where: { id: coupon.id },
+                    data: {
+                        usedCount: {
+                            decrement: 1
+                        }
+                    }
+                })
+            }
+        }
+
+        // 👇 AGORA DELETA
         await prisma.appointment.delete({
             where: { id }
         })

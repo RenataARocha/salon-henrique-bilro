@@ -154,23 +154,27 @@ export default function AdminCuponsPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Tem certeza que deseja excluir este cupom?')) return;
+        if (!confirm('Tem certeza que deseja EXCLUIR permanentemente este cupom?')) return;
 
         try {
-            const response = await fetch(`/api/admin/cupons?id=${id}`, {
+            const response = await fetch(`/api/admin/cupons?id=${id}&type=delete`, {
                 method: 'DELETE'
             });
 
             const result = await response.json();
 
             if (result.success) {
-                alert(result.message || 'Cupom excluído!');
-                carregarCupons();
+                alert(result.message);
+
+                // ✅ remove da tela na hora
+                setCupons(prev => prev.filter(c => c.id !== id));
+
             } else {
-                alert(result.message || 'Erro ao excluir cupom');
+                alert(result.message);
             }
+
         } catch (error) {
-            console.error('Erro ao excluir:', error);
+            console.error(error);
             alert('Erro ao excluir cupom');
         }
     };
@@ -382,8 +386,16 @@ export default function AdminCuponsPage() {
 
                                         <button
                                             onClick={() => handleDelete(cupom.id)}
-                                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                                            title="Excluir"
+                                            disabled={cupom.usedCount > 0}
+                                            title={
+                                                cupom.usedCount > 0
+                                                    ? `Não pode excluir (já foi usado ${cupom.usedCount}x)`
+                                                    : 'Excluir permanentemente'
+                                            }
+                                            className={`p-2 rounded-lg transition-colors ${cupom.usedCount > 0
+                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                    : 'bg-red-100 text-red-600 hover:bg-red-200'
+                                                }`}
                                         >
                                             <Trash2 size={20} />
                                         </button>
