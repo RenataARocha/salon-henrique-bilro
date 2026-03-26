@@ -130,7 +130,9 @@ export async function GET(request: Request) {
             }
         })
 
-        const bookedTimes = bookedAppointments.map(apt => apt.time)
+        const bookedTimes = bookedAppointments
+            .map(apt => apt.time)
+            .filter(Boolean) // remove undefined/null
 
         // 5️⃣ Verificar se a data selecionada já passou
         const today = new Date()
@@ -173,13 +175,18 @@ export async function GET(request: Request) {
             })
 
         // 7️⃣ Se for hoje, filtrar horários que já passaram
+
         if (checkDate.getTime() === today.getTime()) {
             const now = new Date()
             const currentHour = now.getHours()
             const currentMinute = now.getMinutes()
 
             availableTimes = availableTimes.filter(time => {
-                const [hour, minute] = time.split(':').map(Number)
+                if (!time) return false // ← proteção extra
+
+                const [hour, minute] = time.split(':').map(n => Number(n))
+                if (isNaN(hour) || isNaN(minute)) return false // ← evita NaN
+
                 return (hour > currentHour) || (hour === currentHour && minute > currentMinute)
             })
         }
