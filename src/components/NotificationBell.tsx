@@ -22,6 +22,7 @@ export default function NotificationBell() {
     const [toast, setToast] = useState<Notification | null>(null)
     const spokenIds = useRef<Set<string>>(new Set())
     const isFirstLoad = useRef(true)
+    const [expandedIds, setExpandedIds] = useState<string[]>([])
 
     const cleanText = (text: string) => {
         return text
@@ -164,6 +165,14 @@ export default function NotificationBell() {
         }
     }
 
+    function toggleExpand(id: string) {
+        setExpandedIds(prev =>
+            prev.includes(id)
+                ? prev.filter(item => item !== id)
+                : [...prev, id]
+        )
+    }
+
     const readCount = notifications.filter(n => n.read).length
 
     return (
@@ -268,7 +277,10 @@ export default function NotificationBell() {
                                                 <span className="text-xl flex-shrink-0 mt-0.5">{getIcon(notification.type)}</span>
                                                 <div
                                                     className="flex-1 min-w-0 cursor-pointer"
-                                                    onClick={() => !notification.read && markAsRead(notification.id)}
+                                                    onClick={() => {
+                                                        toggleExpand(notification.id)
+                                                        if (!notification.read) markAsRead(notification.id)
+                                                    }}
                                                 >
                                                     <div className="flex items-start justify-between gap-2">
                                                         <h4 className={`font-semibold text-sm ${!notification.read ? 'text-gray-900' : 'text-gray-600'}`}>
@@ -278,7 +290,10 @@ export default function NotificationBell() {
                                                             <div className="w-2 h-2 bg-pink-500 rounded-full flex-shrink-0 mt-1" />
                                                         )}
                                                     </div>
-                                                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{notification.message}</p>
+                                                    <p className={`text-sm text-gray-600 mt-1 ${expandedIds.includes(notification.id) ? '' : 'line-clamp-2'
+                                                        }`}>
+                                                        {notification.message}
+                                                    </p>
                                                     <p className="text-xs text-gray-400 mt-1">
                                                         {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true, locale: ptBR })}
                                                     </p>
